@@ -51,7 +51,7 @@ The workflow consists of three main steps:
    - The result is the optimal operating point for the fixed circuit configuration.
 
 <p align="center">
-    <img src="images/framework.png", alt = "Framework scheme", style="max-width: 30%; height: auto;">
+    <img src="images/framework.png", alt = "Framework scheme", style="m">
 </p>
 
 ## **Working space structure**
@@ -113,15 +113,11 @@ working_space/
 |   |── flux_curve.txt
 ```
 
+The schematic of the circuit is implemented in the `user_circuit.jl` file. A scheme with the device parameters is presented below.
 
-
-## User inputs:
-
-
-
-
-
-
+<p align="center">
+    <img src="images/SchemeSNAIL.png", alt = "Scheme of the SNAIL-based JTWPA">
+</p>
 
 
 
