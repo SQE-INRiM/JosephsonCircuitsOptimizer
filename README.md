@@ -31,7 +31,7 @@ The workflow consists of three main steps:
    - The result is the optimal operating point for the fixed circuit configuration.
 
 <p align="center">
-    <img src="images/framework.png", alt = "Framework scheme">
+    <img src="images/framework.pdf", alt = "Framework scheme">
 </p>
 
 ## **Package Structure**
@@ -77,6 +77,27 @@ JCO.run()
 ## **Use case: A SNAIL-based JTWPA**
 To test the framework’s capabilities, we focus on optimizing Josephson Traveling-Wave Parametric Amplifiers (JTWPAs), nonlinear superconducting devices that amplify weak quantum signals with near-quantum-limited noise by exploiting parametric gain through Josephson junctions. Specifically, we consider a Superconducting Nonlinear Asymmetric Inductive eLement (SNAIL)-based JTWPA [5] operating in the three-wave mixing (3WM) regime [6]. The SNAIL-based design consists of unit cells, each containing a loop with multiple Josephson junctions and characterized by a rich set of device parameters.
 
+### Working space set
+```plaintext
+working_space/
+├── user_inputs/
+│   ├── device_parameters_space.json
+│   ├── drive_physical_quantities.json
+│   ├── optimizer_config.json
+│   ├── simulation_config.json
+|   |
+│   ├── user_circuit.jl
+│   ├── user_cost_and_performance.jl
+│   ├── user_parametric_sources.jl 
+│   |── user_metric_utils.jl
+|   |── flux_curve.txt
+|
+├── outputs/
+│   ├── output_YYYY-MM-DD_hh-mm-ss/
+│   │   ├── optimal_device_parameters.json
+│   │   ├── optimal_physical_quantities.json
+```
+User inputs:
 
 
 
