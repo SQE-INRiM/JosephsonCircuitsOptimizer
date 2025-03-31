@@ -30,8 +30,9 @@ The workflow consists of three main steps:
    - This step requires significant computational resources and aims to fine-tune physical quantities to maximize targeted performance (e.g., optimal gain profile).
    - The result is the optimal operating point for the fixed circuit configuration.
 
-![Framework workflow](images/framework.png)
-
+<p align="center">
+    <img src="images/framework.png", alt= "Framework scheme", width= "400">
+</p>
 
 ## **Package Structure**
 
