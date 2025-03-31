@@ -31,14 +31,13 @@ The workflow consists of three main steps:
    - The result is the optimal operating point for the fixed circuit configuration.
 
 <p align="center">
-    <img src="images/framework.pdf", alt = "Framework scheme">
+    <img src="images/framework.png", alt = "Framework scheme">
 </p>
 
-## **Package Structure**
+## **Working space Structure**
 
-JosephsonCircuitOptimizer.jl operates within an external working space containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
+[JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) operates within an external **working space** containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
 The `working_space/user_inputs` folder should contain the following files:
-
 -  `device_parameters_space.json`
 -  `drive_physical_quantities.json`
 -  `optimizer_config.json`
@@ -52,6 +51,27 @@ Simulation outputs are saved in `working_space/outputs/output_YYYY-MM-DD_hh-mm-s
 
 - `optimal_device_parameters.json`
 - `optimal_physical_quantities.json`
+
+
+The structure of the working space is the following:
+```plaintext
+working_space/
+├── user_inputs/
+│   ├── device_parameters_space.json
+│   ├── drive_physical_quantities.json
+│   ├── optimizer_config.json
+│   ├── simulation_config.json
+|   |
+│   ├── user_circuit.jl
+│   ├── user_cost_and_performance.jl
+│   ├── user_parametric_sources.jl 
+|
+├── outputs/
+│   ├── output_YYYY-MM-DD_hh-mm-ss/
+│   │   ├── optimal_device_parameters.json
+│   │   ├── optimal_physical_quantities.json
+|
+```
 
 
 ## **Installation**
@@ -74,7 +94,7 @@ JCO.run()
 
 
 
-## **Use case: A SNAIL-based JTWPA**
+# **Use case: A SNAIL-based JTWPA**
 To test the framework’s capabilities, we focus on optimizing Josephson Traveling-Wave Parametric Amplifiers (JTWPAs), nonlinear superconducting devices that amplify weak quantum signals with near-quantum-limited noise by exploiting parametric gain through Josephson junctions. Specifically, we consider a Superconducting Nonlinear Asymmetric Inductive eLement (SNAIL)-based JTWPA [5] operating in the three-wave mixing (3WM) regime [6]. The SNAIL-based design consists of unit cells, each containing a loop with multiple Josephson junctions and characterized by a rich set of device parameters.
 
 The **working space** is composed by
@@ -97,13 +117,23 @@ working_space/
 │   ├── output_YYYY-MM-DD_hh-mm-ss/
 │   │   ├── optimal_device_parameters.json
 │   │   ├── optimal_physical_quantities.json
+|
 ```
-User inputs:
+
+## User inputs:
 
 
 
 
-## **References:**
+
+
+
+
+
+
+
+
+# **References:**
 1. K. P. O'Brien and Contributors, JosephsonCircuits.jl, GitHub, 2024. [Online]. Available: https://github.com/kpobrien/JosephsonCircuits.jl
 2. S. A. Maas, "Chapter 3," in Nonlinear Microwave and RF Circuits, 2nd ed. Norwood, MA, USA: Artech House, 1997, pp. 119–212.
 3. A. Yu. Levochkina et al., "Numerical simulations of Josephson traveling wave parametric amplifiers (JTWPAs): Comparative study of open-source tools," IEEE Transactions on Applied Superconductivity, vol. 34, no. 3, pp. 1–6, May 2024, doi: 10.1109/TASC.2024.3364125.
