@@ -77,7 +77,8 @@ JCO.run()
 ## **Use case: A SNAIL-based JTWPA**
 To test the framework’s capabilities, we focus on optimizing Josephson Traveling-Wave Parametric Amplifiers (JTWPAs), nonlinear superconducting devices that amplify weak quantum signals with near-quantum-limited noise by exploiting parametric gain through Josephson junctions. Specifically, we consider a Superconducting Nonlinear Asymmetric Inductive eLement (SNAIL)-based JTWPA [5] operating in the three-wave mixing (3WM) regime [6]. The SNAIL-based design consists of unit cells, each containing a loop with multiple Josephson junctions and characterized by a rich set of device parameters.
 
-### Working space set
+The **working space** is composed by
+
 ```plaintext
 working_space/
 ├── user_inputs/
