@@ -30,7 +30,28 @@ The workflow consists of three main steps:
    - This step requires significant computational resources and aims to fine-tune physical quantities to maximize targeted performance (e.g., optimal gain profile).
    - The result is the optimal operating point for the fixed circuit configuration.
 
-![Circuit Diagram](images/circuit_diagram.png)
+![Framework workflow](images/framework.png)
+
+
+## **Package Structure**
+
+JosephsonCircuitOptimizer.jl operates within an external working space containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
+The `working_space/user_inputs` folder should contain the following files:
+
+-  `device_parameters_space.json`
+-  `drive_physical_quantities.json`
+-  `optimizer_config.json`
+-  `simulation_config.json`
+
+-  `user_circuit.jl`
+-  `user_cost_and_performance.jl`
+-  `user_parametric_sources.jl` (optional)
+
+Simulation outputs are saved in `working_space/outputs/output_YYYY-MM-DD_hh-mm-ss`, where the following files are generated:
+
+- `optimal_device_parameters.json`
+- `optimal_physical_quantities.json`
+
 
 ## **Installation**
 
@@ -49,26 +70,6 @@ Once installed, you can load the package and using it:
 import JosephsonCircuitOptimizer as JCO 
 JCO.run()
 ```
-
-
-## **Package Structure**
-
-JosephsonCircuitOptimizer.jl operates within an external working space containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
-The `working_space/user_inputs` folder should contain the following files:
-
--  `device_parameters_space.json`
--  `drive_physical_quantities.json`
--  `optimizer_config.json`
--  `simulation_config.json`
-
--  `user_circuit.jl`
--  `user_cost_and_performance.jl`
--  `user_parametric_sources.jl (optional)`
-
-Simulation outputs are saved in `working_space/outputs/output_YYYY-MM-DD_hh-mm-ss`, where the following files are generated:
-
-- `optimal_device_parameters.json`
-- `optimal_physical_quantities.json`
 
 
 
