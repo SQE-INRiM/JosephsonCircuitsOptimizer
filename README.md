@@ -31,21 +31,21 @@ The workflow consists of three main steps:
    - The result is the optimal operating point for the fixed circuit configuration.
 
 <p align="center">
-    <img src="images/framework.png", alt = "Framework scheme">
+    <img src="images/framework.png", alt = "Framework scheme", style="max-width: 80%; height: auto;">
 </p>
 
 ## **Working space Structure**
 
 [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) operates within an external **working space** containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
 The `working_space/user_inputs` folder should contain the following files:
--  `device_parameters_space.json`
--  `drive_physical_quantities.json`
--  `optimizer_config.json`
--  `simulation_config.json`
+-  `device_parameters_space.json` which contains the device parameters space to define the circuit design. 
+-  `drive_physical_quantities.json` in which you define the frequency range and sources features.
+-  `optimizer_config.json` with some configuarion of the optimization process.
+-  `simulation_config.json` with some configuarion of the simulation process.
 
--  `user_circuit.jl`
--  `user_cost_and_performance.jl`
--  `user_parametric_sources.jl` (optional)
+-  `user_circuit.jl` in which the circuit schematic is defined with a lumped-element approach.
+-  `user_cost_and_performance.jl` with the definition of the device-specific metric and the desired performan functions.
+-  `user_parametric_sources.jl` (optional). Some sources can have a parametric input that depends on device parameters. It is possible to create a file which connect the sources with these parameters.
 
 Simulation outputs are saved in `working_space/outputs/output_YYYY-MM-DD_hh-mm-ss`, where the following files are generated:
 
@@ -53,7 +53,7 @@ Simulation outputs are saved in `working_space/outputs/output_YYYY-MM-DD_hh-mm-s
 - `optimal_physical_quantities.json`
 
 
-The structure of the working space is the following:
+The structure of the **working space** is the following:
 ```plaintext
 working_space/
 ├── user_inputs/
@@ -70,7 +70,6 @@ working_space/
 │   ├── output_YYYY-MM-DD_hh-mm-ss/
 │   │   ├── optimal_device_parameters.json
 │   │   ├── optimal_physical_quantities.json
-|
 ```
 
 
@@ -117,7 +116,6 @@ working_space/
 │   ├── output_YYYY-MM-DD_hh-mm-ss/
 │   │   ├── optimal_device_parameters.json
 │   │   ├── optimal_physical_quantities.json
-|
 ```
 
 ## User inputs:
