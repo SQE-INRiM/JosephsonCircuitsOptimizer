@@ -70,7 +70,7 @@ function setup_sources()
     if isfile(user_sources_path)
         include(user_sources_path)  # This loads and executes the file
     else
-        @info "User circuit file not found at: $user_sources_path"
+        @info "No parametric sources used."
     end
 
 end
