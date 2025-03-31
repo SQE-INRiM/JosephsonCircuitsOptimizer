@@ -4,6 +4,26 @@
 
 The [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) package explores a vast range of circuit designs by combining different device parameters and applying Bayesian optimization with Gaussian processes [4]. This optimization process is driven by a device-specific metric, guiding the search for optimal circuit parameters to achieve the desired performance.
 
+## **Installation**
+
+To install the package, run the following command in Julia:
+
+```julia
+using Pkg
+Pkg.add(path="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer")
+```
+
+This will download and install the package directly from GitHub.
+
+Once installed, you can load the package and using it:
+
+```julia
+import JosephsonCircuitOptimizer as JCO 
+JCO.run()
+```
+
+
+
 ## **How It Works**
 
 To use the [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) framework, several inputs must be defined. 
@@ -31,10 +51,10 @@ The workflow consists of three main steps:
    - The result is the optimal operating point for the fixed circuit configuration.
 
 <p align="center">
-    <img src="images/framework.png", alt = "Framework scheme", style="max-width: 80%; height: auto;">
+    <img src="images/framework.png", alt = "Framework scheme", style="max-width: 30%; height: auto;">
 </p>
 
-## **Working space Structure**
+## **Working space structure**
 
 [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) operates within an external **working space** containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
 The `working_space/user_inputs` folder should contain the following files:
@@ -49,8 +69,8 @@ The `working_space/user_inputs` folder should contain the following files:
 
 Simulation outputs are saved in `working_space/outputs/output_YYYY-MM-DD_hh-mm-ss`, where the following files are generated:
 
-- `optimal_device_parameters.json`
-- `optimal_physical_quantities.json`
+- `optimal_device_parameters.json` with the optimal set of device parameters that define the circuit structure. 
+- `optimal_physical_quantities.json` with the optimal physical quantities (operating point) of the circuit structure.
 
 
 The structure of the **working space** is the following:
@@ -73,30 +93,10 @@ working_space/
 ```
 
 
-## **Installation**
-
-To install the package, run the following command in Julia:
-
-```julia
-using Pkg
-Pkg.add(path="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer")
-```
-
-This will download and install the package directly from GitHub.
-
-Once installed, you can load the package and using it:
-
-```julia
-import JosephsonCircuitOptimizer as JCO 
-JCO.run()
-```
-
-
-
 # **Use case: A SNAIL-based JTWPA**
-To test the framework’s capabilities, we focus on optimizing Josephson Traveling-Wave Parametric Amplifiers (JTWPAs), nonlinear superconducting devices that amplify weak quantum signals with near-quantum-limited noise by exploiting parametric gain through Josephson junctions. Specifically, we consider a Superconducting Nonlinear Asymmetric Inductive eLement (SNAIL)-based JTWPA [5] operating in the three-wave mixing (3WM) regime [6]. The SNAIL-based design consists of unit cells, each containing a loop with multiple Josephson junctions and characterized by a rich set of device parameters.
+To test the framework’s capabilities, we focus on optimizing Josephson Traveling-Wave Parametric Amplifiers (JTWPAs), nonlinear superconducting devices that amplify weak quantum signals with near-quantum-limited noise by exploiting parametric gain through Josephson junctions. Specifically, we consider a **Superconducting Nonlinear Asymmetric Inductive eLement (SNAIL)-based JTWPA** [5] operating in the three-wave mixing (3WM) regime [6]. The SNAIL-based design consists of unit cells, each containing a loop with multiple Josephson junctions and characterized by a rich set of device parameters.
 
-The **working space** is composed by
+The **working space** is presented in the example section. It is composed by
 
 ```plaintext
 working_space/
@@ -111,12 +111,9 @@ working_space/
 │   ├── user_parametric_sources.jl 
 │   |── user_metric_utils.jl
 |   |── flux_curve.txt
-|
-├── outputs/
-│   ├── output_YYYY-MM-DD_hh-mm-ss/
-│   │   ├── optimal_device_parameters.json
-│   │   ├── optimal_physical_quantities.json
 ```
+
+
 
 ## User inputs:
 
