@@ -113,12 +113,17 @@ working_space/
 |   |── flux_curve.txt
 ```
 
-The schematic of the circuit is implemented in the `user_circuit.jl` file. A scheme with the device parameters is presented below.
+The schematic of the circuit is implemented in the `user_circuit.jl` file. A scheme of the circuit with the device parameters is presented below.
 
 <p align="center">
     <img src="images/SchemeSNAIL.png", alt = "Scheme of the SNAIL-based JTWPA">
 </p>
 
+The SNAIL-based JTWPA consists of N macrocells. Each macrocell is composed of multiple single cells, collectively referred to as the *loading pitch*. Specifically, each macrocell contains*loading pitch*-1 identical cells, known as unloaded cells, and a single distinct cell, called the loaded cell. This structured design enables 3WM through dispersive engineering techniques.
+Each individual cell of the SNAIL-based JTWPA consists of two parallel branches. The branches of the loaded cell are
+1. The first branch contains a single small Josephson junction (JJ) characterized by a *small junction area* \(A_{\text{J}}\) and a *critical current density* \(ρ_{\text{I_{\text{c}}}}\), that toghether define the critical current \(I_{\text{c}}\) of the junction.
+2. The second branch consists of three larger Josephson junctions, whose areas areas are scaled according to the *alpha* \(α\) parameter of the SNAIL. Specifically, these JJs have an area of \(A_{\text{J}}/α\).
+The distinction between the loaded and unloaded cells is determined by two key parameters: the loading inductance \(L_{\text{l}}\) and the loading capacitance \(C_{\text{l}}\), which define the inductance ratio (or equivalently the $A_J$ ratio) and capacitance ratio between the loaded and unloaded cells.
 
 
 
