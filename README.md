@@ -6,9 +6,11 @@ The [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuit
 
 ## **How It Works**
 
-To use the [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) framework, several inputs must be defined. The **device parameters space** describes the physical parameters that define the circuit's design for fabrication. Each combination of these parameters represents a different circuit in the framework that toghether define a uniform sampling. This space is typically set by fabrication constrains.
-The **physical quantities** define the frequency range and the various signals within the circuit, such as the strong pump tones.
-The **device-specific metric** is a function used to weight every circuit configuration, defined by a set of device parameters. The **targeted performance** is the function that set the optimal working point given by precise physical quantities.
+To use the [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) framework, several inputs must be defined. 
+- The **device parameters space** describes the physical parameters that define the circuit's design for fabrication. Each combination of these parameters represents a different circuit in the framework that toghether define a uniform sampling. This space is typically set by fabrication constrains.
+- The **physical quantities** define the frequency range and the various signals within the circuit, such as the strong pump tones.
+- The **device-specific metric** is a function used to weight every circuit configuration, defined by a set of device parameters. 
+- The **targeted performance** is the function that set the optimal working point given by precise physical quantities.
 
 ### **Simulation and Optimization Process**
 The workflow consists of three main steps:
