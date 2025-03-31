@@ -31,7 +31,7 @@ The workflow consists of three main steps:
    - The result is the optimal operating point for the fixed circuit configuration.
 
 <p align="center">
-    <img src="images/framework.png", alt= "Framework scheme", width= "400">
+    <img src="images/framework.png", alt= "Framework scheme", width= "100">
 </p>
 
 ## **Package Structure**
