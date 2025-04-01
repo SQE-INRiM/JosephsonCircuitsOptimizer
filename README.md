@@ -118,7 +118,7 @@ To try the package, download the `working_space` folder from the repository and 
 You can find example scripts in the `examples/SNAIL-based JTWPA` folder, you can download it directly:  
 [Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space.zip)
 
-
+fwe
 
 ##  **The SNAIL-based JTWPA working space**
 
