@@ -54,7 +54,7 @@ The workflow consists of three main steps:
     <img src="images/framework.png", alt = "Framework scheme">
 </p>
 
-## **Working space structure**
+### **Working space structure**
 
 [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) operates within an external **working space** containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
 The `working_space/user_inputs` folder should contain the following files:
@@ -73,7 +73,7 @@ Simulation outputs are saved in `working_space/outputs/output_YYYY-MM-DD_hh-mm-s
 - `optimal_physical_quantities.json` with the optimal physical quantities (working point) of the circuit structure.
 
 
-The structure of the **working space** is the following:
+In summary, the structure of the **working space** is the following:
 ```plaintext
 working_space/
 ├── user_inputs/
@@ -211,7 +211,7 @@ In this file the maximum number of the optimizer iterations and the sample creat
 - *user_circuit* 
 
 The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuit.jl library. In our case the circuit is the following.
-The *circuitdefs* is a 
+The *circuit* Tuple is the definition of the structure of the circuit. The *circuitdefs* is a Dict with the values of the variables used inside the circuit.
 
 ```julia
 function create_user_circuit(device_params_set::Dict)
@@ -223,7 +223,6 @@ function create_user_circuit(device_params_set::Dict)
     device_params_set[:CgDensity] = (CgDielectricK * 8.854e-12) / (1e12 * device_params_set[:CgDielectricThichness] * 1e-9)
     device_params_set[:CgAreaUNLoaded] = 150 + 20 * (device_params_set[:smallJunctionArea] / device_params_set[:alphaSNAIL])
     
-    
     #CIRCUIT DEFINITIONS----------------------------------------------------
 
     JJSmallStd = 0.0            #Tra 0.05 e 0.2             # =0 -> perfect fab , 0.1 -> 10% spread
@@ -232,7 +231,6 @@ function create_user_circuit(device_params_set::Dict)
     nodePerCell = 4                   # Nodes per cell
     JosephsonCapacitanceDensity = 45  
     tandeltaCgDielectric = 2.1e-3     # Loss tangent of dielectric
-
 
     @variables Rleft Rright Cg Lj Cj alpha Lloading Cgloading M Ladd Lf Cf Lg
 
@@ -256,9 +254,6 @@ function create_user_circuit(device_params_set::Dict)
     )
 
 
-
-
-
     #CIRCUIT STRUCTURE-------------------------------------------------------------
 
     circuit = Tuple{String,String,String,Num}[]
@@ -271,7 +266,6 @@ function create_user_circuit(device_params_set::Dict)
     randomSeedSmall1 = 1 + JJSmallStd*randn(rngSmall1, Float64)
     rngBig1 = MersenneTwister(1);
     randomSeedBig1 = 1 + JJBigStd*randn(rngBig1, Float64)
-
 
     #AC line---------------------------------------------------
     #first cell------------------------------------------------
@@ -301,7 +295,6 @@ function create_user_circuit(device_params_set::Dict)
         local randomSeedSmall1 = 1+JJSmallStd*randn(rngSmall, Float64)
         local rngBig1 = MersenneTwister((i+1)*j+1);
         local randomSeedBig1 = 1+JJBigStd*randn(rngBig1, Float64)
-
 
         if mod(i,loadingpitch)+1 == loadingpitch÷2            
 
@@ -348,10 +341,8 @@ function create_user_circuit(device_params_set::Dict)
 
     #AC port on the output side
     push!(circuit,("P$(0)_$(j)","$(0)","$(j)", 2))
-
     
     #END AC line--------------------------------------------------------------------------------------
-
 
     #DC line------------------------------------------------------------------------------------------
 
@@ -360,7 +351,6 @@ function create_user_circuit(device_params_set::Dict)
     push!(circuit,("P$(dcOffs+1)_$(0)","$(dcOffs+1)","$(0)",3))
     push!(circuit,("R$(dcOffs+1)_$(0)","$(dcOffs+1)","$(0)",Rleft))
 
-    
     #first cell---------------------------------------------------------------------------------------
     push!(circuit,("C$(dcOffs+1)_$(0)","$(dcOffs+1)","$(0)",Cf/2))                                          #DC line capacitance in the first cell
     push!(circuit,("L$(dcOffs+1)_$(dcOffs+2)","$(dcOffs+1)","$(dcOffs+2)",Lf))                              #DC line inductance in the first cell
