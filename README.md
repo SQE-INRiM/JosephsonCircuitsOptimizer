@@ -111,6 +111,17 @@ Additionally, the cell is connected to ground through a gate capacitance, which 
 The distinction between the loaded and unloaded cells is determined by two key parameters: the loading inductance $L_{\text{l}}$ and the loading capacitance $C_{\text{l}}$, which define the inductance ratio (or equivalently the $A_{\text{J}}$ ratio) and capacitance ratio between the loaded and unloaded cells.
 The phase differences across the small junction and the large junctions are related to an external magnetic flux. This is given by a flux line that delivers a DC current.  
 
+## ** Running the example **
+
+To try the package, download the `working_space` folder from the repository and place it in your working directory.
+
+You can find example scripts in the `examples/` folder. If you want to provide a direct **download link**, you can use GitHub's raw content:  
+
+```markdown
+[Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space/user_inputs)
+```
+
+
 ##  **The SNAIL-based JTWPA working space**
 
 The **working space** is presented in the example section. It is composed by
@@ -151,7 +162,7 @@ The SNAIL parameters are defined inside specific range given by the fab constrai
 
 - *drive_physical_quantities*
 
-The frequency range in which the device is investigated and the sources are set inside the `drive_physical_quantities.json` file. The frequency range is set between 0.1 and 20 GHz. The sources are two, the first one works as the flux line, it is a CW sources ("source_1_frequency": 0) passing through the port number 3 of the circuit. The amplitude 
+The frequency range in which the device is investigated and the sources are set inside the `drive_physical_quantities.json` file. The frequency range is set between 0.1 and 20 GHz. The sources are two, the first one works as the flux line, it is a CW sources ("source_1_frequency": 0) passing through the port number 3 of the circuit. The amplitude of the current of this sources depends on a device parameter which is define inside the user_parametric_sources.jl*calculate_source_1_amplitude* in the `user_parametric_sources.jl` file.
 The second source is a pump signal at 14 GHz with a small amplitude for the linear simulation, to keep it low time consuming.
 
 ```plaintext
@@ -198,13 +209,13 @@ In this file the maximum number of the optimizer iterations and the sample creat
 
 - *user_circuit* 
 
-The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuit.jl library. In our case the circuit is in the example section: [Circuit](examples\SNAIL-based JTWPA\working_space\user_inputs\user_circuit.jl)
+The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuit.jl library. In our case the circuit is in the example section: [Circuit](examples\SNAIL-based JTWPA\working_space\user_inputs)
 
-- *user_cost_and_performance.jl*
+- *user_cost_and_performance*
 
-The device-specific metric is defined inside the `user_cost` function and depends on the S parameters of the linear simulation. It is possible to implement a mask to exclude some configurations. In this example the metric is defined to ensures impedance and phase matching based on the dispersion relation.
+The **device-specific metric** is defined inside the *user_cost* function and depends on the S parameters of the linear simulation. It is possible to implement a mask to exclude some configurations. In this example the metric is defined to ensures impedance and phase matching based on the dispersion relation.
 
-```plaintext
+```julia
 function user_cost(S, Sphase, device_params_temp)
 
     println("-----------------------------------------------------")
@@ -247,18 +258,84 @@ function user_cost(S, Sphase, device_params_temp)
         
 end
 ```
+Some functions useful for the metric and performance definitions are implemented inside the `user_metric_utils.jl` file. In this case the function *S_values* that extract the value of the S parameters at a define frequency is define there. 
 
-The targeted performance is defined inside the `user_performance` function and depends on the solution of the hbsolve function of the nonlinear simulation.
+The **targeted performance** is defined inside the *user_performance* function and depends on the solution of the hbsolve function of the nonlinear simulation.
 In our case the performance is define to achieve a broadband gain profile.
 
+```julia
+function user_performance(sol)
+    num_k = length(sim_vars[:source_1_non_linear_amplitude])
+    num_j = length(sim_vars[:source_2_non_linear_amplitude])
 
-Some functions useful for the metric and performance definitions are implemented inside the ` user_metric_utils.jl` file.
+    best_max_value = -Inf
+    best_k = 0
+    best_j = 0
 
+    # Iterate over all combinations of k and j
+    for (k, j) in Iterators.product(1:num_k, 1:num_j)
 
-- *user_parametric_sources.jl*
+        # Extract solutions for all frequencies for the combination (k, j)
+        sol_kj = sol[:, k, j]  # This should be an array or vector
 
+        # Extract and convert S21 values for all frequencies
+        S21_values = [s_kj.linearized.S((0,), 2, (0,), 1, :) for s_kj in sol_kj]
+        
+        # Debugging: Check type and values of S21_values
+        println("S21_values ", typeof(S21_values))
+        
+        # Convert S21 values to an array and compute maximum absolute value
+        max_val = maximum(abs.(reduce(vcat, S21_values)))  # Flatten and compute max
 
+        # Update best maximum value and combination
+        if max_val > best_max_value
+            best_max_value = max_val
+            best_k = k
+            best_j = j
+        end
+    end
 
+    # Extract the best amplitudes based on best_k and best_j
+    best_source_1_amplitude = sim_vars[:source_1_non_linear_amplitude][best_k]
+    best_source_2_amplitude = sim_vars[:source_2_non_linear_amplitude][best_j]
+
+    # Output the results
+    println("Best combination: k = $best_k, j = $best_j")
+    println("Best source 1 amplitude: $best_source_1_amplitude")
+    println("Best source 2 amplitude: $best_source_2_amplitude")
+    println("Best max value: $best_max_value")
+
+    return [best_source_1_amplitude, best_source_2_amplitude]
+
+end
+```
+The simulation parameters inside the `drive_physical_quantities.json`, `simulation_config.json` and `optimizer_config.json` are accessible to the dictionary sim_vars.
+
+- *user_parametric_sources*
+
+In this case the amplitude of the source 1, that represent the flux line of the JTWPA, depends on the alpha value of the SNAIL to achieve the optimal 3WM of the device. The relation between the alpha and the flux values is reported inside the `flux_curve.txt` file. In this file is defined this parametric value from the txt file.
+
+```julia
+using ..Config
+
+path = joinpath(config.user_inputs_dir, "flux_curve.txt") 
+lines = readlines(path)
+alpha_flux_map = map(line -> round(parse(Float64, split(line, ",")[1]), digits=2), lines)
+flux_map = map(line -> round(parse(Float64, split(line, ",")[2]), digits=2), lines)
+global interp_alpha_flux = linear_interpolation(alpha_flux_map, flux_map, extrapolation_bc=Flat())
+
+function find_flux_from_alpha(alpha)
+    return interp_alpha_flux(alpha)
+end
+
+function calculate_source_1_amplitude(device_params_set::Dict)
+    phidc = find_flux_from_alpha(device_params_set[:alphaSNAIL]) 
+    source_1_amplitude = phidc * (2 * 280 * 1e-6)
+    return source_1_amplitude
+end
+```
+
+Note that to join the correct path you have to import the correct directory: config.user_inputs_dir.
 
 # **References:**
 1. K. P. O'Brien and Contributors, JosephsonCircuits.jl, GitHub, 2024. [Online]. Available: https://github.com/kpobrien/JosephsonCircuits.jl
