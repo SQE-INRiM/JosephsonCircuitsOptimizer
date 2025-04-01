@@ -157,7 +157,7 @@ The SNAIL parameters are defined inside specific range given by the fab constrai
     "LloadingCell": { "start": 1.5, "step": 0.5, "stop": 2 },
     "CgloadingCell": { "start": 1, "step": 0.5, "stop": 1.5 },
     "criticalCurrentDensity": { "start": 0.9, "step": 0.1, "stop": 1 },
-    "CgDielectricThichness": { "start": 79, "step": 1, "stop": 80 }
+    "CgDielectricThickness": { "start": 79, "step": 1, "stop": 80 }
 }
 ```
 
@@ -503,7 +503,7 @@ end
 
 Note that to join the correct path you have to import the correct directory: config.user_inputs_dir.
 
-# **License**
+# **License:**
 This project is licensed under the [MIT License](LICENSE.md).
 
 # **References:**
