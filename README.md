@@ -144,7 +144,7 @@ working_space/
 
 The user_inputs are presented below.
 
-- *device_parameters_space*
+- *device_parameters_space.json*
 
 The SNAIL parameters are defined inside specific range given by the fab constraints, including lithography resolution and deposition, and growth of thin films (e.g., Al-AlOx). The space formed by these parameters is defined insede the  `device_parameters_space.json`. An example of this file is shown below.
 
@@ -161,9 +161,9 @@ The SNAIL parameters are defined inside specific range given by the fab constrai
 }
 ```
 
-- *drive_physical_quantities*
+- *drive_physical_quantities.json*
 
-The frequency range in which the device is investigated and the sources are set inside the `drive_physical_quantities.json` file. The frequency range is set between 0.1 and 20 GHz. The sources are two, the first one works as the flux line, it is a CW sources ("source_1_frequency": 0) passing through the port number 3 of the circuit. The amplitude of the current of this sources depends on a device parameter which is define inside the user_parametric_sources.jl*calculate_source_1_amplitude* in the `user_parametric_sources.jl` file.
+The frequency range in which the device is investigated and the sources are set inside the `drive_physical_quantities.json` file. The frequency range is set between 0.1 and 20 GHz. The sources are two, the first one works as the flux line, it is a CW sources ("source_1_frequency": 0) passing through the port number 3 of the circuit. The amplitude of the current of this sources depends on a device parameter which is define in the *calculate_source_1_amplitude* inside the `user_parametric_sources.jl` file.
 The second source is a pump signal at 14 GHz with a small amplitude for the linear simulation, to keep it low time consuming.
 
 ```plaintext
@@ -183,7 +183,7 @@ The second source is a pump signal at 14 GHz with a small amplitude for the line
 }
 ```
 
-- *simulation_config*
+- *simulation_config.json*
 
 In this file some functionaliity of the hbsolver function of the JosephsonCircuit.jl library are set. For the linear simulation the strong tone strong tone harmonics and the modulation harmonics are keept small to reduce the time consumption.
 
@@ -197,7 +197,7 @@ In this file some functionaliity of the hbsolver function of the JosephsonCircui
 }
 ```
 
-- *optimizer_config*
+- *optimizer_config.json*
 
 In this file the maximum number of the optimizer iterations and the sample created for every iteration in the optimization process are set.
 
@@ -208,7 +208,7 @@ In this file the maximum number of the optimizer iterations and the sample creat
 }
 ```
 
-- *user_circuit* 
+- *user_circuit.jl* 
 
 The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuit.jl library. In our case the circuit is the following.
 The *circuit* Tuple is the definition of the structure of the circuit. The *circuitdefs* is a Dict with the values of the variables used inside the circuit.
@@ -377,7 +377,7 @@ function create_user_circuit(device_params_set::Dict)
 end
 ```
 
-- *user_cost_and_performance*
+- *user_cost_and_performance.jl*
 
 The **device-specific metric** is defined inside the *user_cost* function and depends on the S parameters of the linear simulation. It is possible to implement a mask to exclude some configurations. In this example the metric is defined to ensures impedance and phase matching based on the dispersion relation.
 
@@ -477,7 +477,7 @@ end
 ```
 The simulation parameters inside the `drive_physical_quantities.json`, `simulation_config.json` and `optimizer_config.json` are accessible to the dictionary sim_vars.
 
-- *user_parametric_sources*
+- *user_parametric_sources.jl*
 
 In this case the amplitude of the source 1, that represent the flux line of the JTWPA, depends on the alpha value of the SNAIL to achieve the optimal 3WM of the device. The relation between the alpha and the flux values is reported inside the `flux_curve.txt` file. In this file is defined this parametric value from the txt file.
 
