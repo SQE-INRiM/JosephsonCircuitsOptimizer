@@ -119,7 +119,7 @@ You can find example scripts in the `examples/SNAIL-based JTWPA` folder, you can
 
 Unzip the folder and place it in your working directory. If you have already install the package, you can run: 
 ```julia
-import JosephsonCircuitOptimizer as JCO 
+import JosephsonCircuitsOptimizer as JCO 
 JCO.run()
 ```
 
