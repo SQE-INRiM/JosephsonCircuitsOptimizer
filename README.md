@@ -96,6 +96,23 @@ working_space/
 # **Use case: A SNAIL-based JTWPA**
 To test the framework’s capabilities, we focus on optimizing Josephson Traveling-Wave Parametric Amplifiers (JTWPAs), nonlinear superconducting devices that amplify weak quantum signals with near-quantum-limited noise by exploiting parametric gain through Josephson junctions. Specifically, we consider a **Superconducting Nonlinear Asymmetric Inductive eLement (SNAIL)-based JTWPA** [5] operating in the three-wave mixing (3WM) regime [6]. The SNAIL-based design consists of unit cells, each containing a loop with multiple Josephson junctions and characterized by a rich set of device parameters.
 
+A scheme of the circuit with the device parameters is presented below.
+
+<p align="center">
+    <img src="images/SchemeSNAIL.png", alt = "Scheme of the SNAIL-based JTWPA">
+</p>
+
+The SNAIL-based JTWPA consists of *N* macrocells. Each macrocell is composed of multiple single cells, collectively referred to as the *loading pitch*. Specifically, each macrocell contains *loading pitch*-1 identical cells, known as unloaded cells, and a single distinct cell, called the loaded cell. This structured design enables 3WM through dispersive engineering techniques.
+Each individual cell of the SNAIL-based JTWPA consists of two parallel branches. The branches of the loaded cell are
+1. The first branch contains a single small Josephson junction (JJ) characterized by a *small junction area* $A_{\text{J}}$ and a *critical current density* $ρ_{\text{Ic}}$, that toghether define the critical current $I_{\text{c}}$ of the junction.
+2. The second branch consists of three larger Josephson junctions, whose areas areas are scaled according to the *alpha* α parameter of the SNAIL. Specifically, these JJs have an area of $A_{\text{J}}/α$.
+
+Additionally, the cell is connected to ground through a gate capacitance, which value is given by the *dielectric thickness* $t$ between the capacitor plates.
+The distinction between the loaded and unloaded cells is determined by two key parameters: the loading inductance $L_{\text{l}}$ and the loading capacitance $C_{\text{l}}$, which define the inductance ratio (or equivalently the $A_{\text{J}}$ ratio) and capacitance ratio between the loaded and unloaded cells.
+The phase differences across the small junction and the large junctions are related to an external magnetic flux. This is given by a flux line that delivers a DC current.  
+
+##  **The SNAIL-based JTWPA working space**
+
 The **working space** is presented in the example section. It is composed by
 
 ```plaintext
@@ -113,22 +130,7 @@ working_space/
 |   |── flux_curve.txt
 ```
 
-A scheme of the circuit with the device parameters is presented below.
-
-<p align="center">
-    <img src="images/SchemeSNAIL.png", alt = "Scheme of the SNAIL-based JTWPA">
-</p>
-
-The SNAIL-based JTWPA consists of *N* macrocells. Each macrocell is composed of multiple single cells, collectively referred to as the *loading pitch*. Specifically, each macrocell contains *loading pitch*-1 identical cells, known as unloaded cells, and a single distinct cell, called the loaded cell. This structured design enables 3WM through dispersive engineering techniques.
-Each individual cell of the SNAIL-based JTWPA consists of two parallel branches. The branches of the loaded cell are
-1. The first branch contains a single small Josephson junction (JJ) characterized by a *small junction area* $A_{\text{J}}$ and a *critical current density* $ρ_{\text{Ic}}$, that toghether define the critical current $I_{\text{c}}$ of the junction.
-2. The second branch consists of three larger Josephson junctions, whose areas areas are scaled according to the *alpha* $α$ parameter of the SNAIL. Specifically, these JJs have an area of $A_{\text{J}}/α$.
-
-Additionally, the cell is connected to ground through a gate capacitance, which value is given by the *dielectric thickness* $t$ between the capacitor plates.
-The distinction between the loaded and unloaded cells is determined by two key parameters: the loading inductance $L_{\text{l}}$ and the loading capacitance $C_{\text{l}}$, which define the inductance ratio (or equivalently the $A_{\text{J}}$ ratio) and capacitance ratio between the loaded and unloaded cells.
-The phase differences across the small junction and the large junctions are related to an external magnetic flux. This is given by a flux line that delivers a CW current.  
-
-##  **The SNAIL-based JTWPA working space**
+The user_inputs are presented below.
 
 - *device_parameters_space*
 
@@ -196,9 +198,65 @@ In this file the maximum number of the optimizer iterations and the sample creat
 
 - *user_circuit* 
 
-The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuit.jl library. In our case the circuit is in the example section: [Circuit](examples\SNAIL-based JTWPA\working_space\user_inputs.jl)
+The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuit.jl library. In our case the circuit is in the example section: [Circuit](examples\SNAIL-based JTWPA\working_space\user_inputs\user_circuit.jl)
 
 - *user_cost_and_performance.jl*
+
+The device-specific metric is defined inside the `user_cost` function and depends on the S parameters of the linear simulation. It is possible to implement a mask to exclude some configurations. In this example the metric is defined to ensures impedance and phase matching based on the dispersion relation.
+
+```plaintext
+function user_cost(S, Sphase, device_params_temp)
+
+    println("-----------------------------------------------------")
+
+    # USER CONDITION-------------------------------------------------
+
+    maxS11band, meanS11band = S_values(S[(1,1)], [6e9,8e9])
+
+    S11pump = S_values(S[(1,1)], 14e9)
+    S21pump = S_values(S[(2,1)], 14e9)
+
+    S21phaseBand = S_values(Sphase[(2,1)], 7e9; phase=true)
+    S21phasePump = S_values(Sphase[(2,1)], 14e9; phase=true)
+
+    deltaK = abs((S21phasePump-2*S21phaseBand)/device_params_temp[:N])
+
+    #----------------------------------------------------------------
+    
+    # MASK (if necessary)
+
+    input_mask = (
+        meanS11band = meanS11band,
+        S11pump     = S11pump,
+        S21pump     = S21pump,
+        deltaK      = deltaK
+    )
+
+    conditions_mask = x -> x.meanS11band < -20 && x.S11pump < -10 && x.S21pump > -4 && x.deltaK < 0.15
+
+    # Apply the mask
+    if mask(input_mask, conditions_mask) return 1e8 end 
+    
+    #---------------------------------------------------------------
+
+    # METRIC DEFINITION
+    
+    metric = (1e2/(abs(maxS11band)))
+    
+    return metric
+        
+end
+```
+
+The targeted performance is defined inside the `user_performance` function and depends on the solution of the hbsolve function of the nonlinear simulation.
+In our case the performance is define to achieve a broadband gain profile.
+
+
+Some functions useful for the metric and performance definitions are implemented inside the ` user_metric_utils.jl` file.
+
+
+- *user_parametric_sources.jl*
+
 
 
 
