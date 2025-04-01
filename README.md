@@ -118,7 +118,7 @@ To try the package, download the `working_space` folder from the repository and 
 You can find example scripts in the `examples/` folder. If you want to provide a direct **download link**, you can use GitHub's raw content:  
 
 ```markdown
-[Download working_space](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space)
+[Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space.zip)
 ```
 
 
