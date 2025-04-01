@@ -115,11 +115,9 @@ The phase differences across the small junction and the large junctions are rela
 
 To try the package, download the `working_space` folder from the repository and place it in your working directory.
 
-You can find example scripts in the `examples/` folder. If you want to provide a direct **download link**, you can use GitHub's raw content:  
-
-```markdown
+You can find example scripts in the `examples/SNAIL-based JTWPA` folder, you can download it directly:  
 [Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space.zip)
-```
+
 
 
 ##  **The SNAIL-based JTWPA working space**
