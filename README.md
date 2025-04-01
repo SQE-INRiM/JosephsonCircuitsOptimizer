@@ -70,7 +70,7 @@ The `working_space/user_inputs` folder should contain the following files:
 Simulation outputs are saved in `working_space/outputs/output_YYYY-MM-DD_hh-mm-ss`, where the following files are generated:
 
 - `optimal_device_parameters.json` with the optimal set of device parameters that define the circuit structure. 
-- `optimal_physical_quantities.json` with the optimal physical quantities (operating point) of the circuit structure.
+- `optimal_physical_quantities.json` with the optimal physical quantities (working point) of the circuit structure.
 
 
 The structure of the **working space** is the following:
@@ -113,21 +113,26 @@ working_space/
 |   |── flux_curve.txt
 ```
 
-The schematic of the circuit is implemented in the `user_circuit.jl` file. A scheme of the circuit with the device parameters is presented below.
+A scheme of the circuit with the device parameters is presented below.
 
 <p align="center">
     <img src="images/SchemeSNAIL.png", alt = "Scheme of the SNAIL-based JTWPA">
 </p>
 
-The SNAIL-based JTWPA consists of *N* macrocells. Each macrocell is composed of multiple single cells, collectively referred to as the *loading pitch*. Specifically, each macrocell contains*loading pitch*-1 identical cells, known as unloaded cells, and a single distinct cell, called the loaded cell. This structured design enables 3WM through dispersive engineering techniques.
+The SNAIL-based JTWPA consists of *N* macrocells. Each macrocell is composed of multiple single cells, collectively referred to as the *loading pitch*. Specifically, each macrocell contains *loading pitch*-1 identical cells, known as unloaded cells, and a single distinct cell, called the loaded cell. This structured design enables 3WM through dispersive engineering techniques.
 Each individual cell of the SNAIL-based JTWPA consists of two parallel branches. The branches of the loaded cell are
 1. The first branch contains a single small Josephson junction (JJ) characterized by a *small junction area* $A_{\text{J}}$ and a *critical current density* $ρ_{\text{Ic}}$, that toghether define the critical current $I_{\text{c}}$ of the junction.
 2. The second branch consists of three larger Josephson junctions, whose areas areas are scaled according to the *alpha* $α$ parameter of the SNAIL. Specifically, these JJs have an area of $A_{\text{J}}/α$.
 
 Additionally, the cell is connected to ground through a gate capacitance, which value is given by the *dielectric thickness* $t$ between the capacitor plates.
 The distinction between the loaded and unloaded cells is determined by two key parameters: the loading inductance $L_{\text{l}}$ and the loading capacitance $C_{\text{l}}$, which define the inductance ratio (or equivalently the $A_{\text{J}}$ ratio) and capacitance ratio between the loaded and unloaded cells.
+The phase differences across the small junction and the large junctions are related to an external magnetic flux. This is given by a flux line that delivers a CW current.  
 
-These parameters are defined inside specific rangwa given by the fab constraints, including lithography resolution and deposition and growth of thin films (e.g., Al-AlOx). The space formed by these parameters is defined insede the  `device_parameters_space.json`. An example of this file is shown below.
+##  **The SNAIL-based JTWPA working space**
+
+- *device_parameters_space*
+
+The SNAIL parameters are defined inside specific range given by the fab constraints, including lithography resolution and deposition, and growth of thin films (e.g., Al-AlOx). The space formed by these parameters is defined insede the  `device_parameters_space.json`. An example of this file is shown below.
 
 ```plaintext
 {
@@ -142,9 +147,58 @@ These parameters are defined inside specific rangwa given by the fab constraints
 }
 ```
 
+- *drive_physical_quantities*
 
+The frequency range in which the device is investigated and the sources are set inside the `drive_physical_quantities.json` file. The frequency range is set between 0.1 and 20 GHz. The sources are two, the first one works as the flux line, it is a CW sources ("source_1_frequency": 0) passing through the port number 3 of the circuit. The amplitude 
+The second source is a pump signal at 14 GHz with a small amplitude for the linear simulation, to keep it low time consuming.
 
+```plaintext
+{
+    "frequency_range": { "start": 0.1e9, "step": 0.1e9, "stop": 20.0e9 },
 
+    "source_1_on_port": 3,
+    "source_1_frequency": 0,
+    "source_1_linear_amplitude": "calculate_source_1_amplitude",
+    "source_1_non_linear_amplitude": { "start": 0, "step": 5.6e-6, "stop": 5.6e-6 },
+
+    "source_2_on_port": 1,
+    "source_2_frequency": 14e9,
+    "source_2_linear_amplitude": 0.00001e-6,
+    "source_2_non_linear_amplitude": { "start": 0, "step": 0.1e-6, "stop": 0.1e-6 }
+
+}
+```
+
+- *simulation_config*
+
+In this file some functionaliity of the hbsolver function of the JosephsonCircuit.jl library are set. For the linear simulation the strong tone strong tone harmonics and the modulation harmonics are keept small to reduce the time consumption.
+
+```plaintext
+{
+    "linear_strong_tone_harmonics": 1,
+    "linear_modulation_harmonics": 1,
+    "nonlinear_strong_tone_harmonics": 8,
+    "nonlinear_modulation_harmonics": 4,
+    "max_simulator_iterations": 500
+}
+```
+
+- *optimizer_config*
+
+In this file the maximum number of the optimizer iterations and the sample created for every iteration in the optimization process are set.
+
+```plaintext
+{
+    "max_optimizer_iterations": 3,
+    "new_samples_per_optimizer_iteration": 5
+}
+```
+
+- *user_circuit* 
+
+The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuit.jl library. In our case the circuit is in the example section: [Circuit](examples\SNAIL-based JTWPA\working_space\user_inputs.jl)
+
+- *user_cost_and_performance.jl*
 
 
 
