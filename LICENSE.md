@@ -1,6 +1,6 @@
-The JosephsonCircuitOptimizer.jl package is under the MIT "Expact" License:
+The JosephsonCircuitsOptimizer.jl package is under the MIT "Expact" License:
 
-> Copyright (c) 2025 Emanuele Palumbo and Contributors
+> Copyright (c) 2025 Emanuele Palumbo and contributors
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
