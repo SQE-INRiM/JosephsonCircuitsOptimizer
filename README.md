@@ -111,14 +111,14 @@ Additionally, the cell is connected to ground through a gate capacitance, which 
 The distinction between the loaded and unloaded cells is determined by two key parameters: the loading inductance $L_{\text{l}}$ and the loading capacitance $C_{\text{l}}$, which define the inductance ratio (or equivalently the $A_{\text{J}}$ ratio) and capacitance ratio between the loaded and unloaded cells.
 The phase differences across the small junction and the large junctions are related to an external magnetic flux. This is given by a flux line that delivers a DC current.  
 
-## ** Running the example **
+## **Running the example**
 
 To try the package, download the `working_space` folder from the repository and place it in your working directory.
 
 You can find example scripts in the `examples/` folder. If you want to provide a direct **download link**, you can use GitHub's raw content:  
 
 ```markdown
-[Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space/user_inputs)
+[Download working_space](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space)
 ```
 
 
