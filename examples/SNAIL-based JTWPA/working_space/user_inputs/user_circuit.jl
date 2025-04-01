@@ -2,7 +2,7 @@
 
 # Definition of a SNAIL-based TWPA circuit
 
-function create_user_circuit(device_params_set; verbose::Bool=false)
+function create_user_circuit(device_params_set::Dict)
 
     CgDielectricK = 9.6
 
@@ -55,12 +55,6 @@ function create_user_circuit(device_params_set; verbose::Bool=false)
     push!(circuit,("P$(1)_$(0)","1","0", 1))
     push!(circuit,("R$(1)_$(0)","1","0",Rleft))
 
-    if verbose
-        println("Port 1 created")
-        println("AC Node $(0) created")
-        println("AC Node $(1) created")
-    end
-
     rngSmall1 = MersenneTwister(1);
     randomSeedSmall1 = 1 + JJSmallStd*randn(rngSmall1, Float64)
     rngBig1 = MersenneTwister(1);
@@ -83,12 +77,6 @@ function create_user_circuit(device_params_set; verbose::Bool=false)
     push!(circuit,("C$(1)_$(4)","1","4",Cj/(randomSeedSmall1)))                             # Small JJ capacitance 
 
     push!(circuit,("L$(4)_$(5)","4","5",Ladd))                                              # Loop inductance for flux bias
-
-    if verbose
-        println("1: UNLoaded cell")
-        #println("AC Node 2 created")
-        #println("AC Node 3 created")
-    end
 
     N=round(Int, device_params_set[:N])
     loadingpitch=round(Int, device_params_set[:loadingpitch])
@@ -118,10 +106,6 @@ function create_user_circuit(device_params_set; verbose::Bool=false)
             push!(circuit,("C$(j)_$(j+3)","$(j)","$(j+3)",((1/Lloading)*Cj)/randomSeedSmall1))                          # Small JJ capacitance 
         
             push!(circuit,("L$(j+3)_$(j+4)","$(j+3)","$(j+4)",Ladd))                                                    # Loop inductance for flux bias
-            
-            if verbose
-                println("$(i): Loaded cell")                                                                            # Loop inductance for flux bias
-            end
 
         else
 
@@ -138,18 +122,9 @@ function create_user_circuit(device_params_set; verbose::Bool=false)
             push!(circuit,("C$(j)_$(j+3)","$(j)","$(j+3)",Cj/randomSeedSmall1))                                         # Small JJ capacitance 
         
             push!(circuit,("L$(j+3)_$(j+4)","$(j+3)","$(j+4)",Ladd))                                                    # Loop inductance for flux bias
-            
-            if verbose
-                println("$(i): UNLoaded cell")                                                                          # Loop inductance for flux bias
-            end
 
         end
 
-        if verbose
-            #println("AC Node j+1=$(j+1) created")
-            #println("AC Node j+2=$(j+2) created")
-        end
-        
         # increment the index
         j = j+nodePerCell
 
@@ -161,10 +136,7 @@ function create_user_circuit(device_params_set; verbose::Bool=false)
 
     #AC port on the output side
     push!(circuit,("P$(0)_$(j)","$(0)","$(j)", 2))
-    
-    if verbose
-        println("Port 2 created")
-    end
+
     
     #END AC line--------------------------------------------------------------------------------------
 
@@ -176,38 +148,18 @@ function create_user_circuit(device_params_set; verbose::Bool=false)
     push!(circuit,("P$(dcOffs+1)_$(0)","$(dcOffs+1)","$(0)",3))
     push!(circuit,("R$(dcOffs+1)_$(0)","$(dcOffs+1)","$(0)",Rleft))
 
-    if verbose
-        println("Port 3 created")
-        println("DC Node $(dcOffs) created")
-        println("DC Node $(dcOffs+1) created")
-    end
-
     
     #first cell---------------------------------------------------------------------------------------
     push!(circuit,("C$(dcOffs+1)_$(0)","$(dcOffs+1)","$(0)",Cf/2))                                          #DC line capacitance in the first cell
     push!(circuit,("L$(dcOffs+1)_$(dcOffs+2)","$(dcOffs+1)","$(dcOffs+2)",Lf))                              #DC line inductance in the first cell
     push!(circuit,("K$(1)_$(1)","L$(4)_$(5)","L$(dcOffs+1)_$(dcOffs+2)",M))                          #mutual inductance between loop inductance and DC line
     
-    if verbose
-        println("L$(4)_$(5) mutually connected to L$(dcOffs+1)_$(dcOffs+2)")
-        #println("DC Node dcOffs+1+1=$(dcOffs+1+1) created")
-        #println("K$(1)_$(1) mutual coupling created")
-    end
-    
     for i = 2:N
         #DC line
         push!(circuit,("C$(dcOffs+i)_$(0)","$(dcOffs+i)","$(0)",Cf))                                        #DC line capacitance
         push!(circuit,("L$(dcOffs+i)_$(dcOffs+i+1)","$(dcOffs+i)","$(dcOffs+i+1)",Lf))                      #DC line inductance
         #AC-DC mutual coupling
-        push!(circuit,("K$(i)_$(i)","L$(i*nodePerCell)_$(i*nodePerCell+1)","L$(dcOffs+i)_$(dcOffs+i+1)",M)) #mutual inductance between loop inductance and DC line (equal for each cell)
-        
-        if verbose
-            #println("$(2*(i % 2-0.5)): mutual inductance sign")
-            println("L$(i*nodePerCell)_$(i*nodePerCell+1) mutually connected to L$(dcOffs+i)_$(dcOffs+i+1)")
-            #println("DC Node dcOffs+i+1=$(dcOffs+i+1) created")
-            #println("K$(i)_$(i) mutual coupling created")
-        end
-    
+        push!(circuit,("K$(i)_$(i)","L$(i*nodePerCell)_$(i*nodePerCell+1)","L$(dcOffs+i)_$(dcOffs+i+1)",M)) #mutual inductance between loop inductance and DC line (equal for each cell)    
     end
 
     #DC port on the output side
@@ -216,14 +168,8 @@ function create_user_circuit(device_params_set; verbose::Bool=false)
     push!(circuit,("C$(dcOffs+1+N)_$(0)","$(dcOffs+1+N)","$(0)",Cf/2))    
     push!(circuit,("R$(dcOffs+1+N)_$(0)","$(dcOffs+1+N)","$(0)",Rright))
 
-    if verbose
-        println("Port 4 created")
-        #println("$(dcOffs+1+N)")
-    end
-
     #END DC line--------------------------------------------------------------------------------------
-
-    
+ 
     return circuit, circuitdefs
 
 end
