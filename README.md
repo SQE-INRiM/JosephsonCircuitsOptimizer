@@ -504,7 +504,7 @@ end
 Note that to join the correct path you have to import the correct directory: config.user_inputs_dir.
 
 # **License**
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE.md).
 
 # **References:**
 1. K. P. O'Brien and Contributors, JosephsonCircuits.jl, GitHub, 2024. [Online]. Available: https://github.com/kpobrien/JosephsonCircuits.jl
