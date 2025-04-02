@@ -14,8 +14,10 @@ Pkg.add(path="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer")
 ```
 
 This will download and install the package directly from GitHub.
+The package requires an external *working space*. If a folder named *working_space* does not exist in your working directory, it will be created automatically. You **must** use this folder to run the package properly. The structure of *working_space* is shown below.
 
-Once installed, you can load the package and using it:
+
+Once installed the package and the *working_space* folder is set up, you can load and use the package with:
 
 ```julia
 import JosephsonCircuitOptimizer as JCO 
@@ -115,7 +117,17 @@ The phase differences across the small junction and the large junctions are rela
 
 To try the package, download the `working_space` folder from the repository and place it in your working directory.
 
-You can find example scripts in the `examples/SNAIL-based JTWPA` folder, you can download it here: [Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space.zip?download=)
+To try the package, you need to use the `working_space` folder created during installation.  
+
+You can find example scripts in the `examples/SNAIL-based JTWPA` folder. To use the provided example `working_space`, copy its contents into your existing `working_space` directory:  
+
+```sh
+cp -r examples/SNAIL-based\ JTWPA/working_space/* working_space/
+```
+
+
+You can find example scripts in the `examples/SNAIL-based JTWPA` folder, you can download it here: [Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space.zip?download=).
+IMPORTANT: remember to use the working_space created when the package is installed.
 
 Unzip the folder and place it in your working directory. If you have already install the package, you can run: 
 ```julia
