@@ -14,8 +14,8 @@ Pkg.add(path="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer")
 ```
 
 This will download and install the package directly from GitHub.
-The package requires an external *working space*. If a folder named *working_space* does not exist in your working directory, it will be created automatically. You **must** use this folder to run the package properly. The structure of *working_space* is shown below.
 
+The package requires an external *working space*. If a folder named *working_space* does not exist in your working directory, it will be created automatically. You **must** use this folder to run the package properly. The structure of *working_space* is shown below.
 
 Once installed the package and the *working_space* folder is set up, you can load and use the package with:
 
