@@ -142,7 +142,14 @@ working_space/
 │   ├── user_parametric_sources.jl 
 │   |── user_metric_utils.jl
 |   |── flux_curve.txt
+|
+├── outputs/
+│   ├── output_YYYY-MM-DD_hh-mm-ss/
+│   │   ├── optimal_device_parameters.json
+│   │   ├── optimal_physical_quantities.json
 ```
+
+### **User inputs**
 
 The user_inputs are presented below.
 
@@ -504,6 +511,57 @@ end
 ```
 
 Note that to join the correct path you have to import the correct directory: config.user_inputs_dir.
+
+
+### **Outputs**
+
+The outputs are presented below.
+
+- *optimal_device_parameters.json*
+This file contains the optimal parameters of the device, selected after the optimization process. The structure of the file is the following.
+
+```plaintext
+{
+    "header": {
+        "optimal_metric": 7.283064829606954,
+        "description": "Optimal parameters for the model"
+    },
+    "data": {
+        "CgloadingCell": 1.0,
+        "loadingpitch": 3.0,
+        "smallJunctionArea": 1.0,
+        "criticalCurrentDensity": 0.9,
+        "nMacrocells": 40.0,
+        "CgDielectricThichness": 80.0,
+        "LloadingCell": 2.0,
+        "alphaSNAIL": 0.25
+    }
+}
+```
+
+- *optimal_physical_quantities.json*
+In this file there are the optimal physical quantities for the choosen device after the nonlinear simulation. The stucture is shown below.
+
+```plaintext
+{
+    "header": {
+        "description": "Optimal physical quantities (working point) of the circuit"
+    },
+    "data": {
+        "source_1_on_port": 3,
+        "source_1_frequency": 0,
+        "source_1_amplitude": 5.6e-6, 
+
+        "source_2_on_port": 1,
+        "source_2_frequency": 1.4e10,
+        "source_2_amplitude": 0.1e-6
+    }
+}
+```
+
+
+
+
 
 # **License:**
 This project is licensed under the [MIT License](LICENSE.md).
