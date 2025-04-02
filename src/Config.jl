@@ -1,40 +1,49 @@
+# src/Config.jl
 module Config
     export Configuration, get_configuration, config
 
-    # 1. Configuration struct remains the same
+    # Define a struct to hold configuration values
     struct Configuration
         WORKING_SPACE::String
         user_inputs_dir::String
         outputs_dir::String
     end
 
-    # 2. Use a Ref instead of direct constant
-    const _config = Ref{Configuration}()  # Starts as uninitialized
-
-    # 3. Modified get_configuration that initializes only when needed
+    # Function to initialize and return the Configuration struct
     function get_configuration()
-        if !isassigned(_config)  # Only run if not initialized
-            WORKING_SPACE = set_working_space()
-            
-            # Create directories only now, when first accessed
-            user_inputs_dir = joinpath(WORKING_SPACE, "user_inputs")
-            outputs_dir = joinpath(WORKING_SPACE, "outputs")
-            
-            mkpath(user_inputs_dir)  # Now creates dirs
-            mkpath(outputs_dir)
-            
-            _config[] = Configuration(WORKING_SPACE, user_inputs_dir, outputs_dir)
+        # Dynamically set the working space
+        function set_working_space()
+            candidate_1 = joinpath(pwd(), "working_space")
+            if isdir(candidate_1)
+                @info "Using working space from current directory: $candidate_1"
+                return candidate_1
+            end
+
+            # Create a new working space in the current directory if none exists
+            @info "No working space found. Creating new one at: $candidate_1"
+            mkpath(candidate_1)
+            return candidate_1
         end
-        return _config[]  # Return the stored configuration
+
+        WORKING_SPACE = set_working_space()
+
+        # Ensure the user_inputs and outputs directories exist
+        user_inputs_dir = joinpath(WORKING_SPACE, "user_inputs")
+        outputs_dir = joinpath(WORKING_SPACE, "outputs")
+        
+        if !isdir(user_inputs_dir)
+            @info "Creating user_inputs directory: $user_inputs_dir"
+            mkpath(user_inputs_dir)
+        end
+        if !isdir(outputs_dir)
+            @info "Creating outputs directory: $outputs_dir"
+            mkpath(outputs_dir)
+        end
+
+        # Return the Configuration struct
+        return Configuration(WORKING_SPACE, user_inputs_dir, outputs_dir)
     end
 
-    # 4. Private helper function
-    function set_working_space()
-        candidate = joinpath(pwd(), "working_space")
-        isdir(candidate) || mkpath(candidate)  # Create if doesn't exist
-        return candidate
-    end
+    const config = get_configuration()
 
-    # 5. Accessor function (recommended interface)
-    config() = get_configuration()
 end
