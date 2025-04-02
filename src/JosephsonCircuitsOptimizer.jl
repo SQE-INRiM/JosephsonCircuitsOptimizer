@@ -102,8 +102,8 @@ function run()
     initialize_workspace()
 
     # Define paths
-    user_input_path = cfg.user_inputs_dir
-    base_output_path = cfg.outputs_dir
+    user_input_path = config.user_inputs_dir
+    base_output_path = config.outputs_dir
 
     # Generate timestamp for unique run folder
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
