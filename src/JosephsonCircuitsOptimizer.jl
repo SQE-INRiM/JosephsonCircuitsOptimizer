@@ -120,6 +120,7 @@ function run()
     GC.gc()
     df, filtered_df = run_simulations(device_parameters_space, filter_df=true)
     save_dataset(df, output_path)
+    @info "Saving uniform dataset from the linear simulation run: $df_uniform_analysis."
 
     # Launch GUI
     create_gui(df, filtered_df)
@@ -133,7 +134,7 @@ function run()
         "description" => "Optimal parameters for the model"
     )
     optimal_params_file = joinpath(output_path, "optimal_device_parameters.json")
-    @info "Saving optimal device parameters to: $optimal_params_file"
+    @info "Saving optimal device parameters to: $optimal_params_file from the optimization process."
     save_output_file(header, optimal_params, optimal_params_file)
 
     # Perform nonlinear simulation on optimal parameters
@@ -146,10 +147,10 @@ function run()
         "description" => "Optimal physical quantities (working point) of the circuit"
     )
     optimal_quantities_file = joinpath(output_path, "optimal_physical_quantities.json")
-    @info "Saving optimal physical quantities to: $optimal_quantities_file"
+    @info "Saving optimal physical quantities to: $optimal_quantities_file from the nonlinear simulation."
     save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
 
-    @info "✅ Optimization completed! Results saved in '$output_path'."
+    @info "✅ Simulation and optimization processes completed! Results saved in '$output_path'."
 
 end
 

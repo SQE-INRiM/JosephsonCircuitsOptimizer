@@ -518,6 +518,7 @@ Note that to join the correct path you have to import the correct directory: con
 The outputs are presented below.
 
 - *optimal_device_parameters.json*
+
 This file contains the optimal parameters of the device, selected after the optimization process. The structure of the file is the following.
 
 ```plaintext
@@ -540,6 +541,7 @@ This file contains the optimal parameters of the device, selected after the opti
 ```
 
 - *optimal_physical_quantities.json*
+
 In this file there are the optimal physical quantities for the choosen device after the nonlinear simulation. The stucture is shown below.
 
 ```plaintext
@@ -551,7 +553,6 @@ In this file there are the optimal physical quantities for the choosen device af
         "source_1_on_port": 3,
         "source_1_frequency": 0,
         "source_1_amplitude": 5.6e-6, 
-
         "source_2_on_port": 1,
         "source_2_frequency": 1.4e10,
         "source_2_amplitude": 0.1e-6
