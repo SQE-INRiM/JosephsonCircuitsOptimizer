@@ -29,14 +29,13 @@ include("optimizer.jl")
 include("gui.jl")
 
 
-
 """
     check_required_files(config::Configuration)
 
 Check if the required input files exist in the given working space.
 """
 
-function check_required_files(user_inputs_dir::String)
+function check_required_files()
     required_files = [
         "drive_physical_quantities.json",
         "device_parameters_space.json",
@@ -46,10 +45,10 @@ function check_required_files(user_inputs_dir::String)
         "user_circuit.jl"
     ]
 
-    missing_files = filter(f -> !isfile(joinpath(user_inputs_dir, f)), required_files)
+    missing_files = filter(f -> !isfile(joinpath(config.user_inputs_dir, f)), required_files)
 
     if !isempty(missing_files)
-        error("Missing required files in $user_inputs_dir: " * join(missing_files, ", "))
+        error("Missing required files in $(config.user_inputs_dir): " * join(missing_files, ", "))
     end
 end
 
@@ -58,13 +57,14 @@ end
 
 Ensure that the given working space is set up correctly.
 """
-function initialize_workspace(working_space::String, user_inputs_dir::String)
-    if !isdir(working_space)
-        error("Working space directory '$working_space' does not exist.")
+function initialize_workspace()
+    if !isdir(config.WORKING_SPACE)
+        error("Working space directory '$(config.WORKING_SPACE)' does not exist.")
     end
 
-    check_required_files(user_inputs_dir)
+    check_required_files()
 end
+
 
 
 
@@ -74,19 +74,18 @@ end
 Initialize all dependent modules with the given configuration.
 """
 
-function modules_setup(cfg)
+function modules_setup()
 
     @info "Initializing modules with configuration..."
     
-    setup_sources(cfg)
-    setup_circuit(cfg)
-    setup_cost(cfg)
-    setup_simulator(cfg)
-    setup_optimizer(cfg)
+    setup_sources()
+    setup_circuit()
+    setup_cost()
+    setup_simulator()
+    setup_optimizer()
 
     @info "All modules initialized successfully."
 end
-
 
 
 """
@@ -96,14 +95,11 @@ Run the full simulation and optimization process.
 """
 function run()
 
-    # Get the configuration (triggers lazy initialization if needed)
-    cfg = config()  # This will create directories if they don't exist
-
     # Initialize all modules
-    modules_setup(cfg)
+    modules_setup()
 
     # Initialize workspace
-    initialize_workspace(cfg.WORKING_SPACE, cfg.user_inputs_dir)
+    initialize_workspace()
 
     # Define paths
     user_input_path = cfg.user_inputs_dir

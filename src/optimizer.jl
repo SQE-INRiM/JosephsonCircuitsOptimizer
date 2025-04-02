@@ -2,7 +2,7 @@
 
 # Load the optimizer configuration from a JSON file
 
-function setup_optimizer(config)
+function setup_optimizer()
     global optimizer_config = nothing
     optimizer_config = load_params(joinpath(config.user_inputs_dir, "optimizer_config.json"))
 end

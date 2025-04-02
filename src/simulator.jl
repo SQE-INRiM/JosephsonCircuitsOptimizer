@@ -5,7 +5,7 @@
 # to compute the scattering parameters and optimize device performance.
 
 
-function setup_simulator(config)
+function setup_simulator()
 
     global physical_quantities_init = nothing
     global sim_vars = nothing
@@ -62,7 +62,7 @@ function setup_simulator(config)
 
 end
 
-function setup_sources(config)
+function setup_sources()
 
     # Path to the user-defined circuit file
     user_sources_path = joinpath(config.user_inputs_dir, "user_parametric_sources.jl")
@@ -74,6 +74,8 @@ function setup_sources(config)
     end
 
 end
+
+
 
 """
     extract_S_parameters(sol, n_ports, n_frequencies)

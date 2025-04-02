@@ -13,7 +13,7 @@ using ..Config  # Import the Config module
 Set up the user-defined circuit using the provided configuration.
 This function loads the `user_circuit.jl` file dynamically and assigns the `create_user_circuit` function.
 """
-function setup_circuit(config)
+function setup_circuit()
     # Path to the user-defined circuit file
     user_circuit_path = joinpath(config.user_inputs_dir, "user_circuit.jl")
 

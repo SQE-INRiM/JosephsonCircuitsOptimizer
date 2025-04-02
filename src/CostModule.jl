@@ -4,7 +4,7 @@
 using ..Config  # Access WORKING_SPACE
 
 
-function setup_cost(config)
+function setup_cost()
 
     user_cost_path = joinpath(config.user_inputs_dir, "user_cost_and_performance.jl")
     
