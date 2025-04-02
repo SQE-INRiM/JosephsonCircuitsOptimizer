@@ -1,6 +1,6 @@
 # src/Config.jl
 module Config
-    export Configuration, get_configuration , config
+    export Configuration, get_configuration, config
 
     # Define a struct to hold configuration values
     struct Configuration
@@ -19,11 +19,10 @@ module Config
                 return candidate_1
             end
 
-            # Fallback to a default location in the user's home directory
-            script_dir = dirname(@__FILE__)
-            default_working_space = joinpath(dirname(script_dir), "working_space")
-            @warn "⚠️ WORKING_SPACE not specified. Using default: $default_working_space"
-            return default_working_space
+            # Create a new working space in the current directory if none exists
+            @info "No working space found. Creating new one at: $candidate_1"
+            mkpath(candidate_1)
+            return candidate_1
         end
 
         WORKING_SPACE = set_working_space()
@@ -31,8 +30,10 @@ module Config
         # Ensure the user_inputs and outputs directories exist
         user_inputs_dir = joinpath(WORKING_SPACE, "user_inputs")
         outputs_dir = joinpath(WORKING_SPACE, "outputs")
+        
         if !isdir(user_inputs_dir)
-            @error "user_input does not exist."
+            @info "Creating user_inputs directory: $user_inputs_dir"
+            mkpath(user_inputs_dir)
         end
         if !isdir(outputs_dir)
             @info "Creating outputs directory: $outputs_dir"
