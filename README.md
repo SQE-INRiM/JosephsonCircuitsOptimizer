@@ -382,7 +382,7 @@ end
 The **device-specific metric** is defined inside the *user_cost* function and depends on the S parameters of the linear simulation. It is possible to implement a mask to exclude some configurations. In this example the metric is defined to ensures impedance and phase matching based on the dispersion relation.
 
 ```julia
-function user_cost(S, Sphase, device_params_temp)
+function user_cost(S, Sphase, device_params_set::Dict)
 
     println("-----------------------------------------------------")
 
@@ -396,7 +396,7 @@ function user_cost(S, Sphase, device_params_temp)
     S21phaseBand = S_values(Sphase[(2,1)], 7e9; phase=true)
     S21phasePump = S_values(Sphase[(2,1)], 14e9; phase=true)
 
-    deltaK = abs((S21phasePump-2*S21phaseBand)/device_params_temp[:N])
+    deltaK = abs((S21phasePump-2*S21phaseBand)/device_params_set[:N])
 
     #----------------------------------------------------------------
     

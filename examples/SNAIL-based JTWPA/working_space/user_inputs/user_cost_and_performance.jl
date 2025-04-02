@@ -5,7 +5,7 @@ include("user_metric_utils.jl")
 
 # To use the S parameters the correct notation is S_ij = S[(i,j)] for the module and Sphase[(i,j)] for the phase
 
-function user_cost(S, Sphase, device_params_temp)
+function user_cost(S, Sphase, device_params_set::Dict)
 
     println("-----------------------------------------------------")
 
@@ -19,7 +19,7 @@ function user_cost(S, Sphase, device_params_temp)
     S21phaseBand = S_values(Sphase[(2,1)], 7e9; phase=true)
     S21phasePump = S_values(Sphase[(2,1)], 14e9; phase=true)
 
-    deltaK = abs((S21phasePump-2*S21phaseBand)/device_params_temp[:N])
+    deltaK = abs((S21phasePump-2*S21phaseBand)/device_params_set[:N])
 
     #----------------------------------------------------------------
     """
