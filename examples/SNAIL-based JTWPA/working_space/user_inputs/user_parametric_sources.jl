@@ -1,6 +1,7 @@
 using ..Config
 
-path = joinpath(config.user_inputs_dir, "flux_curve.txt") 
+cfg=config()
+path = joinpath(cfg.user_inputs_dir, "flux_curve.txt") 
 lines = readlines(path)
 alpha_flux_map = map(line -> round(parse(Float64, split(line, ",")[1]), digits=2), lines)
 flux_map = map(line -> round(parse(Float64, split(line, ",")[2]), digits=2), lines)
