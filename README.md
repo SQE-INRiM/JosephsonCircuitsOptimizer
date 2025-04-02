@@ -25,7 +25,6 @@ JCO.run()
 ```
 
 
-
 ## **How It Works**
 
 To use the [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) framework, several inputs must be defined. 
@@ -115,19 +114,10 @@ The phase differences across the small junction and the large junctions are rela
 
 ## **Running the example**
 
-To try the package, download the `working_space` folder from the repository and place it in your working directory.
-
 To try the package, you need to use the `working_space` folder created during installation.  
 
-You can find example scripts in the `examples/SNAIL-based JTWPA` folder. To use the provided example `working_space`, copy its contents into your existing `working_space` directory:  
-
-```sh
-cp -r examples/SNAIL-based\ JTWPA/working_space/* working_space/
-```
-
-
-You can find example scripts in the `examples/SNAIL-based JTWPA` folder, you can download it here: [Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space.zip?download=).
-IMPORTANT: remember to use the working_space created when the package is installed.
+You can find example scripts in the `examples/SNAIL-based JTWPA` folder: [Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space.zip?download=). 
+To use the provided example `working_space`, copy its contents into your existing `working_space` directory.
 
 Unzip the folder and place it in your working directory. If you have already install the package, you can run: 
 ```julia
