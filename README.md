@@ -223,7 +223,7 @@ The schematic of the circuit is implemented in the `user_circuit.jl` file, follo
 The *circuit* Tuple is the definition of the structure of the circuit. The *circuitdefs* is a Dict with the values of the variables used inside the circuit.
 <details>
 
-<summary>Code</summary>
+<summary>create_user_circuit</summary>
 
 ```julia
 function create_user_circuit(device_params_set::Dict)
@@ -395,6 +395,9 @@ end
 
 The **device-specific metric** is defined inside the *user_cost* function and depends on the S parameters of the linear simulation. It is possible to implement a mask to exclude some configurations. In this example the metric is defined to ensures impedance and phase matching based on the dispersion relation.
 
+<details>
+
+<summary>user_cost</summary>
 ```julia
 function user_cost(S, Sphase, device_params_set::Dict)
 
@@ -438,11 +441,16 @@ function user_cost(S, Sphase, device_params_set::Dict)
         
 end
 ```
+<\details>
+
 Some functions useful for the metric and performance definitions are implemented inside the `user_metric_utils.jl` file. In this case the function *S_values* that extract the value of the S parameters at a define frequency is define there. 
 
 The **targeted performance** is defined inside the *user_performance* function and depends on the solution of the hbsolve function of the nonlinear simulation.
 In our case the performance is define to achieve a broadband gain profile.
 
+<details>
+
+<summary>user_performance</summary>
 ```julia
 function user_performance(sol)
     num_k = length(sim_vars[:source_1_non_linear_amplitude])
@@ -489,12 +497,17 @@ function user_performance(sol)
 
 end
 ```
+<\details>
+
 The simulation parameters inside the `drive_physical_quantities.json`, `simulation_config.json` and `optimizer_config.json` are accessible to the dictionary sim_vars.
 
 - *user_parametric_sources.jl*
 
 In this case the amplitude of the source 1, that represent the flux line of the JTWPA, depends on the alpha value of the SNAIL to achieve the optimal 3WM of the device. The relation between the alpha and the flux values is reported inside the `flux_curve.txt` file. In this file is defined this parametric value from the txt file.
 
+<details>
+
+<summary>user_parametric_sources</summary>
 ```julia
 using ..Config
 
@@ -514,7 +527,7 @@ function calculate_source_1_amplitude(device_params_set::Dict)
     return source_1_amplitude
 end
 ```
-
+<\details>
 Note that to join the correct path you have to import the correct directory: config.user_inputs_dir.
 
 
