@@ -222,6 +222,9 @@ In this file the maximum number of the optimizer iterations and the sample creat
 The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuit.jl library. In our case the circuit is the following.
 The *circuit* Tuple is the definition of the structure of the circuit. The *circuitdefs* is a Dict with the values of the variables used inside the circuit.
 <details>
+
+<summary>Code</summary>
+
 ```julia
 function create_user_circuit(device_params_set::Dict)
 
