@@ -398,6 +398,7 @@ The **device-specific metric** is defined inside the *user_cost* function and de
 <details>
 
 <summary>user_cost</summary>
+
 ```julia
 function user_cost(S, Sphase, device_params_set::Dict)
 
@@ -441,7 +442,8 @@ function user_cost(S, Sphase, device_params_set::Dict)
         
 end
 ```
-<\details>
+
+</details>
 
 Some functions useful for the metric and performance definitions are implemented inside the `user_metric_utils.jl` file. In this case the function *S_values* that extract the value of the S parameters at a define frequency is define there. 
 
@@ -451,6 +453,7 @@ In our case the performance is define to achieve a broadband gain profile.
 <details>
 
 <summary>user_performance</summary>
+
 ```julia
 function user_performance(sol)
     num_k = length(sim_vars[:source_1_non_linear_amplitude])
@@ -497,7 +500,7 @@ function user_performance(sol)
 
 end
 ```
-<\details>
+</details>
 
 The simulation parameters inside the `drive_physical_quantities.json`, `simulation_config.json` and `optimizer_config.json` are accessible to the dictionary sim_vars.
 
@@ -508,6 +511,7 @@ In this case the amplitude of the source 1, that represent the flux line of the 
 <details>
 
 <summary>user_parametric_sources</summary>
+
 ```julia
 using ..Config
 
@@ -527,7 +531,8 @@ function calculate_source_1_amplitude(device_params_set::Dict)
     return source_1_amplitude
 end
 ```
-<\details>
+</details>
+
 Note that to join the correct path you have to import the correct directory: config.user_inputs_dir.
 
 
