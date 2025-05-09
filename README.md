@@ -20,7 +20,7 @@ The package requires an external *working space*. If a folder named *working_spa
 Once installed the package and the *working_space* folder is set up, you can load and use the package with:
 
 ```julia
-import JosephsonCircuitOptimizer as JCO 
+import JosephsonCircuitsOptimizer as JCO 
 JCO.run()
 ```
 
