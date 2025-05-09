@@ -6,11 +6,11 @@ For this reason, it is possible to calculate the design of a single circuit in a
 
 ## **Installation**
 
-To install the package, run the following command in Julia:
+To install the package in the current version, run the following command in Julia:
 
 ```julia
 using Pkg
-Pkg.add(path="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer")
+Pkg.add(url="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer", rev="v0.1.0")
 ```
 
 This will download and install the package directly from GitHub.
