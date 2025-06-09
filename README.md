@@ -1,16 +1,16 @@
-# JosephsonCircuitOptimizer.jl
+# JosephsonCircuitsOptimizer.jl
 
-[JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) is a Julia package that provides a simulation framework developed using the [JosephsonCircuits.jl](https://github.com/kpobrien/JosephsonCircuits.jl) library [1], which is a powerful tool enables the modeling of superconducting circuits, including Josephson junctions and other nonlinear elements, within a lumped-element approach. It leverages harmonic balance [2], a frequency-domain technique that offers a computationally efficient alternative to traditional time-domain simulations [3].
+[JosephsonCircuitsOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) is a Julia package that provides a simulation framework developed using the [JosephsonCircuits.jl](https://github.com/kpobrien/JosephsonCircuits.jl) library [1], which is a powerful tool enables the modeling of superconducting circuits, including Josephson junctions and other nonlinear elements, within a lumped-element approach. It leverages harmonic balance [2], a frequency-domain technique that offers a computationally efficient alternative to traditional time-domain simulations [3].
 
 For this reason, it is possible to calculate the design of a single circuit in a short time. The [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) package explores a vast range of circuit designs by combining different device parameters and applying Bayesian optimization with Gaussian processes [4]. This optimization process is driven by a device-specific metric, guiding the search for optimal circuit parameters to achieve the desired performance.
 
 ## **Installation**
 
-To install the package, run the following command in Julia:
+To install the package in the current version, run the following command in Julia:
 
 ```julia
 using Pkg
-Pkg.add(path="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer")
+Pkg.add(url="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer", rev="v0.1.0")
 ```
 
 This will download and install the package directly from GitHub.
@@ -20,14 +20,14 @@ The package requires an external *working space*. If a folder named *working_spa
 Once installed the package and the *working_space* folder is set up, you can load and use the package with:
 
 ```julia
-import JosephsonCircuitOptimizer as JCO 
+import JosephsonCircuitsOptimizer as JCO 
 JCO.run()
 ```
 
 
 ## **How It Works**
 
-To use the [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) framework, several inputs must be defined. 
+To use the [JosephsonCircuitsOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) framework, several inputs must be defined. 
 - The **device parameters space** describes the physical parameters that define the circuit's design for fabrication. Each combination of these parameters represents a different circuit in the framework that toghether define a uniform sampling. This space is typically set by fabrication constrains.
 - The **physical quantities** define the frequency range and the various signals within the circuit, such as the strong pump tones.
 - The **device-specific metric** is a function used to weight every circuit configuration, defined by a set of device parameters. 
@@ -57,7 +57,7 @@ The workflow consists of three main steps:
 
 ### **Working space structure**
 
-[JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) operates within an external **working space** containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
+[JosephsonCircuitsOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) operates within an external **working space** containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
 The `working_space/user_inputs` folder should contain the following files:
 -  `device_parameters_space.json` which contains the device parameters space to define the circuit design. 
 -  `drive_physical_quantities.json` in which you define the frequency range and sources features.
@@ -194,7 +194,7 @@ The second source is a pump signal at 14 GHz with a small amplitude for the line
 
 - *simulation_config.json*
 
-In this file some functionaliity of the hbsolver function of the JosephsonCircuit.jl library are set. For the linear simulation the strong tone strong tone harmonics and the modulation harmonics are keept small to reduce the time consumption.
+In this file some functionaliity of the hbsolver function of the JosephsonCircuits.jl library are set. For the linear simulation the strong tone strong tone harmonics and the modulation harmonics are keept small to reduce the time consumption.
 
 ```plaintext
 {
@@ -219,7 +219,7 @@ In this file the maximum number of the optimizer iterations and the sample creat
 
 - *user_circuit.jl* 
 
-The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuit.jl library. In our case the circuit is the following.
+The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuits.jl library. In our case the circuit is the following.
 The *circuit* Tuple is the definition of the structure of the circuit. The *circuitdefs* is a Dict with the values of the variables used inside the circuit.
 <details>
 
