@@ -52,8 +52,8 @@ function run_optimization(df::DataFrame)
     # Extract initial values (the last column of the DataFrame)
     initial_values = df[:, end]
 
-    println("initial_points: ", initial_points)
-    println("initial_values: ", initial_values)
+    #println("initial_points: ", initial_points)
+    #println("initial_values: ", initial_values)
 
     # Initialize a Kriging model (surrogate model) using the initial points and values
     my_k_SRBFN = Kriging(initial_points, initial_values, lb, ub)
