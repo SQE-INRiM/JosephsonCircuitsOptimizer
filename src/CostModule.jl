@@ -92,8 +92,13 @@ function cost(vec)
     global plot_index
     global number_initial_points
     plot_index += 1
-    println("Point number ", plot_index, " of ", number_initial_points, ", that are the ", round(100*(plot_index/number_initial_points))," % of the total" )
-
+    if plot_index < number_initial_points
+        println("Point number ", plot_index, " of ", number_initial_points, ", that are the ", round(100*(plot_index/number_initial_points))," % of the total" )
+    else
+        iter = plot_index - number_initial_points
+        println("Optimization process: iteration number ", iter)
+    end
+    
     # Get simulation results for the given parameters.
     S, Sphase, device_params_temp = sim_sys(vec)
 

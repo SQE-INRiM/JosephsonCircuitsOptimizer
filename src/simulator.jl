@@ -178,7 +178,7 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
 
     dc = any(sim_vars[Symbol("source_$(i)_frequency")] == 0 for i in 1:n_sources)
 
-    @info "Sources created: $sources"
+    @debug "Sources created: $sources"
 
     # Perform the harmonic balance simulation and obtain solution
     @time sol = hbsolve(
@@ -188,15 +188,48 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
     )
 
 
-    @info "Solution calculated"
+    @debug "Solution calculated"
 
     # Extract S-parameters from the solution
     S, Sphase = extract_S_parameters(sol, circuit.PortNumber, n_frequencies)
 
-    @info "S parameters extracted"
+    @debug "S parameters extracted"
 
     return S, Sphase
 end
+
+
+"""
+    run_simulations(device_parameters_space::Dict; filter_df::Bool=false)
+
+Runs simulations for all points in the parameter space and returns a DataFrame of results.
+"""
+function run_linear_simulations_sweep(device_parameters_space::Dict; filter_df::Bool=false)
+
+    global point_exluded = 0
+
+    column_names = collect(keys(device_parameters_space))
+    initial_points = generate_all_initial_points(device_parameters_space)
+
+    global number_initial_points = size(initial_points)[1]
+    global plot_index = 0
+
+    println("\nStarting points calculations")
+    initial_values = [cost(p) for p in initial_points]
+    println("Total points excluded: ", point_exluded)
+
+    df = DataFrame(initial_points)
+    rename!(df, Symbol.(string.(column_names)))
+    df.metric = initial_values
+
+    if filter_df
+        filtered_df = filter(row -> row.metric < 9e7, df)
+        return df, filtered_df
+    else
+        return df
+    end
+end
+
 
 """
     nonlinear_simulation(optimal_params::Dict)
@@ -204,55 +237,66 @@ end
 Performs a nonlinear simulation using the provided optimal parameters and circuit. This function handles
 multiple source configurations and amplitudes, and runs the harmonic balance solver for each combination.
 
-# Arguments
-- `optimal_params::Dict`: A dictionary containing the optimal device parameters.
-
-# Returns
-- `solutions::Array`: An array containing the solutions for each combination of nonlinear amplitudes.
 
 """
-function nonlinear_simulation(optimal_params::Dict)
+function nonlinear_simulation(optimal_params::Dict, amps::Vector)
 
     circuit = create_circuit(optimal_params)
+    @debug "Circuit created for nonlinear simulation"
 
-    n_freqs = length(sim_vars[:frequency_range])
-    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars)) / 4)
-
-    # Extract nonlinear amplitude keys dynamically
-    amp_keys = [Symbol("source_$(i)_non_linear_amplitude") for i in 1:n_sources]
-    amp_sizes = [length(sim_vars[key]) for key in amp_keys]
-
-    # Create a multidimensional array for storing solutions
-    solutions = Array{Any,length(amp_sizes)+1}(undef, n_freqs, amp_sizes...)
-
-    # Define modes for each source based on frequency
+    n_sources = length(amps)
     modes = [sim_vars[Symbol("source_$(i)_frequency")] == 0 ? (0,) : (1,) for i in 1:n_sources]
     dc = any(sim_vars[Symbol("source_$(i)_frequency")] == 0 for i in 1:n_sources)
 
+    sources = [
+        (mode=modes[i], port=sim_vars[Symbol("source_$(i)_on_port")], current=amps[i])
+        for i in 1:n_sources
+    ]
+    @debug "Sources created for nonlinear simulation: $sources"
+
     println("   2. Non-linear simulation")
 
-    # Generate all combinations of nonlinear amplitudes
+    sol = hbsolve(sim_vars[:w_range], sim_vars[:wp], sources,
+                  (sim_vars[:nonlinear_modulation_harmonics],),
+                  (sim_vars[:nonlinear_strong_tone_harmonics],),
+                  circuit.CircuitStruct, circuit.CircuitDefs;
+                  dc=dc, threewavemixing=true, fourwavemixing=true,
+                  iterations=sim_vars[:max_simulator_iterations])
+
+    @debug "Nonlinear simulation completed"
+
+    return sol
+end
+
+
+
+function run_nonlinear_simulations_sweep(optimal_params::Dict)
+
+    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars)) / 4)
+    amp_keys = [Symbol("source_$(i)_non_linear_amplitude") for i in 1:n_sources]
+
+    results = []
+
     amp_indices = Iterators.product((1:length(sim_vars[key]) for key in amp_keys)...)
 
-    # Run simulation for all combinations of amplitudes
-    @time for amp_idx in amp_indices
+    @debug "Running nonlinear simulations for all the $amp_indices combinations of amplitudes"
+    
+    for amp_idx in amp_indices
         amps = [sim_vars[amp_keys[i]][amp_idx[i]] for i in 1:n_sources]
+        @debug "Running nonlinear simulation for amplitudes: $amps"
 
-        sources = [(mode=modes[i], port=sim_vars[Symbol("source_$(i)_on_port")], current=amps[i]) for i in 1:n_sources]
+        sol = nonlinear_simulation(optimal_params, amps)
+        @debug "Nonlinear simulation completed for amplitudes: $amps"
 
-        sol = hbsolve(sim_vars[:w_range], sim_vars[:wp], sources, 
-                      (sim_vars[:nonlinear_modulation_harmonics],), (sim_vars[:nonlinear_strong_tone_harmonics],),
-                      circuit.CircuitStruct, circuit.CircuitDefs; 
-                      dc=dc, threewavemixing=true, fourwavemixing=true, iterations=sim_vars[:max_simulator_iterations])
+        perf = performance(sol)   # user_performance on a single circuit
 
-        # Store the solutions in the array for each frequency and amplitude combination
-        for f in 1:n_freqs
-            solutions[f, amp_idx...] = sol  # Store full solution object at corresponding indices
-        end
+        push!(results, (amps=amps, performance=perf))
     end
 
-    return solutions
+    return results
 end
+
+
 
 
 """
@@ -304,37 +348,6 @@ function generate_all_initial_points(device_parameters_space::Dict)
     return collect(points_set)
 end
 
-
-"""
-    run_simulations(device_parameters_space::Dict; filter_df::Bool=false)
-
-Runs simulations for all points in the parameter space and returns a DataFrame of results.
-"""
-function run_simulations(device_parameters_space::Dict; filter_df::Bool=false)
-
-    global point_exluded = 0
-
-    column_names = collect(keys(device_parameters_space))
-    initial_points = generate_all_initial_points(device_parameters_space)
-
-    global number_initial_points = size(initial_points)[1]
-    global plot_index = 0
-
-    println("\nStarting points calculations")
-    initial_values = [cost(p) for p in initial_points]
-    println("Total points excluded: ", point_exluded)
-
-    df = DataFrame(initial_points)
-    rename!(df, Symbol.(string.(column_names)))
-    df.metric = initial_values
-
-    if filter_df
-        filtered_df = filter(row -> row.metric < 9e7, df)
-        return df, filtered_df
-    else
-        return df
-    end
-end
 
 
 """

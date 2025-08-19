@@ -29,6 +29,7 @@ include("optimizer.jl")
 include("gui.jl")
 
 
+
 """
     check_required_files(config::Configuration)
 
@@ -88,6 +89,12 @@ function modules_setup()
 end
 
 
+function test_modification()
+
+    println("\n\nMODIFICANDO IN LOCALE\n12\n")
+
+end
+
 """
     run()
 
@@ -118,9 +125,9 @@ function run()
 
     # Run simulations
     GC.gc()
-    df, filtered_df = run_simulations(device_parameters_space, filter_df=true)
+    df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
     save_dataset(df, output_path)
-    @info "Saving uniform dataset from the linear simulation run: $df_uniform_analysis."
+    @info "Saving uniform dataset from the linear simulation run."
 
     # Launch GUI
     create_gui(df, filtered_df)
@@ -136,11 +143,20 @@ function run()
     optimal_params_file = joinpath(output_path, "optimal_device_parameters.json")
     @info "Saving optimal device parameters to: $optimal_params_file from the optimization process."
     save_output_file(header, optimal_params, optimal_params_file)
+    @debug "Optimal parameters: $optimal_params with metric $optimal_metric"
+    
+    ## Perform nonlinear simulation sweep on optimal parameters
+    results = run_nonlinear_simulations_sweep(optimal_params)
+    @debug "Results from nonlinear simulations: $(results)"
 
-    # Perform nonlinear simulation on optimal parameters
-    sol = nonlinear_simulation(optimal_params)
-    best_amplitudes = performance(sol)
+    # Pick best
+    best_idx = findmax(r -> r.performance, results)[2]
+    @debug "Best result index: $best_idx with performance $(results[best_idx].performance)"
+    best_amplitudes = results[best_idx].amps
+    @debug "Best amplitudes: $best_amplitudes"
     optimal_physical_quantities = update_physical_quantities(best_amplitudes)
+    @debug "Optimal physical quantities: $optimal_physical_quantities"
+
 
     # Save optimal physical quantities
     header = Dict(

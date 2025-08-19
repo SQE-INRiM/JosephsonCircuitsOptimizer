@@ -62,7 +62,7 @@ function run_optimization(df::DataFrame)
     n_maxiters = optimizer_config[:max_optimizer_iterations]
     n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]    
 
-    global number_initial_points = n_maxiters*n_num_new_samples
+    global number_initial_points = 0 #n_maxiters*n_num_new_samples
 
     # Perform surrogate optimization using the surrogate optimizer function
     result = surrogate_optimize!(
