@@ -39,10 +39,10 @@ function sim_sys(vec)
 
     # Create circuit and run simulation.
     circuit = create_circuit(device_params_temp)
-    @info "Circuit created"
+    @debug "Circuit created"
 
     S, Sphase = linear_simulation(device_params_temp, circuit)
-    @info "Linear simulation completed"
+    @debug "Linear simulation completed"
 
     return S, Sphase, device_params_temp
 end
@@ -92,7 +92,10 @@ function cost(vec)
     global plot_index
     global number_initial_points
     plot_index += 1
-    if plot_index < number_initial_points
+
+    println("-----------------------------------------------------")
+
+    if plot_index < number_initial_points+1
         println("Point number ", plot_index, " of ", number_initial_points, ", that are the ", round(100*(plot_index/number_initial_points))," % of the total" )
     else
         iter = plot_index - number_initial_points
@@ -111,6 +114,8 @@ end
 
 
 function performance(sol)
+
+
 
     return Base.invokelatest(user_performance, sol)
     

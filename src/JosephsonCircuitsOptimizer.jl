@@ -124,6 +124,7 @@ function run()
     global device_parameters_space = load_params(device_params_file)
 
     # Run simulations
+    @info "Running linear simulations with device parameters space from: $device_params_file"
     GC.gc()
     df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
     save_dataset(df, output_path)
@@ -133,6 +134,7 @@ function run()
     create_gui(df, filtered_df)
 
     # Run optimizer
+    @info "Running optimization process on the dataset."
     optimal_params, optimal_metric = run_optimization(df)
 
     # Save optimal device parameters
@@ -146,6 +148,7 @@ function run()
     @debug "Optimal parameters: $optimal_params with metric $optimal_metric"
     
     ## Perform nonlinear simulation sweep on optimal parameters
+    @info "Running nonlinear simulations with optimal parameters."
     results = run_nonlinear_simulations_sweep(optimal_params)
     @debug "Results from nonlinear simulations: $(results)"
 

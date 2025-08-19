@@ -147,21 +147,21 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
     for i in 1:n_sources
         amplitude_key = Symbol("source_$(i)_linear_amplitude")
         amplitude_value = sim_vars[amplitude_key]
-        @info "Processing source $i with amplitude value: $amplitude_value"  # Debug print
+        @debug "Processing source $i with amplitude value: $amplitude_value"  # Debug print
 
         if isa(amplitude_value, String)
             # Dynamically call function if amplitude is a string (function name)
             function_name = amplitude_value
             try
                 amplitude = Base.invokelatest(eval(Symbol(amplitude_value)), device_params_set)
-                @info "Called function '$function_name' and got amplitude: $amplitude"  # Debug print
+                @debug "Called function '$function_name' and got amplitude: $amplitude"  # Debug print
             catch e
                 error("Failed to call function '$function_name': $e")
             end
         else
             # Use direct value if amplitude is a number
             amplitude = amplitude_value
-            @info "Using direct amplitude value: $amplitude"  # Debug print
+            @debug "Using direct amplitude value: $amplitude"  # Debug print
         end
 
         # Set source mode based on frequency
@@ -274,14 +274,29 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
 
     n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars)) / 4)
     amp_keys = [Symbol("source_$(i)_non_linear_amplitude") for i in 1:n_sources]
+    amp_lengths = [length(sim_vars[key]) for key in amp_keys]
 
     results = []
 
     amp_indices = Iterators.product((1:length(sim_vars[key]) for key in amp_keys)...)
+    @info "Generating combinations of amplitudes for nonlinear simulations: $(size(amp_indices))"
+
+    global number_initial_points_nl = prod(amp_lengths)
+    global plot_index_nl = 0
 
     @debug "Running nonlinear simulations for all the $amp_indices combinations of amplitudes"
     
     for amp_idx in amp_indices
+
+        global number_initial_points_nl
+        global plot_index_nl 
+        plot_index_nl += 1
+    
+        println("-----------------------------------------------------")
+    
+        println("Point number ", plot_index_nl, " of ", number_initial_points_nl, ", that are the ", round(100*(plot_index_nl/number_initial_points_nl))," % of the total" )
+
+
         amps = [sim_vars[amp_keys[i]][amp_idx[i]] for i in 1:n_sources]
         @debug "Running nonlinear simulation for amplitudes: $amps"
 
