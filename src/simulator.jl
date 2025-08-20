@@ -78,7 +78,7 @@ end
 
 
 """
-    extract_S_parameters(sol, n_ports, n_frequencies)
+    extract_S_parameters(sol, n_ports)
 
 Extracts the S-parameters and their phases from the solution object. The solution object contains the results
 of the simulation, and this function retrieves the S-parameters for all port combinations.
@@ -86,32 +86,27 @@ of the simulation, and this function retrieves the S-parameters for all port com
 # Arguments
 - `sol::Any`: The solution object from the simulation.
 - `n_ports::Int`: The number of ports in the circuit.
-- `n_frequencies::Int`: The number of frequencies.
 
 # Returns
 - `S_magnitude::Dict`: A dictionary containing the magnitudes of the S-parameters.
 - `S_phase::Dict`: A dictionary containing the phases of the S-parameters.
 
 """
-function extract_S_parameters(sol, n_ports, n_frequencies)
+
+function extract_S_parameters(sol, n_ports)
     # Initialize dictionaries to store the S-parameters and their phases
-    S_magnitude = Dict()
-    S_phase = Dict()
+    S_magnitude = Dict{Tuple{Int,Int}, Vector{ComplexF64}}()
+    S_phase     = Dict{Tuple{Int,Int}, Vector{Float64}}()
 
     # Loop over all port combinations
     for i in 1:n_ports
         for j in 1:n_ports
-            # Initialize arrays for S_ij and its phase
-            S_ij = zeros(ComplexF64, n_frequencies, 1)
-            S_ij_phase = zeros(Float64, n_frequencies, 1)
+            # Convert the KeyedArray slice to a plain Vector
+            Sij = Array(sol.linearized.S((0,), i, (0,), j, :))
 
-            # Extract the S-parameter and its phase from the solution object
-            S_ij[:, 1] .= sol.linearized.S((0,), i, (0,), j, :)
-            S_ij_phase[:, 1] .= unwrap(angle.(sol.linearized.S((0,), i, (0,), j, :)))
-
-            # Store the results in the dictionaries
-            S_magnitude[(i, j)] = S_ij
-            S_phase[(i, j)] = S_ij_phase
+            # Store directly as vector
+            S_magnitude[(i, j)] = Sij
+            S_phase[(i, j)]     = unwrap(angle.(Sij))
         end
     end
 
@@ -137,7 +132,7 @@ S-parameters for the circuit.
 function linear_simulation(device_params_set::Dict, circuit::Circuit)
 
     omega = sim_vars[:w_range]
-    n_frequencies = length(omega)
+    #n_frequencies = length(omega)
     n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars))/4)
 
     println("   1. Linear simulation")
@@ -191,7 +186,7 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
     @debug "Solution calculated"
 
     # Extract S-parameters from the solution
-    S, Sphase = extract_S_parameters(sol, circuit.PortNumber, n_frequencies)
+    S, Sphase = extract_S_parameters(sol, circuit.PortNumber)
 
     @debug "S parameters extracted"
 
@@ -279,7 +274,6 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
     results = []
 
     amp_indices = Iterators.product((1:length(sim_vars[key]) for key in amp_keys)...)
-    @info "Generating combinations of amplitudes for nonlinear simulations: $(size(amp_indices))"
 
     global number_initial_points_nl = prod(amp_lengths)
     global plot_index_nl = 0
@@ -310,7 +304,6 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
 
     return results
 end
-
 
 
 

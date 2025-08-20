@@ -1,0 +1,138 @@
+include("user_metric_utils.jl")
+
+#--------------------------------------------------------------------------------
+
+# To use the S parameters the correct notation is S_ij = S[(i,j)] for the module and Sphase[(i,j)] for the phase
+# All the physical quantities are inside a Dict called sim_vars
+
+function user_cost(S, Sphase, device_params_set::Dict)
+
+    # USER CONDITION-------------------------------------------------
+
+    println(typeof(S[(2,1)]))
+    println(S[(2,1)])
+
+    S11 = S_to_dB(S[(1,1)])
+    S21 = S_to_dB(S[(2,1)])
+
+    S11band = S_values(S11, [4.75e9,6.75e9])
+
+    maxS11band = maximum(S11band)
+    meanS11band = mean(S11band)
+
+    S11pump = S_values(S11, 11.5e9)
+    S21pump = S_values(S21, 11.5e9)
+
+    S21phaseBand = S_values(Sphase[(2,1)], 5.75e9)
+    S21phasePump = S_values(Sphase[(2,1)], 11.5e9)
+
+    length = device_params_set[:N]
+    deltaK = abs((S21phasePump-2*S21phaseBand)/length)
+
+    #----------------------------------------------------------------
+    """
+    # MASK (if necessary)
+
+    input_mask = (
+        meanS11band = meanS11band,
+        S11pump     = S11pump,
+        S21pump     = S21pump,
+        deltaK      = deltaK
+    )
+
+    conditions_mask = x -> x.meanS11band < -15 && x.S11pump < -8 && x.S21pump > -4 && x.deltaK < 0.2
+
+    # Apply the mask
+    if mask(input_mask, conditions_mask) return 1e8 end 
+    
+    """
+    
+    #---------------------------------------------------------------
+
+    # METRIC DEFINITION
+
+
+    alpha_lin, alpha_nonlin, alpha_stopband= angles_calculations(Sphase, length)
+    #x_stopband_peak, x_pump = derivative_low_pump(Sphase, length)
+
+    
+    metric_angles_stopband = (abs(alpha_stopband))*5e11
+    println("   a. Stopband angle contribution : ", metric_angles_stopband)
+
+    #metric_stopband_position = 2*abs(x_stopband_peak - x_pump)
+    #println("   b. Stopband position contribution: ", metric_stopband_position)
+
+    metric_impedance = (1e3/(abs(meanS11band)))
+    println("   c. Impedance matching contibution: ", metric_impedance)
+
+    metric_freqband = 5e11*(abs(alpha_nonlin - alpha_lin))
+    println("   d. Frequency band angle contribution: ", metric_freqband)
+
+    metric =  (metric_freqband^2 + metric_angles_stopband^2)^(1/2)
+
+    #plots
+
+    p4=plot_dispersion_relation(Sphase[(2,1)], device_params_set)
+    empty_plot=plot([], legend=false, grid=false, framestyle=:none)
+    P.annotate!(
+        empty_plot,
+        0.5,
+        0.5,
+        "Plot number: $(plot_index)\n" *
+        "Delta K: $(round(deltaK, digits=2))\n\n" *
+        "a. Stopband angle contribution: $(round(metric_angles_stopband, digits=2))\n\n" *
+        "d. Frequency band angle contribution: $(round(metric_freqband, digits=2))\n\n" *
+        #"metric_impedance: $(round(metric_impedance, digits=3))\n" *
+        "Metric: $(round(metric, digits=3))\n\n" *
+        "loadingpitch = $(round(device_params_set[:loadingpitch], digits=3)) \n"*
+        "A_small = $(round(device_params_set[:smallJunctionArea], digits=3)) \n" *
+        "alphaSNAIL = $(round(device_params_set[:alphaSNAIL], digits=3))\n"*
+        "LloadingCell = $(round(device_params_set[:LloadingCell], digits=3)) \n"*
+        "CgloadingCell = $(round(device_params_set[:CgloadingCell], digits=3))\n"*
+        "criticalCurrentDensity = $(round(device_params_set[:criticalCurrentDensity], digits=3))\n"*
+        "CgDielectricThickness = $(round(device_params_set[:CgDielectricThichness], digits=3))\n"
+        #"Progression: $(round(100*(point_exluded/number_initial_points), digits=2)) % \n"*
+        #"Point considered: $plot_index in a total of $(plot_index+point_exluded)"
+    )
+
+    #sleep(2)
+
+    p=plot(p4,empty_plot, layout=(1,2), size=(1100, 700))
+    display(p)
+
+    return metric
+        
+end
+
+
+
+#--------------------------------------------------------------------------------
+
+# The first index is the frequency range, the next indeces correspond to the source in order you write it.
+
+
+function user_performance(sol)
+
+    S21 = sol.linearized.S((0,),2,(0,),1,:)
+    gain_S21 = 10 * log10.(abs2.(S21))
+
+    prova = S_to_dB(S21)
+    println(typeof(S21))
+    println(S21)
+    gain_val = S_values(prova, 14e9)
+    println(gain_val)
+
+
+    p = plot_gain(gain_S21)
+    display(p)
+
+    # gain_array =gain_S21
+    # println(typeof(gain_array))
+    # println(gain_array)
+
+    # gain_val = S_values(gain_array, 14e9)
+    # println("Gain inside the amplification band: ", gain_val)
+
+    return gain_val
+
+end

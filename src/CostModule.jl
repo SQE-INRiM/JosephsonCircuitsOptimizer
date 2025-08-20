@@ -115,8 +115,6 @@ end
 
 function performance(sol)
 
-
-
     return Base.invokelatest(user_performance, sol)
     
 end
