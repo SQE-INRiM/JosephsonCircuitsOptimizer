@@ -9,9 +9,6 @@ function user_cost(S, Sphase, device_params_set::Dict)
 
     # USER CONDITION-------------------------------------------------
 
-    println(typeof(S[(2,1)]))
-    println(S[(2,1)])
-
     S11 = S_to_dB(S[(1,1)])
     S21 = S_to_dB(S[(2,1)])
 
@@ -114,24 +111,14 @@ end
 function user_performance(sol)
 
     S21 = sol.linearized.S((0,),2,(0,),1,:)
-    gain_S21 = 10 * log10.(abs2.(S21))
+    gain_S21 = S_to_dB(S21)
 
-    prova = S_to_dB(S21)
-    println(typeof(S21))
-    println(S21)
-    gain_val = S_values(prova, 14e9)
-    println(gain_val)
-
+    gain_band = S_values(gain_S21, [4.75e9,6.75e9])
+    gain_val = mean(gain_band)
+    println("Gain in the band [4.75, 6.75] GHz: ", gain_val)
 
     p = plot_gain(gain_S21)
     display(p)
-
-    # gain_array =gain_S21
-    # println(typeof(gain_array))
-    # println(gain_array)
-
-    # gain_val = S_values(gain_array, 14e9)
-    # println("Gain inside the amplification band: ", gain_val)
 
     return gain_val
 
