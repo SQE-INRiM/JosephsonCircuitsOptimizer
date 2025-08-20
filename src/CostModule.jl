@@ -118,3 +118,25 @@ function performance(sol)
     return Base.invokelatest(user_performance, sol)
     
 end
+
+
+
+function delta_quantity(optimal_params, optimal_physical_quantities)
+
+    println("-----------------------------------------------------")
+    println("Implementing nonlinear correction...")
+
+    circuit = create_circuit(optimal_params)
+
+    S, Sphase = linear_simulation(optimal_params, circuit)
+    lin_delta_quantity = Base.invokelatest(user_delta_quantity, S, Sphase, optimal_params)
+    
+    sol = nonlinear_simulation(optimal_params, amps)
+    S, Sphase = extract_S_parameters(sol, circuit.PortNumber)
+    nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S, Sphase, optimal_params)
+
+    delta_quantity = abs(nonlin_delta_quantity - lin_delta_quantity)
+
+    return delta_quantity
+
+end

@@ -234,10 +234,9 @@ multiple source configurations and amplitudes, and runs the harmonic balance sol
 
 
 """
-function nonlinear_simulation(optimal_params::Dict, amps::Vector)
 
-    circuit = create_circuit(optimal_params)
-    @debug "Circuit created for nonlinear simulation"
+function nonlinear_simulation(circuit, amps::Vector)
+    @debug "Circuit received for nonlinear simulation"
 
     n_sources = length(amps)
     modes = [sim_vars[Symbol("source_$(i)_frequency")] == 0 ? (0,) : (1,) for i in 1:n_sources]
@@ -251,23 +250,26 @@ function nonlinear_simulation(optimal_params::Dict, amps::Vector)
 
     println("   2. Non-linear simulation")
 
-    sol = hbsolve(sim_vars[:w_range], sim_vars[:wp], sources,
-                  (sim_vars[:nonlinear_modulation_harmonics],),
-                  (sim_vars[:nonlinear_strong_tone_harmonics],),
-                  circuit.CircuitStruct, circuit.CircuitDefs;
-                  dc=dc, threewavemixing=true, fourwavemixing=true,
-                  iterations=sim_vars[:max_simulator_iterations])
+    sol = hbsolve(
+        sim_vars[:w_range], sim_vars[:wp], sources,
+        (sim_vars[:nonlinear_modulation_harmonics],),
+        (sim_vars[:nonlinear_strong_tone_harmonics],),
+        circuit.CircuitStruct, circuit.CircuitDefs;
+        dc=dc, threewavemixing=true, fourwavemixing=true,
+        iterations=sim_vars[:max_simulator_iterations]
+    )
 
     @debug "Nonlinear simulation completed"
-
     return sol
 end
 
 
-
 function run_nonlinear_simulations_sweep(optimal_params::Dict)
+    # Create circuit once
+    circuit = create_circuit(optimal_params)
+    @debug "Circuit created once for nonlinear sweep"
 
-    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars)) / 4)
+    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars)) ÷ 4)
     amp_keys = [Symbol("source_$(i)_non_linear_amplitude") for i in 1:n_sources]
     amp_lengths = [length(sim_vars[key]) for key in amp_keys]
 
@@ -278,26 +280,20 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
     global number_initial_points_nl = prod(amp_lengths)
     global plot_index_nl = 0
 
-    @debug "Running nonlinear simulations for all the $amp_indices combinations of amplitudes"
-    
-    for amp_idx in amp_indices
+    @debug "Running nonlinear simulations for all combinations ($number_initial_points_nl total)"
 
-        global number_initial_points_nl
-        global plot_index_nl 
-        plot_index_nl += 1
+    for amp_idx in amp_indices
+        global plot_index_nl += 1
     
         println("-----------------------------------------------------")
-    
-        println("Point number ", plot_index_nl, " of ", number_initial_points_nl, ", that are the ", round(100*(plot_index_nl/number_initial_points_nl))," % of the total" )
-
+        println("Point number ", plot_index_nl, " of ", number_initial_points_nl,
+                ", that is ", round(100*(plot_index_nl/number_initial_points_nl)), "% of the total")
 
         amps = [sim_vars[amp_keys[i]][amp_idx[i]] for i in 1:n_sources]
         @debug "Running nonlinear simulation for amplitudes: $amps"
 
-        sol = nonlinear_simulation(optimal_params, amps)
-        @debug "Nonlinear simulation completed for amplitudes: $amps"
-
-        perf = performance(sol)   # user_performance on a single circuit
+        sol = nonlinear_simulation(circuit, amps)
+        perf = performance(sol)
 
         push!(results, (amps=amps, performance=perf))
     end

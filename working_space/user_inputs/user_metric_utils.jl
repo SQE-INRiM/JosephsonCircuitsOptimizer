@@ -118,7 +118,7 @@ function plot_gain(gain)
         sim_vars[:frequency_range]/1e9,
         gain,
         xlabel=L"f / GHz",
-        ylabel= L"Gain / dB",
+        ylabel= L"dB",
         title="Gain (S21)",
         label="",
         framestyle=:box,

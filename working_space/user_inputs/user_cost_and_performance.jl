@@ -123,3 +123,21 @@ function user_performance(sol)
     return gain_val
 
 end
+
+
+
+#--------------------------------------------------------------------------------
+
+# Nonlinear correction
+
+function user_delta_quantity(S, Sphase, device_params_set)
+
+    S21phaseBand = S_values(Sphase[(2,1)], 5.75e9)
+    S21phasePump = S_values(Sphase[(2,1)], 11.5e9)
+
+    length = device_params_set[:N]
+    deltaK = abs((S21phasePump-2*S21phaseBand)/length)
+
+    return deltaK
+    
+end

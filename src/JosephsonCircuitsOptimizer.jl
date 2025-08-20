@@ -28,6 +28,9 @@ include("simulator.jl")
 include("optimizer.jl")
 include("gui.jl")
 
+# using Logging
+# global_logger(ConsoleLogger(stderr, Logging.Debug)) # Info
+
 
 
 """
@@ -146,6 +149,7 @@ function run()
     @info "Saving optimal device parameters to: $optimal_params_file from the optimization process."
     save_output_file(header, optimal_params, optimal_params_file)
     @debug "Optimal parameters: $optimal_params with metric $optimal_metric"
+
     
     ## Perform nonlinear simulation sweep on optimal parameters
     @info "Running nonlinear simulations with optimal parameters."
@@ -160,7 +164,6 @@ function run()
     optimal_physical_quantities = update_physical_quantities(best_amplitudes)
     @debug "Optimal physical quantities: $optimal_physical_quantities"
 
-
     # Save optimal physical quantities
     header = Dict(
         "description" => "Optimal physical quantities (working point) of the circuit"
@@ -170,6 +173,8 @@ function run()
     save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
 
     @info "✅ Simulation and optimization processes completed! Results saved in '$output_path'."
+
+    #delta_k = delta_quantity(optimal_params, optimal_physical_quantities)
 
 end
 
