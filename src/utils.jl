@@ -182,27 +182,27 @@ function parse_value(value)
         return collect(start:step:stop)
     elseif isa(value, String)
         # Handle strings as expressions or numbers
-        @info "Parsing string value: $value"
+        @debug "Parsing string value: $value"
         try
             # Attempt to parse as a number or expression
             parsed_value = Meta.parse(value)
             if isa(parsed_value, Symbol)
                 # If the parsed value is a Symbol, return the original string
-                @info "Parsed value is a Symbol, returning original string: $value"
+                @debug "Parsed value is a Symbol, returning original string: $value"
                 return value
             else
                 # Otherwise, return the parsed value
-                @info "Parsed value: $parsed_value"
+                @debug "Parsed value: $parsed_value"
                 return parsed_value
             end
         catch
             # If parsing fails, return the string as-is
-            @info "Failed to parse string value: $value"
+            @debug "Failed to parse string value: $value"
             return value
         end
     else
         # Return non-dictionary and non-string values as-is
-        @info "Returning non-string value: $value"
+        @debug "Returning non-string value: $value"
         return value
     end
 end
@@ -222,7 +222,7 @@ This function evaluates an expression using the provided parameter values from `
 """
 function evaluate_expr(value, params::Dict{Symbol, Any})
     if isa(value, Expr)
-        @info "Evaluating expression: $value"
+        @debug "Evaluating expression: $value"
         assignments = [:(const $(k) = $(params[k])) for k in keys(params)]
         block = Expr(:block, assignments..., value)
         evaluated_value = eval(block)
@@ -230,7 +230,7 @@ function evaluate_expr(value, params::Dict{Symbol, Any})
         return evaluated_value
     else
         # Do not evaluate strings here; they will be handled in linear_simulation
-        @info "Returning non-expression value: $value"
+        @debug "Returning non-expression value: $value"
         return value
     end
 end
@@ -248,16 +248,16 @@ This function loads parameters from a JSON file, parses them, and evaluates any 
 """
 function load_params(filename)
     raw_params = JSON.parsefile(filename)
-    @info "Raw parameters from JSON file: $raw_params"
+    @debug "Raw parameters from JSON file: $raw_params"
 
     # Convert top-level keys to Symbols and parse each value
     params = Dict(Symbol(k) => parse_value(v) for (k, v) in raw_params)
-    @info "Parsed parameters: $params"
+    @debug "Parsed parameters: $params"
     
     # Second pass: evaluate any parameter that is an expression (skip strings)
     for (key, value) in params
         if isa(value, Expr)
-            @info "Evaluating key: $key with value: $value"
+            @debug "Evaluating key: $key with value: $value"
             params[key] = evaluate_expr(value, params)
         end
     end
