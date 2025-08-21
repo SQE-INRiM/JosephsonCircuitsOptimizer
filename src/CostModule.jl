@@ -115,10 +115,10 @@ function cost(vec)
 end
 
 
-function performance(sol)
+function performance(sol, optimal_params)
 
     global delta_correction
-    return Base.invokelatest(user_performance, sol, delta_correction)
+    return Base.invokelatest(user_performance, sol, optimal_params, delta_correction)
     
 end
 
@@ -141,6 +141,6 @@ function delta_quantity(optimal_params, best_amplitudes)
     delta_quantity = abs(nonlin_delta_quantity - lin_delta_quantity) + delta_correction # RICONTROLLA FORSE NON è SOMMA
     println("Delta quantity (nonlinear correction): ", delta_quantity)
 
-    return delta_quantity
+    return delta_quantity, lin_delta_quantity, nonlin_delta_quantity
 
 end

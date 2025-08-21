@@ -94,7 +94,9 @@ end
 
 function test_modification()
 
-    println("\n\nMODIFICANDO IN LOCALE\n14\n")
+    println("\n\n MODIFICANDO IN LOCALE\n
+    14
+    \n")
 
 end
 
@@ -174,18 +176,27 @@ function run()
     save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
 
     @info "✅ Simulation and optimization processes completed! Results saved in '$output_path'."
-    
+
 
     # Nonlinear correction if specified
     if sim_vars[:n_iterations_nonlinear_correction] != 0
 
+        lin_deltas = []
+        nonlin_deltas = []
+
         for i in 1:sim_vars[:n_iterations_nonlinear_correction]
 
-            println("-----------------------------------------------------")
+            println("\n-----------------------------------------------------")
             println("Implementing nonlinear correction: iteration number ", i)
 
-            global delta_correction = delta_quantity(optimal_params, best_amplitudes)
+            deltas = delta_quantity(optimal_params, best_amplitudes)
+            global delta_correction = deltas[1]
             println("Delta k (nonlinear correction): ", delta_correction)
+
+            push!(lin_deltas, deltas[2])
+            @debug "Linear delta quantity: $(deltas[2])"
+            push!(nonlin_deltas, deltas[3])
+            @debug "Nonlinear delta quantity: $(deltas[3])"
 
             df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
             @debug "Linear simulations with nonlinear correction"
@@ -202,6 +213,23 @@ function run()
             @debug "Optimal physical quantities: $optimal_physical_quantities"
 
         end
+
+        @debug "Linear delta quantities: $(lin_deltas)"
+        @debug "Nonlinear delta quantities: $(nonlin_deltas)"
+
+        p = P.plot(collect(1:sim_vars[:n_iterations_nonlinear_correction]), nonlin_deltas, 
+            xlabel="Iteration",
+            ylabel="Nonlinear Delta Quantity",
+            title="Nonlinear Correction Convergence",
+            color=:blue,
+            label="",
+            markershape=:circle,
+            markersize=2,
+            framestyle=:box,
+            size=(800, 600)
+        )
+        display(p)
+
 
         header = Dict(
             "optimal_metric" => optimal_metric,

@@ -293,7 +293,7 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
         @debug "Running nonlinear simulation for amplitudes: $amps"
 
         sol = nonlinear_simulation(circuit, amps)
-        perf = performance(sol)
+        perf = performance(sol, optimal_params)
 
         push!(results, (amps=amps, performance=perf))
     end

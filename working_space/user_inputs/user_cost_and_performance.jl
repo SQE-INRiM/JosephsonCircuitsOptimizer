@@ -108,17 +108,21 @@ end
 # The first index is the frequency range, the next indeces correspond to the source in order you write it.
 
 
-function user_performance(sol, delta_correction)
+function user_performance(sol, device_params_set, delta_correction)
 
     S21 = sol.linearized.S((0,),2,(0,),1,:)
     gain_S21 = S_to_dB(S21)
+    S21phase = S_to_phase(S21)
 
     gain_band = S_values(gain_S21, [4.75e9,6.75e9])
     gain_val = mean(gain_band)
     println("Gain in the band [4.75, 6.75] GHz: ", gain_val)
 
-    p = plot_gain(gain_S21)
-    display(p)
+    p4=plot_dispersion_relation(S21phase, device_params_set)
+    display(p4)
+
+    #p = plot_gain(gain_S21)
+    #display(p)
 
     return gain_val
 
