@@ -3,7 +3,7 @@
     "linear_modulation_harmonics": 1,
     "nonlinear_strong_tone_harmonics": 1,
     "nonlinear_modulation_harmonics": 1,
-    "max_simulator_iterations": 10
-
+    "max_simulator_iterations": 10,
+    "n_iterations_nonlinear_correction": 3
 
 }

@@ -103,7 +103,7 @@ end
 
 Run the full simulation and optimization process.
 """
-function run(; nonlinear_correction::Bool = false)
+function run()
 
     # Initialize all modules
     modules_setup()
@@ -174,12 +174,15 @@ function run(; nonlinear_correction::Bool = false)
     save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
 
     @info "✅ Simulation and optimization processes completed! Results saved in '$output_path'."
+    
 
-    n_nonlinear_corrections = 1
+    # Nonlinear correction if specified
+    if sim_vars[:n_iterations_nonlinear_correction] != 0
 
-    if nonlinear_correction
+        for i in 1:sim_vars[:n_iterations_nonlinear_correction]
 
-        for i in n_nonlinear_corrections 
+            println("-----------------------------------------------------")
+            println("Implementing nonlinear correction: iteration number ", i)
 
             global delta_correction = delta_quantity(optimal_params, best_amplitudes)
             println("Delta k (nonlinear correction): ", delta_correction)
@@ -189,16 +192,6 @@ function run(; nonlinear_correction::Bool = false)
             optimal_params, optimal_metric = run_optimization(df)
             @debug "Optimal parameters after nonlinear correction: $optimal_params with metric $optimal_metric"
 
-
-            header = Dict(
-                "optimal_metric" => optimal_metric,
-                "description" => "Optimal parameters for the model after the nonlinear correction"
-            )
-            optimal_params_file = joinpath(output_path, "optimal_device_parameters_corrected.json")
-            @info "Saving optimal device parameters to: $optimal_params_file from the optimization process."
-            save_output_file(header, optimal_params, optimal_params_file)
-            @debug "Optimal parameters: $optimal_params with metric $optimal_metric"
-
             results = run_nonlinear_simulations_sweep(optimal_params)
             @debug "Results from nonlinear simulations after correction: $(results)"
             best_idx = findmax(r -> r.performance, results)[2]
@@ -206,13 +199,27 @@ function run(; nonlinear_correction::Bool = false)
             best_amplitudes = results[best_idx].amps
             @debug "Best amplitudes: $best_amplitudes"
             optimal_physical_quantities = update_physical_quantities(best_amplitudes)
-
             @debug "Optimal physical quantities: $optimal_physical_quantities"
-            
 
         end
 
-        
+        header = Dict(
+            "optimal_metric" => optimal_metric,
+            "description" => "Optimal parameters for the model after the nonlinear correction"
+        )
+        optimal_params_file = joinpath(output_path, "optimal_device_parameters_corrected.json")
+        @info "Saving optimal device parameters to: $optimal_params_file from the optimization process."
+        save_output_file(header, optimal_params, optimal_params_file)
+        @debug "Optimal parameters: $optimal_params with metric $optimal_metric"
+
+        header = Dict(
+            "description" => "Optimal physical quantities (working point) of the circuit after the nonlinear correction"
+        )
+        optimal_quantities_file = joinpath(output_path, "optimal_physical_quantities_corrected.json")
+        @info "Saving optimal physical quantities to: $optimal_quantities_file from the nonlinear simulation."
+        save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
+
+        @info "✅ Simulation and optimization processes with nonlinear correction completed! Results saved in '$output_path'."
 
     
     end

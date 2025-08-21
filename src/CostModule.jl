@@ -126,9 +126,6 @@ end
 
 function delta_quantity(optimal_params, best_amplitudes)
 
-    println("-----------------------------------------------------")
-    println("Implementing nonlinear correction...")
-
     circuit = create_circuit(optimal_params)
 
     S, Sphase = linear_simulation(optimal_params, circuit)
