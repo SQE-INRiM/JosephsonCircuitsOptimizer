@@ -140,7 +140,8 @@ function delta_quantity(optimal_params, best_amplitudes)
     nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S, Sphase, optimal_params)
     @debug "Nonlinear delta quantity: $nonlin_delta_quantity"
 
-    delta_quantity = abs(nonlin_delta_quantity - lin_delta_quantity)
+    global delta_correction
+    delta_quantity = abs(nonlin_delta_quantity - lin_delta_quantity) + delta_correction # RICONTROLLA FORSE NON è SOMMA
     println("Delta quantity (nonlinear correction): ", delta_quantity)
 
     return delta_quantity
