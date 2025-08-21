@@ -105,8 +105,10 @@ function cost(vec)
     # Get simulation results for the given parameters.
     S, Sphase, device_params_temp = sim_sys(vec)
 
+    global delta_correction
+
     # Calculate the user-defined metric based on the simulation results.
-    metric = Base.invokelatest(user_cost, S, Sphase, device_params_temp)
+    metric = Base.invokelatest(user_cost, S, Sphase, device_params_temp, delta_correction)
 
     # Add additional conditions or checks for the cost if needed.
     return metric
@@ -115,13 +117,14 @@ end
 
 function performance(sol)
 
-    return Base.invokelatest(user_performance, sol)
+    global delta_correction
+    return Base.invokelatest(user_performance, sol, delta_correction)
     
 end
 
 
 
-function delta_quantity(optimal_params, optimal_physical_quantities)
+function delta_quantity(optimal_params, best_amplitudes)
 
     println("-----------------------------------------------------")
     println("Implementing nonlinear correction...")
@@ -130,12 +133,15 @@ function delta_quantity(optimal_params, optimal_physical_quantities)
 
     S, Sphase = linear_simulation(optimal_params, circuit)
     lin_delta_quantity = Base.invokelatest(user_delta_quantity, S, Sphase, optimal_params)
+    @debug "Linear delta quantity: $lin_delta_quantity"
     
-    sol = nonlinear_simulation(optimal_params, amps)
+    sol = nonlinear_simulation(circuit, best_amplitudes)
     S, Sphase = extract_S_parameters(sol, circuit.PortNumber)
     nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S, Sphase, optimal_params)
+    @debug "Nonlinear delta quantity: $nonlin_delta_quantity"
 
     delta_quantity = abs(nonlin_delta_quantity - lin_delta_quantity)
+    println("Delta quantity (nonlinear correction): ", delta_quantity)
 
     return delta_quantity
 

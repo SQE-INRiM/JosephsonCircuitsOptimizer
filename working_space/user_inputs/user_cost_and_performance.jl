@@ -5,7 +5,7 @@ include("user_metric_utils.jl")
 # To use the S parameters the correct notation is S_ij = S[(i,j)] for the module and Sphase[(i,j)] for the phase
 # All the physical quantities are inside a Dict called sim_vars
 
-function user_cost(S, Sphase, device_params_set::Dict)
+function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
 
     # USER CONDITION-------------------------------------------------
 
@@ -108,7 +108,7 @@ end
 # The first index is the frequency range, the next indeces correspond to the source in order you write it.
 
 
-function user_performance(sol)
+function user_performance(sol, delta_correction)
 
     S21 = sol.linearized.S((0,),2,(0,),1,:)
     gain_S21 = S_to_dB(S21)
