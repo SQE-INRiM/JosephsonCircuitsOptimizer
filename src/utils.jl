@@ -246,23 +246,59 @@ This function loads parameters from a JSON file, parses them, and evaluates any 
 # Returns:
 - A dictionary containing the parsed and evaluated parameters.
 """
-function load_params(filename)
-    raw_params = JSON.parsefile(filename)
+
+
+function load_params(filename; optimal::Union{Dict,Nothing}=nothing)
+    # --- Robust JSON loading ---
+    raw_str = read(filename, String)
+    if startswith(raw_str, '\ufeff')
+        raw_str = raw_str[2:end]
+    end
+    clean_str = filter(c -> isprint(c) || c in ['\n','\r','\t'], raw_str)
+    raw_params = JSON.parse(clean_str)
     @debug "Raw parameters from JSON file: $raw_params"
 
-    # Convert top-level keys to Symbols and parse each value
-    params = Dict(Symbol(k) => parse_value(v) for (k, v) in raw_params)
-    @debug "Parsed parameters: $params"
-    
-    # Second pass: evaluate any parameter that is an expression (skip strings)
-    for (key, value) in params
-        if isa(value, Expr)
-            @debug "Evaluating key: $key with value: $value"
-            params[key] = evaluate_expr(value, params)
+    params = Dict{Symbol,Any}()
+
+    for (k, v) in raw_params
+        key = Symbol(k)
+        values = nothing
+        has_tag = false
+
+        if isa(v, Dict)
+            # Determine values
+            if all(haskey(v, fld) for fld in ("start","step","stop"))
+                values = collect(v["start"]:v["step"]:v["stop"])
+            elseif haskey(v, "values")
+                values = v["values"]
+            else
+                error("Unsupported dictionary format for key: $k")
+            end
+
+            # Just check if "tag" exists
+            if haskey(v, "tag")
+                has_tag = true
+            end
+        else
+            values = v
+        end
+
+        # Override if optimal dict is given AND this param is tagged AND present in optimal
+        if optimal !== nothing && has_tag && haskey(optimal, key)
+            @debug "Overriding $key with optimal value $(optimal[key])"
+            params[key] = [optimal[key]]
+        else
+            params[key] = values
         end
     end
+
+    @debug "Final parsed parameters: $params"
     return params
+    
 end
+
+
+
 
 """
     load_dataset(path)

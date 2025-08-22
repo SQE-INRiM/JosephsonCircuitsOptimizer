@@ -71,7 +71,6 @@ end
 
 
 
-
 """
     modules_setup(config::Configuration)
 
@@ -138,7 +137,7 @@ function run()
     @info "Saving uniform dataset from the linear simulation run."
 
     # Launch GUI
-    create_gui(df, filtered_df)
+    #create_gui(df, filtered_df)
 
     # Run optimizer
     @info "\nRunning optimization process on the dataset."
@@ -198,7 +197,9 @@ function run()
             @debug "Linear delta quantity: $(deltas[2])"
             push!(nonlin_deltas, deltas[3])
             @debug "Nonlinear delta quantity: $(deltas[3])"
-
+            
+            global device_parameters_space = load_params(device_params_file; optimal=optimal_params)
+            @debug "Reloading device parameters space considering the tagged subspace: $device_parameters_space"
             df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
             @debug "Linear simulations with nonlinear correction"
             optimal_params, optimal_metric = run_optimization(df)
