@@ -94,8 +94,7 @@ end
 function test_modification()
 
     println("\n\n MODIFICANDO IN LOCALE\n
-    14
-    \n")
+    4  \n")
 
 end
 
@@ -228,8 +227,10 @@ function run()
             markershape=:circle,
             markersize=2,
             framestyle=:box,
-            size=(800, 600)
+            size=(800, 600),
+            xticks=1:sim_vars[:n_iterations_nonlinear_correction]
         )
+
         display(p)
 
 

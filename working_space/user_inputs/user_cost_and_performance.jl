@@ -24,7 +24,10 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
     S21phasePump = S_values(Sphase[(2,1)], 11.5e9)
 
     length = device_params_set[:N]
-    deltaK = abs((S21phasePump-2*S21phaseBand)/length)
+    deltaK = (S21phasePump-2*S21phaseBand)/length
+    @debug "Delta K: $(deltaK)"
+    deltaK = delta_correction + deltaK
+    @debug "Delta K with correction: $(deltaK)"
 
     #----------------------------------------------------------------
     """
@@ -48,24 +51,17 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
 
     # METRIC DEFINITION
 
-
-    alpha_lin, alpha_nonlin, alpha_stopband= angles_calculations(Sphase, length)
-    #x_stopband_peak, x_pump = derivative_low_pump(Sphase, length)
-
-    
-    metric_angles_stopband = (abs(alpha_stopband))*5e11
-    println("   a. Stopband angle contribution : ", metric_angles_stopband)
-
-    #metric_stopband_position = 2*abs(x_stopband_peak - x_pump)
-    #println("   b. Stopband position contribution: ", metric_stopband_position)
-
     metric_impedance = (1e3/(abs(meanS11band)))
-    println("   c. Impedance matching contibution: ", metric_impedance)
+    println("   a. Impedance matching contibution: ", metric_impedance)
 
-    metric_freqband = 5e11*(abs(alpha_nonlin - alpha_lin))
-    println("   d. Frequency band angle contribution: ", metric_freqband)
+    metric_phase = 1e11*deltaK
+    println("   b. Phase matching contribution: ", metric_phase)
 
-    metric =  (metric_freqband^2 + metric_angles_stopband^2)^(1/2)
+    metric =  metric_impedance + metric_phase
+
+    @debug "Impedance matching contribution: $(metric_impedance)"
+    @debug "Phase matching contribution: $(metric_phase)"
+    @debug "Metric: $(metric)"
 
     #plots
 
@@ -77,9 +73,8 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
         0.5,
         "Plot number: $(plot_index)\n" *
         "Delta K: $(round(deltaK, digits=2))\n\n" *
-        "a. Stopband angle contribution: $(round(metric_angles_stopband, digits=2))\n\n" *
-        "d. Frequency band angle contribution: $(round(metric_freqband, digits=2))\n\n" *
-        #"metric_impedance: $(round(metric_impedance, digits=3))\n" *
+        "a. Impedance matching contibution: $(round(metric_impedance, digits=2))\n\n" *
+        "b. Phase matching contribution: $(round(metric_phase, digits=2))\n\n" *
         "Metric: $(round(metric, digits=3))\n\n" *
         "loadingpitch = $(round(device_params_set[:loadingpitch], digits=3)) \n"*
         "A_small = $(round(device_params_set[:smallJunctionArea], digits=3)) \n" *
@@ -88,8 +83,6 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
         "CgloadingCell = $(round(device_params_set[:CgloadingCell], digits=3))\n"*
         "criticalCurrentDensity = $(round(device_params_set[:criticalCurrentDensity], digits=3))\n"*
         "CgDielectricThickness = $(round(device_params_set[:CgDielectricThichness], digits=3))\n"
-        #"Progression: $(round(100*(point_exluded/number_initial_points), digits=2)) % \n"*
-        #"Point considered: $plot_index in a total of $(plot_index+point_exluded)"
     )
 
     #sleep(2)
@@ -108,7 +101,7 @@ end
 # The first index is the frequency range, the next indeces correspond to the source in order you write it.
 
 
-function user_performance(sol, device_params_set, delta_correction)
+function user_performance(sol, device_params_set)
 
     S21 = sol.linearized.S((0,),2,(0,),1,:)
     gain_S21 = S_to_dB(S21)
@@ -140,7 +133,7 @@ function user_delta_quantity(S, Sphase, device_params_set)
     S21phasePump = S_values(Sphase[(2,1)], 11.5e9)
 
     length = device_params_set[:N]
-    deltaK = abs((S21phasePump-2*S21phaseBand)/length)
+    deltaK = (S21phasePump-2*S21phaseBand)/length
 
     return deltaK
     
