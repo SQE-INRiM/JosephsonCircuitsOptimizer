@@ -155,7 +155,7 @@ function simulation_time(start_time)
     minutes = div(total_seconds % 3600, 60)
     seconds = total_seconds % 60
 
-    formatted_time = "$(days)d $(hours)h $(minutes)m $(seconds)s"
+    formatted_time = "$(days)d_$(hours)h_$(minutes)m_$(seconds)s"
     
     return formatted_time
 end
@@ -246,7 +246,6 @@ This function loads parameters from a JSON file, parses them, and evaluates any 
 # Returns:
 - A dictionary containing the parsed and evaluated parameters.
 """
-
 
 function load_params(filename; optimal::Union{Dict,Nothing}=nothing)
     # --- Robust JSON loading ---
@@ -341,4 +340,17 @@ function copy_function(source_file, dest_file)
     end
 end
 
+function plot_update(p)
 
+    timestamp = simulation_time(0)
+
+    # file name: plot_0d_0h_3m_27s.png
+    filename = "plot_$timestamp.png"
+
+    # full path inside 
+    filepath = joinpath(plot_path, filename)
+    println("PLOTS SAVED IN: $filepath")
+
+    savefig(p, filepath)
+    @info "Saved plot to $filepath"
+end

@@ -250,7 +250,7 @@ function nonlinear_simulation(circuit, amps::Vector)
 
     println("   2. Non-linear simulation")
 
-    sol = hbsolve(
+    @time sol = hbsolve(
         sim_vars[:w_range], sim_vars[:wp], sources,
         (sim_vars[:nonlinear_modulation_harmonics],),
         (sim_vars[:nonlinear_strong_tone_harmonics],),

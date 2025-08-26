@@ -8,6 +8,7 @@ using Makie, Colors, StatsBase, KernelDensity
 using Statistics, LinearAlgebra, Dates, Logging, Interpolations
 using Pkg, QuasiMonteCarlo, Random
 import Plots as P
+import Plots: savefig
 import GLMakie as M
 
 export plot, mplot, run
@@ -114,7 +115,9 @@ function run()
     # Define paths
     user_input_path = config.user_inputs_dir
     base_output_path = config.outputs_dir
-
+    global plot_path = joinpath(pwd(), "plot_saved")
+    println("PLOTS SAVED IN: $plot_path")
+    
     # Generate timestamp for unique run folder
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
     output_path = joinpath(base_output_path, "output_" * timestamp)
@@ -231,6 +234,7 @@ function run()
             xticks=1:sim_vars[:n_iterations_nonlinear_correction]
         )
 
+        plot_update(p)
         display(p)
 
 
