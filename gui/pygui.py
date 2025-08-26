@@ -3,6 +3,7 @@ import subprocess
 import threading
 import os
 from PIL import Image, ImageTk
+import shutil
 
 process = None
 current_plot_index = 0
@@ -13,6 +14,16 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_path = os.path.abspath(os.path.join(current_dir, '..')).replace('\\', '/')
 src_path = os.path.join(project_path, 'src').replace('\\', '/')
 plot_path = os.path.join(project_path, 'plot_saved').replace('\\', '/')
+
+
+def get_julia_exe():
+    # Try to find Julia in PATH
+    julia = shutil.which("julia")
+    if julia:
+        return julia
+    # Fallback: hardcode your Julia installation path here if PATH is not set
+    return print("Va che mica hai Julia pistola") # Change this if needed
+
 
 def clear_plots():
     if os.path.exists(plot_path):
@@ -77,7 +88,7 @@ def start_simulation():
     def run_in_thread():
         global process
         process = subprocess.Popen(
-            ['julia', '--project=' + project_path, '-e', julia_code],
+            [get_julia_exe(), '--project=' + project_path, '-e', julia_code],
             cwd=project_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -121,7 +132,7 @@ def run_function(func_name="run"):
     def run_in_thread():
         global process
         process = subprocess.Popen(
-            ['julia', '--project=' + project_path, '-e', julia_code],
+            [get_julia_exe(), '--project=' + project_path, '-e', julia_code],
             cwd=project_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
