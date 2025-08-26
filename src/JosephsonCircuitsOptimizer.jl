@@ -115,7 +115,7 @@ function run()
     # Define paths
     user_input_path = config.user_inputs_dir
     base_output_path = config.outputs_dir
-    global plot_path = joinpath(pwd(), "plot_saved")
+    global plot_path = coonfig.plot_dir
     println("PLOTS SAVED IN: $plot_path")
     
     # Generate timestamp for unique run folder
@@ -235,8 +235,7 @@ function run()
         )
 
         plot_update(p)
-        display(p)
-
+        # display(p)
 
         header = Dict(
             "optimal_metric" => optimal_metric,
