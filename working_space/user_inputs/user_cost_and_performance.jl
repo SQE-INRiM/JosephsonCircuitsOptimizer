@@ -89,7 +89,7 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
 
     p=plot(p4,empty_plot, layout=(1,2), size=(1100, 700))
     #display(p)
-    #plot_update(p)
+    plot_update(p)
 
     return metric
         
