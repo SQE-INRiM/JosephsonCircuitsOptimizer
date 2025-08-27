@@ -37,12 +37,30 @@ else:
 # --- 4. Check for Julia ---
 julia_path = shutil.which("julia")
 if julia_path is None:
-    print("\n⚠ Julia not found on your system!")
+    print("\n⚠ Julia executable not found in your system or in your PATH.")
     print("Please install Julia from https://julialang.org/downloads/")
-    print("and make sure it is added to your PATH before running the GUI.")
+    print("and add its 'bin' folder to your system PATH.")
+    print("\nInstructions:")
+
+    if os.name == "nt":  # Windows instructions
+        print("1. Install Julia from the link above.")
+        print("2. Find the folder where Julia was installed, e.g.,")
+        print("   C:\\Users\\YourName\\AppData\\Local\\Programs\\Julia-1.x.x\\bin")
+        print("3. Add this folder to your PATH:")
+        print("   - Press Win + S → 'Environment Variables'")
+        print("   - Edit 'Path' under User variables → New → paste the path")
+        print("4. Open a new Command Prompt and test with: julia --version")
+    else:  # Linux / macOS instructions
+        print("1. Install Julia from the link above.")
+        print("2. Add Julia to PATH by editing ~/.bashrc or ~/.zshrc:")
+        print("   export PATH='/path/to/julia/bin:$PATH'")
+        print("3. Run: source ~/.bashrc (or source ~/.zshrc)")
+        print("4. Test with: julia --version")
+        
+    sys.exit("🚫 Julia is required. Setup aborted.")
+
 else:
     print(f"✅ Julia found at: {julia_path}")
-
 # --- 5. Instructions to start the GUI ---
 print("\n✅ Setup complete. You can now start the GUI:")
 if os.name == "nt":
