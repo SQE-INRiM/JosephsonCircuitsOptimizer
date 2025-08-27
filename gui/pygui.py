@@ -134,8 +134,7 @@ def update_plot():
     global current_plot_index
     refresh_plot_list()
     if plot_files:
-        if current_plot_index >= len(plot_files):
-            current_plot_index = len(plot_files) - 1
+        current_plot_index = len(plot_files) - 1  # always newest
         show_plot(current_plot_index)
     else:
         show_plot(-1)
