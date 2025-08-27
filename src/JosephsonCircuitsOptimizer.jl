@@ -10,6 +10,7 @@ using Pkg, QuasiMonteCarlo, Random
 import Plots as P
 import Plots: savefig
 import GLMakie as M
+using FileIO
 
 export plot, mplot, run
 
@@ -115,8 +116,7 @@ function run()
     # Define paths
     user_input_path = config.user_inputs_dir
     base_output_path = config.outputs_dir
-    global plot_path = coonfig.plot_dir
-    println("PLOTS SAVED IN: $plot_path")
+    global plot_path = config.plot_dir
     
     # Generate timestamp for unique run folder
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")

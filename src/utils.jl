@@ -340,17 +340,21 @@ function copy_function(source_file, dest_file)
     end
 end
 
+
 function plot_update(p)
-
-    timestamp = simulation_time(0)
-
-    # file name: plot_0d_0h_3m_27s.png
+    # Millisecond-resolution timestamp
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
     filename = "plot_$timestamp.png"
-
-    # full path inside 
     filepath = joinpath(plot_path, filename)
+
+    tmp_filepath = filepath * ".part.png"
+
     println("PLOTS SAVED IN: $filepath")
 
-    savefig(p, filepath)
+    # Save safely
+    savefig(p, tmp_filepath)
+    mv(tmp_filepath, filepath; force=true)
+
     @info "Saved plot to $filepath"
 end
+

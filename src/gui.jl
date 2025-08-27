@@ -303,5 +303,6 @@ function create_gui(df_ref, df)
 
     # Display the figure
     display(fig)
+    plot_update(fig)
     #save("figure.jpg",fig)
 end
