@@ -6,18 +6,41 @@ For this reason, it is possible to calculate the design of a single circuit in a
 
 ## **Installation**
 
-To install the package in the current version, run the following command in Julia:
+### **Main Method (via Git clone)**  
+
+The recommended way to use the **JosephsonCircuitsOptimizer (JCO)** is by cloning the repository directly from GitHub:  
+
+```bash
+git clone https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer.git
+```
+
+The package requires a working space in which you set the details of the simulation and optimization process.
+Inside the cloned folder you will find the `working_space` directory, you can *modify this folder* with your desired configuration. The structure of the `working_space` is shown below.
+Then you can run the code through the *GUI*:
+
+- On *Windows*, double-click `launch_gui.bat`
+- On *macOS/Linux*, double-click or run `launch_gui.sh`
+
+Once the GUI is open, you can start the process by pressing the *Run Simulation* button.
+⚠️ The first run may take a while as the environment is being initialized.
+
+To update the latest version, inside the JosephsonCircuitsOptimizer directory run:
+```bash
+git pull
+```
+
+### **Alternative Method (via Julia package manager)**  
+
+You can also work directly in Julia by installing the package with:
 
 ```julia
 using Pkg
 Pkg.add(url="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer", rev="v0.1.0")
 ```
 
-This will download and install the package directly from GitHub.
-
-The package requires an external *working space*. If a folder named *working_space* does not exist in your working directory, it will be created automatically. You **must** use this folder to run the package properly. The structure of *working_space* is shown below.
-
-Once installed the package and the *working_space* folder is set up, you can load and use the package with:
+This will download and install the package as a Julia library.
+The package requires an external working space. If a folder named `working_space` does not exist in your working directory, it will be created automatically.
+You can load and use the package with:
 
 ```julia
 import JosephsonCircuitsOptimizer as JCO 
@@ -114,20 +137,13 @@ The phase differences across the small junction and the large junctions are rela
 
 ## **Running the example**
 
-To try the package, you need to use the `working_space` folder created during installation.  
+The `working_space` directory created during installation is already set with the SNAIL-based JTWPA specifics, as shown below.
+To run the example you only have to clone the repository and start the simulation from the GUI.
 
-You can find example scripts in the `examples/SNAIL-based JTWPA` folder: [Download working_space.zip](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/tree/main/examples/SNAIL-based%20JTWPA/working_space.zip?download=). 
-To use the provided example `working_space`, copy its contents into your existing `working_space` directory.
-
-Unzip the folder and place it in your working directory. If you have already install the package, you can run: 
-```julia
-import JosephsonCircuitsOptimizer as JCO 
-JCO.run()
-```
 
 ##  **The SNAIL-based JTWPA working space**
 
-The **working space** is presented in the example section. It is composed by
+The structure of the SNAIL-based JTWPA **working space** is the following:
 
 ```plaintext
 working_space/
@@ -393,14 +409,14 @@ end
 
 - *user_cost_and_performance.jl*
 
-The **device-specific metric** is defined inside the *user_cost* function and depends on the S parameters of the linear simulation. It is possible to implement a mask to exclude some configurations. In this example the metric is defined to ensures impedance and phase matching based on the dispersion relation.
+The **device-specific metric** is defined inside the *user_cost* function and depends on the S-parameters of the linear simulation. It is possible to implement a mask to exclude some configurations. In this example the metric is defined to ensures impedance and phase matching based on the dispersion relation.
 
 <details>
 
 <summary>user_cost</summary>
 
 ```julia
-function user_cost(S, Sphase, device_params_set::Dict)
+function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
 
     println("-----------------------------------------------------")
 
@@ -455,54 +471,45 @@ In our case the performance is define to achieve a broadband gain profile.
 <summary>user_performance</summary>
 
 ```julia
-function user_performance(sol)
-    num_k = length(sim_vars[:source_1_non_linear_amplitude])
-    num_j = length(sim_vars[:source_2_non_linear_amplitude])
+function user_performance(sol, device_params_set)
 
-    best_max_value = -Inf
-    best_k = 0
-    best_j = 0
+    S21 = sol.linearized.S((0,),2,(0,),1,:)
+    gain_S21 = S_to_dB(S21)
 
-    # Iterate over all combinations of k and j
-    for (k, j) in Iterators.product(1:num_k, 1:num_j)
+    gain_band = S_values(gain_S21, [4.75e9,6.75e9])
+    gain_val = mean(gain_band)
+    println("Gain in the band [4.75, 6.75] GHz: ", gain_val)
 
-        # Extract solutions for all frequencies for the combination (k, j)
-        sol_kj = sol[:, k, j]  # This should be an array or vector
-
-        # Extract and convert S21 values for all frequencies
-        S21_values = [s_kj.linearized.S((0,), 2, (0,), 1, :) for s_kj in sol_kj]
-        
-        # Debugging: Check type and values of S21_values
-        println("S21_values ", typeof(S21_values))
-        
-        # Convert S21 values to an array and compute maximum absolute value
-        max_val = maximum(abs.(reduce(vcat, S21_values)))  # Flatten and compute max
-
-        # Update best maximum value and combination
-        if max_val > best_max_value
-            best_max_value = max_val
-            best_k = k
-            best_j = j
-        end
-    end
-
-    # Extract the best amplitudes based on best_k and best_j
-    best_source_1_amplitude = sim_vars[:source_1_non_linear_amplitude][best_k]
-    best_source_2_amplitude = sim_vars[:source_2_non_linear_amplitude][best_j]
-
-    # Output the results
-    println("Best combination: k = $best_k, j = $best_j")
-    println("Best source 1 amplitude: $best_source_1_amplitude")
-    println("Best source 2 amplitude: $best_source_2_amplitude")
-    println("Best max value: $best_max_value")
-
-    return [best_source_1_amplitude, best_source_2_amplitude]
+    p = plot_gain(gain_S21)
+    plot_update(p)
+    
+    return gain_val
 
 end
 ```
 </details>
 
-The simulation parameters inside the `drive_physical_quantities.json`, `simulation_config.json` and `optimizer_config.json` are accessible to the dictionary sim_vars.
+The code allows to iteratively compute the simulation and optimization process to compensate for dynamic effects such as Kerr nonlinearity.
+Inside the *user_delta_correction* function you can define this quantity.
+
+<details>
+
+<summary>user_delta_quantity</summary>
+
+```julia
+function user_delta_quantity(S, Sphase, device_params_set)
+
+    S21phaseBand = S_values(Sphase[(2,1)], 5.75e9)
+    S21phasePump = S_values(Sphase[(2,1)], 11.5e9)
+
+    length = device_params_set[:N]
+    deltaK = (S21phasePump-2*S21phaseBand)/length
+
+    return deltaK
+    
+end
+```
+</details>
 
 - *user_parametric_sources.jl*
 
