@@ -2,13 +2,13 @@
 
 [JosephsonCircuitsOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) is a Julia package that provides a simulation framework developed using the [JosephsonCircuits.jl](https://github.com/kpobrien/JosephsonCircuits.jl) library [1], which is a powerful tool enables the modeling of superconducting circuits, including Josephson junctions and other nonlinear elements, within a lumped-element approach. It leverages harmonic balance [2], a frequency-domain technique that offers a computationally efficient alternative to traditional time-domain simulations [3].
 
-For this reason, it is possible to calculate the design of a single circuit in a short time. The [JosephsonCircuitOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) package explores a vast range of circuit designs by combining different device parameters and applying Bayesian optimization with Gaussian processes [4]. This optimization process is driven by a device-specific metric, guiding the search for optimal circuit parameters to achieve the desired performance.
+For this reason, it is possible to calculate the design of a single circuit in a short time. The **Josephson Circuits Optimazer (JCO)** package explores a vast range of circuit designs by combining different device parameters and applying Bayesian optimization with Gaussian processes [4]. This optimization process is driven by a device-specific metric, guiding the search for optimal circuit parameters to achieve the desired performance.
 
 ## **Installation**
 
 ### **Main Method (via Git clone)**  
 
-The recommended way to use the **JosephsonCircuitsOptimizer (JCO)** is by cloning the repository directly from GitHub:  
+The recommended way to install the JCO package is by cloning the repository directly from GitHub:  
 
 ```bash
 git clone https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer.git
@@ -50,7 +50,7 @@ JCO.run()
 
 ## **How It Works**
 
-To use the [JosephsonCircuitsOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) framework, several inputs must be defined. 
+To use the JCO framework, several inputs must be defined. 
 - The **device parameters space** describes the physical parameters that define the circuit's design for fabrication. Each combination of these parameters represents a different circuit in the framework that toghether define a uniform sampling. This space is typically set by fabrication constrains.
 - The **physical quantities** define the frequency range and the various signals within the circuit, such as the strong pump tones.
 - The **device-specific metric** is a function used to weight every circuit configuration, defined by a set of device parameters. 
@@ -80,7 +80,7 @@ The workflow consists of three main steps:
 
 ### **Working space structure**
 
-[JosephsonCircuitsOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) operates within an external **working space** containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
+JCO operates within a **working space** containing specific files. These files must be placed inside a folder named `working_space` within the working directory.
 The `working_space/user_inputs` folder should contain the following files:
 -  `device_parameters_space.json` which contains the device parameters space to define the circuit design. 
 -  `drive_physical_quantities.json` in which you define the frequency range and sources features.
@@ -88,7 +88,7 @@ The `working_space/user_inputs` folder should contain the following files:
 -  `simulation_config.json` with some configuarion of the simulation process.
 
 -  `user_circuit.jl` in which the circuit schematic is defined with a lumped-element approach.
--  `user_cost_and_performance.jl` with the definition of the device-specific metric and the desired performan functions.
+-  `user_cost_and_performance.jl` with the definition of the device-specific metric, the desired performan functions and eventually the delta function for the nonlinear correction.
 -  `user_parametric_sources.jl` (optional). Some sources can have a parametric input that depends on device parameters. It is possible to create a file which connect the sources with these parameters.
 
 Simulation outputs are saved in `working_space/outputs/output_YYYY-MM-DD_hh-mm-ss`, where the following files are generated:
@@ -219,6 +219,7 @@ In this file some functionaliity of the hbsolver function of the JosephsonCircui
     "nonlinear_strong_tone_harmonics": 8,
     "nonlinear_modulation_harmonics": 4,
     "max_simulator_iterations": 500
+    "n_iterations_nonlinear_correction": 3
 }
 ```
 
@@ -235,7 +236,7 @@ In this file the maximum number of the optimizer iterations and the sample creat
 
 - *user_circuit.jl* 
 
-The schematic of the circuit is implemented in the `user_circuit.jl` file, following the structure presented in the JosephsonCircuits.jl library. In our case the circuit is the following.
+The schematic of the circuit is implemented in the `user_circuit.jl` file with a lumped-element approach, following the structure presented in the JosephsonCircuits.jl library.
 The *circuit* Tuple is the definition of the structure of the circuit. The *circuitdefs* is a Dict with the values of the variables used inside the circuit.
 <details>
 
@@ -460,7 +461,7 @@ end
 ```
 
 </details>
-
+#di anche di plot_update()
 Some functions useful for the metric and performance definitions are implemented inside the `user_metric_utils.jl` file. In this case the function *S_values* that extract the value of the S parameters at a define frequency is define there. 
 
 The **targeted performance** is defined inside the *user_performance* function and depends on the solution of the hbsolve function of the nonlinear simulation.
