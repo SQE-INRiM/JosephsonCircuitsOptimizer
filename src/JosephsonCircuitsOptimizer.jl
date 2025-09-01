@@ -117,6 +117,7 @@ function run()
     user_input_path = config.user_inputs_dir
     base_output_path = config.outputs_dir
     global plot_path = config.plot_dir
+    global corr_path = config.corr_dir
     
     # Generate timestamp for unique run folder
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
@@ -140,6 +141,7 @@ function run()
 
     # Launch GUI
     #create_gui(df, filtered_df)
+    create_corr_figure(df)
 
     # Run optimizer
     @info "\nRunning optimization process on the dataset."

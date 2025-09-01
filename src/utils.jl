@@ -348,13 +348,30 @@ function plot_update(p)
     filepath = joinpath(plot_path, filename)
 
     tmp_filepath = filepath * ".part.png"
-
-    println("PLOTS SAVED IN: $filepath")
+    #println("PLOTS SAVED IN: $filepath")
 
     # Save safely
     savefig(p, tmp_filepath)
     mv(tmp_filepath, filepath; force=true)
 
     @info "Saved plot to $filepath"
+end
+
+function correlation_update(fig::Figure)
+    # Ensure folder exists
+    isdir(corr_path) || mkpath(corr_path)
+
+    # Millisecond-resolution timestamp
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
+    filename = "corr_$timestamp.png"
+    filepath = joinpath(corr_path, filename)
+
+    tmp_filepath = filepath * ".part.png"
+
+    # Save safely
+    save(tmp_filepath, fig)
+    mv(tmp_filepath, filepath; force = true)
+
+    @info "Saved correlation figure to $filepath"
 end
 

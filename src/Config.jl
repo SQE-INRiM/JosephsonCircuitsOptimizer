@@ -8,6 +8,7 @@ module Config
         user_inputs_dir::String
         outputs_dir::String
         plot_dir::String
+        corr_dir::String
     end
 
     # Function to initialize and return the Configuration struct
@@ -39,8 +40,22 @@ module Config
             return candidate
         end
 
+        function set_corr_dir()
+            candidate = joinpath(pwd(), "correlation_matrix_saved")
+            if isdir(candidate)
+                @info "Correlation matrix inside: $candidate"
+                return candidate
+            end
+
+            # Create a new working space in the current directory if none exists
+            @info "Correlation matrix saved inside the new created folder: $candidate"
+            mkpath(candidate)
+            return candidate
+        end
+
         WORKING_SPACE = set_working_space()
         plot_dir = set_plot_dir()
+        corr_dir = set_corr_dir()
 
         # Ensure the user_inputs and outputs directories exist
         user_inputs_dir = joinpath(WORKING_SPACE, "user_inputs")
@@ -56,7 +71,7 @@ module Config
         end
 
         # Return the Configuration struct
-        return Configuration(WORKING_SPACE, user_inputs_dir, outputs_dir, plot_dir)
+        return Configuration(WORKING_SPACE, user_inputs_dir, outputs_dir, plot_dir, corr_dir)
     end
 
     const config = get_configuration()

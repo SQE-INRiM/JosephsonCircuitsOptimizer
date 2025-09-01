@@ -251,7 +251,7 @@ end
 
 
 
-
+"""
 # Function to create the interactive GUI
 function create_gui(df)
 
@@ -305,4 +305,47 @@ function create_gui(df_ref, df)
     display(fig)
     plot_update(fig)
     #save("figure.jpg",fig)
+end
+"""
+
+function create_corr_figure(df; df_ref=nothing)
+
+    if isempty(df)
+        error("The input DataFrame is empty. Please provide a non-empty DataFrame.")
+    end 
+
+    # Ensure folder exists
+    isdir(corr_path) || mkpath(corr_path)
+
+    # Make one big figure
+    fig = Figure(size = (1400, 1200))
+
+    # Left: correlation matrix
+    ax1 = Axis(fig[1, 1])
+    visualize_correlation_matrix(fig, df)  # assumes it plots into fig[1,1]
+
+    # Right: 1D density heatmap
+    ax2 = Axis(fig[1, 2])
+    if isnothing(df_ref)
+        plot_1d_density_heatmap(fig, df)
+    else
+        plot_1d_density_heatmap(fig, df, df_ref)
+    end
+
+    # Adjust layout spacing
+    colgap!(fig.layout, 10)  # Add gap between columns
+    rowgap!(fig.layout, 20)  # Add gap between rows
+
+    # Build filename with timestamp
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
+    filename  = "corr_$timestamp.png"
+    filepath  = joinpath(corr_path, filename)
+    tmpfile   = filepath * ".part.png"
+
+    # Safe save
+    save(tmpfile, fig)
+    mv(tmpfile, filepath; force = true)
+
+    @info "Saved correlation figure → $filepath"
+    return filepath
 end

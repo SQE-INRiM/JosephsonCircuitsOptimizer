@@ -8,14 +8,18 @@ import shutil
 import sys
 
 process = None
-current_plot_index = 0
 plot_files = []
+current_plot_index = 0
+corr_files = []
+current_corr_index = 0
 
 # paths
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_path = os.path.abspath(os.path.join(current_dir, '..')).replace('\\', '/')
 src_path = os.path.join(project_path, 'src').replace('\\', '/')
 plot_path = os.path.join(project_path, 'plot_saved').replace('\\', '/')
+corr_path = os.path.join(project_path, 'correlation_matrix_saved').replace('\\', '/')
+
 
 # Color scheme
 COLORS = {
@@ -107,7 +111,8 @@ def show_plot(index):
             #log_message(f"Skipping incomplete plot: {os.path.basename(plot_files[index])}", 'warning')
             pass
         except Exception as e:
-            log_message(f"Error loading plot {os.path.basename(plot_files[index])}: {e}", 'error')
+            #log_message(f"Error loading plot {os.path.basename(plot_files[index])}: {e}", 'error')
+            pass
     else:
         # No valid plots
         plot_canvas.delete("all")
@@ -142,6 +147,88 @@ def update_plot():
     root.after(500, update_plot)
 
 
+
+def clear_corr():
+    if os.path.exists(corr_path):
+        for f in os.listdir(corr_path):
+            if f.endswith(".png"):
+                os.remove(os.path.join(corr_path, f))
+        log_message("✓ Cleared old covariance matrices.", 'success')
+
+def refresh_corr_list():
+    global corr_files
+    if os.path.exists(corr_path):
+        corr_files = sorted(
+            [os.path.join(corr_path, f) for f in os.listdir(corr_path) if f.endswith(".png")]
+        )
+
+
+def show_corr(index):
+    if 0 <= index < len(corr_files):
+        try:
+            with Image.open(corr_files[index]) as img:
+                img = img.copy()
+            img_width, img_height = img.size
+            max_width, max_height = 600, 450
+            ratio = min(max_width / img_width, max_height / img_height)
+            new_width, new_height = int(img_width * ratio), int(img_height * ratio)
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(img)
+
+            corr_canvas.delete("all")
+            canvas_width = corr_canvas.winfo_width() or 600
+            canvas_height = corr_canvas.winfo_height() or 450
+            x = (canvas_width - new_width) // 2
+            y = (canvas_height - new_height) // 2
+            corr_canvas.create_image(x + new_width // 2, y + new_height // 2, image=photo)
+            corr_canvas.image = photo
+
+            corr_status_label.config(
+                text=f"Matrix {index+1} of {len(corr_files)}: {os.path.basename(corr_files[index])}"
+            )
+
+            corr_prev_button.config(state='normal' if index > 0 else 'disabled')
+            corr_next_button.config(state='normal' if index < len(corr_files) - 1 else 'disabled')
+
+        except Exception as e:
+            log_message(f"Error loading correlation matrix: {e}", 'error')
+    else:
+        corr_canvas.delete("all")
+        corr_canvas.create_text(300, 225, text="No correlation matrices available",
+                                font=('Arial', 14), fill=COLORS['dark'])
+        corr_status_label.config(text="No correlation matrices to display")
+        corr_prev_button.config(state='disabled')
+        corr_next_button.config(state='disabled')
+
+
+def next_corr():
+    global current_corr_index
+    if current_corr_index < len(corr_files) - 1:
+        current_corr_index += 1
+        show_corr(current_corr_index)
+
+
+def prev_corr():
+    global current_corr_index
+    if current_corr_index > 0:
+        current_corr_index -= 1
+        show_corr(current_corr_index)
+
+
+def update_corr():
+    global current_corr_index
+    refresh_corr_list()
+    if corr_files:
+        if current_corr_index >= len(corr_files):
+            current_corr_index = len(corr_files) - 1
+        show_corr(current_corr_index)
+    else:
+        show_corr(-1)
+    root.after(10000, update_corr)
+
+
+
+
 def toggle_simulation():
     """Toggle between start and stop simulation"""
     global process
@@ -164,6 +251,8 @@ def start_simulation():
 
     clear_plots()
     refresh_plot_list()
+    clear_corr()
+    refresh_corr_list()
     log_message("Starting Josephson simulation...", 'info')
 
     julia_code = f'''
@@ -261,7 +350,7 @@ def clear_output():
 # --- Enhanced GUI ---
 root = tk.Tk()
 root.title("Josephson Circuits Optimizer")
-root.geometry("1000x800")
+root.geometry("1900x800")
 root.configure(bg=COLORS['bg'])
 
 # Configure ttk styles
@@ -418,8 +507,47 @@ footer_label = tk.Label(footer_frame,
                        bg=COLORS['bg'])
 footer_label.pack()
 
+# Right panel - Correlation Viewer
+corr_panel = tk.LabelFrame(content_frame, text="Correlation Viewer", 
+                           font=('Arial', 12, 'bold'),
+                           fg=COLORS['primary'],
+                           bg=COLORS['bg'],
+                           padx=10, pady=10)
+corr_panel.pack(side='right', fill='both', expand=True)
+
+# Correlation canvas
+corr_canvas = tk.Canvas(corr_panel, width=600, height=450,
+                        bg='white', highlightthickness=1,
+                        highlightbackground=COLORS['dark'])
+corr_canvas.pack(pady=(0, 10))
+
+# Navigation
+corr_nav_frame = tk.Frame(corr_panel, bg=COLORS['bg'])
+corr_nav_frame.pack(fill='x')
+
+corr_prev_button = ttk.Button(corr_nav_frame, text="◀ Previous",
+                              command=prev_corr,
+                              style="Primary.TButton",
+                              state='disabled')
+corr_prev_button.pack(side='left', padx=(0, 5))
+
+corr_next_button = ttk.Button(corr_nav_frame, text="Next ▶",
+                              command=next_corr,
+                              style="Primary.TButton",
+                              state='disabled')
+corr_next_button.pack(side='left', padx=(5, 0))
+
+# Correlation status
+corr_status_label = tk.Label(corr_nav_frame, text="No correlation matrices to display",
+                             font=('Arial', 10),
+                             fg=COLORS['dark'],
+                             bg=COLORS['bg'])
+corr_status_label.pack(side='right')
+
+
 # Initialize
 log_message("GUI initialized. Ready to run simulations.", 'success')
+update_corr()
 update_plot()
 
 # Handle window closing
