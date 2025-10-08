@@ -96,9 +96,11 @@ end
 function test_modification()
 
     println("\n\n MODIFICANDO IN LOCALE\n
-    4  \n")
+    6 \n")
 
 end
+
+
 
 """
     run()
@@ -157,29 +159,40 @@ function run()
     save_output_file(header, optimal_params, optimal_params_file)
     @debug "Optimal parameters: $optimal_params with metric $optimal_metric"
 
-    
+
     ## Perform nonlinear simulation sweep on optimal parameters
     @info "Running nonlinear simulations with optimal parameters."
     results = run_nonlinear_simulations_sweep(optimal_params)
     @debug "Results from nonlinear simulations: $(results)"
 
-    # Pick best
-    best_idx = findmax(r -> r.performance, results)[2]
-    @debug "Best result index: $best_idx with performance $(results[best_idx].performance)"
-    best_amplitudes = results[best_idx].amps
-    @debug "Best amplitudes: $best_amplitudes"
-    optimal_physical_quantities = update_physical_quantities(best_amplitudes)
-    @debug "Optimal physical quantities: $optimal_physical_quantities"
+    p=plot_delta_vs_amplitude(results)
+    @info "Plotting Delta vs Amplitude."
+    plot_update(p)
 
-    # Save optimal physical quantities
-    header = Dict(
-        "description" => "Optimal physical quantities (working point) of the circuit"
-    )
-    optimal_quantities_file = joinpath(output_path, "optimal_physical_quantities.json")
-    @info "Saving optimal physical quantities to: $optimal_quantities_file from the nonlinear simulation."
-    save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
+    p=plot_performance_vs_amplitude(results)
+    @info "Plotting Performance vs Amplitude."
+    plot_update(p)
 
-    @info "✅ Simulation and optimization processes completed! Results saved in '$output_path'."
+    #display(p)
+    
+    
+    # # Pick best
+    # best_idx = findmax(r -> r.performance, results)[2]
+    # @debug "Best result index: $best_idx with performance $(results[best_idx].performance)"
+    # best_amplitudes = results[best_idx].amps
+    # @debug "Best amplitudes: $best_amplitudes"
+    # optimal_physical_quantities = update_physical_quantities(best_amplitudes)
+    # @debug "Optimal physical quantities: $optimal_physical_quantities"
+
+    # # Save optimal physical quantities
+    # header = Dict(
+    #     "description" => "Optimal physical quantities (working point) of the circuit"
+    # )
+    # optimal_quantities_file = joinpath(output_path, "optimal_physical_quantities.json")
+    # @info "Saving optimal physical quantities to: $optimal_quantities_file from the nonlinear simulation."
+    # save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
+
+    # @info "✅ Simulation and optimization processes completed! Results saved in '$output_path'."
 
 
     # Nonlinear correction if specified
@@ -187,13 +200,14 @@ function run()
 
         lin_deltas = []
         nonlin_deltas = []
+        reference_amplitudes = get_delta_correction_amplitudes()
 
         for i in 1:sim_vars[:n_iterations_nonlinear_correction]
 
             println("\n-----------------------------------------------------")
             println("Implementing nonlinear correction: iteration number ", i)
 
-            deltas = delta_quantity(optimal_params, best_amplitudes)
+            deltas = delta_quantity(optimal_params, reference_amplitudes)
             global delta_correction = deltas[1]
             println("Delta k (nonlinear correction): ", delta_correction)
 
@@ -211,12 +225,15 @@ function run()
 
             results = run_nonlinear_simulations_sweep(optimal_params)
             @debug "Results from nonlinear simulations after correction: $(results)"
-            best_idx = findmax(r -> r.performance, results)[2]
-            @debug "Best result index: $best_idx with performance $(results[best_idx].performance)"
-            best_amplitudes = results[best_idx].amps
-            @debug "Best amplitudes: $best_amplitudes"
-            optimal_physical_quantities = update_physical_quantities(best_amplitudes)
-            @debug "Optimal physical quantities: $optimal_physical_quantities"
+
+            p=plot_delta_vs_amplitude(results)
+            @info "Plotting Delta vs Amplitude."
+            plot_update(p)
+        
+            p=plot_performance_vs_amplitude(results)
+            @info "Plotting Performance vs Amplitude."
+            plot_update(p)
+
 
         end
 
@@ -237,7 +254,7 @@ function run()
         )
 
         plot_update(p)
-        # display(p)
+        #display(p)
 
         header = Dict(
             "optimal_metric" => optimal_metric,
@@ -248,17 +265,36 @@ function run()
         save_output_file(header, optimal_params, optimal_params_file)
         @debug "Optimal parameters: $optimal_params with metric $optimal_metric"
 
-        header = Dict(
-            "description" => "Optimal physical quantities (working point) of the circuit after the nonlinear correction"
-        )
-        optimal_quantities_file = joinpath(output_path, "optimal_physical_quantities_corrected.json")
-        @info "Saving optimal physical quantities to: $optimal_quantities_file from the nonlinear simulation."
-        save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
+        # header = Dict(
+        #     "description" => "Optimal physical quantities (working point) of the circuit"
+        # )
+        # optimal_quantities_file = joinpath(output_path, "optimal_physical_quantities.json")
+        # @info "Saving optimal physical quantities to: $optimal_quantities_file from the nonlinear simulation."
+        # save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
 
-        @info "✅ Simulation and optimization processes with nonlinear correction completed! Results saved in '$output_path'."
+        # @info "✅ Simulation and optimization processes with nonlinear correction completed! Results saved in '$output_path'."
 
     
     end
+
+
+    best_idx = findmax(r -> r.performance, results)[2]
+    @debug "Best result index: $best_idx with performance $(results[best_idx].performance)"
+    best_amplitudes = results[best_idx].amps
+    @debug "Best amplitudes: $best_amplitudes"
+    optimal_physical_quantities = update_physical_quantities(best_amplitudes)
+    @debug "Optimal physical quantities: $optimal_physical_quantities"
+
+    header = Dict(
+            "description" => "Optimal physical quantities (working point) of the circuit"
+        )
+    optimal_quantities_file = joinpath(output_path, "optimal_physical_quantities.json")
+    @info "Saving optimal physical quantities to: $optimal_quantities_file from the nonlinear simulation."
+    save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
+
+    
+    @info "✅ Simulation and optimization processes with nonlinear correction completed! Results saved in '$output_path'."
+
 
 end
 

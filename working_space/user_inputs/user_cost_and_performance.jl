@@ -16,18 +16,37 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
 
     maxS11band = maximum(S11band)
     meanS11band = mean(S11band)
+    println("Mean S11 in the band [4.75, 6.75] GHz: ", meanS11band)
 
     S11pump = S_values(S11, 11.5e9)
     S21pump = S_values(S21, 11.5e9)
+    println("S11 at pump frequency (11.5 GHz): ", S11pump)
+    println("S21 at pump frequency (11.5 GHz): ", S21pump)
+    #p=plot(sim_vars[:frequency_range]/1e9, S21, title="S21", xlabel="Frequency (GHz)", legend=false)
+    #plot_update(p)
+    #display(p)
+
+    #sleep(2)
+    p=plot(sim_vars[:frequency_range]/1e9, S11, title="S11", xlabel="Frequency (GHz)", legend=false)
+    plot_update(p)
+    #display(p)
+    #sleep(2)
+
+    S21band = S_values(S21, [4.75e9,6.75e9])
+    maxS21band = maximum(S21band)
+    meanS21band = mean(S21band)
 
     S21phaseBand = S_values(Sphase[(2,1)], 5.75e9)
     S21phasePump = S_values(Sphase[(2,1)], 11.5e9)
+    S21phase = S_to_phase(S[(2,1)])
+    p = plot(sim_vars[:frequency_range]/1e9, S21, title="S21", xlabel="Frequency (GHz)", legend=false)
+    plot_update(p)
 
     length = device_params_set[:N]
     deltaK = (S21phasePump-2*S21phaseBand)/length
-    @debug "Delta K: $(deltaK)"
+    # @debug "Delta K: $(deltaK)"
     deltaK = delta_correction + deltaK
-    @debug "Delta K with correction: $(deltaK)"
+    # @debug "Delta K with correction: $(deltaK)"
 
     #----------------------------------------------------------------
     """
@@ -51,30 +70,38 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
 
     # METRIC DEFINITION
 
-    metric_impedance = (1e3/(abs(meanS11band)))
-    println("   a. Impedance matching contibution: ", metric_impedance)
+    metric_impedance = (10/(abs(meanS11band)))
+    #println("   a. Impedance matching contibution: ", metric_impedance)
+    #println("DELTA CORRECTION ", delta_correction)
 
-    metric_phase = 1e11*deltaK
-    println("   b. Phase matching contribution: ", metric_phase)
+    metric_phase = abs(deltaK)
+    # println("   b. Phase matching contribution: ", metric_phase)
 
-    metric =  metric_impedance + metric_phase
+    metric =  (metric_impedance + metric_phase)*100
 
     @debug "Impedance matching contribution: $(metric_impedance)"
     @debug "Phase matching contribution: $(metric_phase)"
     @debug "Metric: $(metric)"
 
-    #plots
 
-    p4=plot_dispersion_relation(Sphase[(2,1)], device_params_set)
+    p4=plot_dispersion_relation(S21phase, device_params_set)
+    #P.annotate!(p4, 0.5, 0.5, "n_cells = $(round(device_params_set[:N]))" * "Impedance matching contribution: $(metric_impedance)")
+    
+    #plot_update(p4)
+    #display(p4)
     empty_plot=plot([], legend=false, grid=false, framestyle=:none)
+
     P.annotate!(
         empty_plot,
         0.5,
         0.5,
         "Plot number: $(plot_index)\n" *
+        "S21 mean in the band: $(round(meanS21band, digits=2)) dB\n"*
+        "S11 mean in the band: $(round(meanS11band, digits=2)) dB\n"*
+        "Delta correction: $(round(delta_correction, digits=2))\n"*
         "Delta K: $(round(deltaK, digits=2))\n\n" *
-        "a. Impedance matching contibution: $(round(metric_impedance, digits=2))\n\n" *
-        "b. Phase matching contribution: $(round(metric_phase, digits=2))\n\n" *
+        "a. Impedance matching contibution: $(round(metric_impedance, digits=4))\n\n" *
+        "b. Phase matching contribution: $(round(metric_phase, digits=4))\n\n" *
         "Metric: $(round(metric, digits=3))\n\n" *
         "loadingpitch = $(round(device_params_set[:loadingpitch], digits=3)) \n"*
         "A_small = $(round(device_params_set[:smallJunctionArea], digits=3)) \n" *
@@ -88,7 +115,7 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
     #sleep(2)
 
     p=plot(p4,empty_plot, layout=(1,2), size=(1100, 700))
-    #display(p)
+    # display(p)
     plot_update(p)
 
     return metric
@@ -105,6 +132,7 @@ end
 function user_performance(sol, device_params_set)
 
     S21 = sol.linearized.S((0,),2,(0,),1,:)
+    S11 = sol.linearized.S((0,),1,(0,),1,:)
     gain_S21 = S_to_dB(S21)
     S21phase = S_to_phase(S21)
 
@@ -113,11 +141,19 @@ function user_performance(sol, device_params_set)
     println("Gain in the band [4.75, 6.75] GHz: ", gain_val)
 
     p4=plot_dispersion_relation(S21phase, device_params_set)
+    P.annotate!(p4, 0.5, 0.5,  "Gain in the band [4.75, 6.75] GHz: $(round(gain_val, digits=2)) dB")
     plot_update(p4)
     #display(p4)
-
-    #p = plot_gain(gain_S21)
+    #sleep(5)
+    p=plot(sim_vars[:frequency_range]/1e9, gain_S21, title="Gain", xlabel="Frequency (GHz)", legend=false)
+    plot_update(p)
     #display(p)
+    #sleep(2)
+    # plot_update(p4)
+    #display(p4)
+
+    # p = plot_gain(gain_S21)
+    # display(p)
 
     return gain_val
 

@@ -342,20 +342,15 @@ end
 
 
 function plot_update(p)
-    # Millisecond-resolution timestamp
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
     filename = "plot_$timestamp.png"
     filepath = joinpath(plot_path, filename)
 
-    tmp_filepath = filepath * ".part.png"
-    #println("PLOTS SAVED IN: $filepath")
-
-    # Save safely
-    savefig(p, tmp_filepath)
-    mv(tmp_filepath, filepath; force=true)
+    savefig(p, filepath)
 
     @info "Saved plot to $filepath"
 end
+
 
 function correlation_update(fig::Figure)
     # Ensure folder exists
@@ -375,3 +370,118 @@ function correlation_update(fig::Figure)
     @info "Saved correlation figure to $filepath"
 end
 
+
+function plot_delta_vs_amplitude(results)
+    # Extract amplitudes as matrix (N x M, where N points, M sources)
+    amps_mat = reduce(vcat, [r.amps' for r in results])
+    @debug "Amplitudes: $amps_mat"
+    delta_vals = [r.delta_quantity for r in results]
+    @debug "Delta: $delta_vals"
+
+    # Find which column actually varies
+    amp_vars = [maximum(amps_mat[:, j]) - minimum(amps_mat[:, j]) for j in 1:size(amps_mat, 2)]
+    changing_idx = findall(!=(0.0), amp_vars)
+
+    if length(changing_idx) == 0
+        error("No amplitude sweep detected: all amplitudes are constant")
+    elseif length(changing_idx) > 1
+        @warn "Multiple amplitudes vary, plotting the first varying one only"
+    end
+
+    idx = changing_idx[1]  # pick the first varying amplitude
+    sweep_amps = amps_mat[:, idx]
+
+    # Plot scatter
+    plt = plot(
+        sweep_amps, delta_vals,
+        xlabel = "Signal amplitude (source $idx)",
+        ylabel = "Δ quantity (nonlinear - linear)",
+        title = "Nonlinear correction vs. amplitude (source $idx)",
+        legend = true,
+        markersize = 4,
+        grid = true,
+        label = ""
+    )
+
+    # Build key dynamically for the vertical line
+    key = Symbol("source_$(idx)_non_linear_amplitude_for_delta_correction")
+    if haskey(sim_vars, key)
+        P.vline!(
+            plt,
+            [sim_vars[key]],
+            color = :darkblue,
+            linewidth = 1,
+            linestyle = :dash,
+            label = "Source $idx amplitude used = $(sim_vars[key])"
+        )
+    else
+        @warn "No amplitude-for-delta-correction found for source $idx"
+    end
+
+    return plt
+end
+
+
+function plot_performance_vs_amplitude(results)
+    amps_mat = reduce(vcat, [r.amps' for r in results])
+    @debug "Results: $results"
+    performances = [r.performance for r in results]
+    @debug "Performances: $performances"
+
+    # Find which column actually varies
+    amp_vars = [maximum(amps_mat[:, j]) - minimum(amps_mat[:, j]) for j in 1:size(amps_mat, 2)]
+    changing_idx = findall(!=(0.0), amp_vars)
+
+    if length(changing_idx) == 0
+        error("No amplitude sweep detected: all amplitudes are constant")
+    elseif length(changing_idx) > 1
+        @warn "Multiple amplitudes vary, plotting the first varying one only"
+    end
+
+    idx = changing_idx[1]  # pick the first varying amplitude
+    sweep_amps = amps_mat[:, idx]
+
+    # Plot scatter
+    plt = plot(
+        sweep_amps, performances,
+        xlabel = "Signal amplitude (source $idx)",
+        ylabel = "Performance",
+        title = "Performance vs. amplitude (source $idx)",
+        legend = true,
+        markersize = 4,
+        grid = true,
+        label = ""
+    )
+
+    # Build key dynamically for the vertical line
+    key = Symbol("source_$(idx)_non_linear_amplitude_for_delta_correction")
+    if haskey(sim_vars, key)
+        P.vline!(
+            plt,
+            [sim_vars[key]],
+            color = :darkblue,
+            linewidth = 1,
+            linestyle = :dash,
+            label = "Source $idx amplitude used = $(sim_vars[key])"
+        )
+    else
+        @warn "No amplitude-for-delta-correction found for source $idx"
+    end
+
+    return plt
+
+end
+
+function get_delta_correction_amplitudes()
+    # Detect all delta correction amplitude keys
+    amp_keys = filter(k -> occursin("_non_linear_amplitude_for_delta_correction", String(k)), keys(sim_vars))
+    
+    # Convert to Vector before sorting
+    amp_keys_vec = collect(amp_keys)
+    
+    # Order them by source number
+    sorted_keys = sort(amp_keys_vec, by = k -> parse(Int, match(r"source_(\d+)", String(k)).captures[1]))
+    
+    # Return amplitudes in order
+    return [sim_vars[k] for k in sorted_keys]
+end

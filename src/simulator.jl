@@ -75,7 +75,7 @@ function setup_sources()
 
 end
 
-
+entries_for_every_source = 5
 
 """
     extract_S_parameters(sol, n_ports)
@@ -133,7 +133,7 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
 
     omega = sim_vars[:w_range]
     #n_frequencies = length(omega)
-    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars))/4)
+    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars))/entries_for_every_source) #OCIO AL NUMERO DI ENTRATE
 
     println("   1. Linear simulation")
 
@@ -192,6 +192,7 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
 
     return S, Sphase
 end
+
 
 
 """
@@ -264,39 +265,96 @@ function nonlinear_simulation(circuit, amps::Vector)
 end
 
 
+function calculate_delta_quantity(S_lin, Sphase_lin, S_nonlin, Sphase_nonlin, optimal_params)
+    lin_delta_quantity = Base.invokelatest(user_delta_quantity, S_lin, Sphase_lin, optimal_params)
+    @debug "Linear delta quantity: $lin_delta_quantity"
+    
+    nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S_nonlin, Sphase_nonlin, optimal_params)
+    @debug "Nonlinear delta quantity: $nonlin_delta_quantity"
+
+    delta_quantity = abs(nonlin_delta_quantity - lin_delta_quantity)
+    println("Delta quantity (nonlinear correction): ", delta_quantity)
+
+    return nonlin_delta_quantity
+end
+
+
+function create_nonlinear_amplitudes(n_sources::Int, amp_keys::Vector{Symbol}, amp_idx::NTuple, device_params_set::Dict, resolved_functions::Dict{Int, Function})
+    amps = Float64[]
+
+    for i in 1:n_sources
+        amplitude_value = sim_vars[amp_keys[i]]
+
+        if isa(amplitude_value, String)
+            f = resolved_functions[i]
+            amplitude = Base.invokelatest(f, device_params_set)
+            @debug "Called pre-resolved function for source $i, got amplitude: $amplitude"
+        elseif isa(amplitude_value, AbstractVector)
+            amplitude = amplitude_value[amp_idx[i]]
+            @debug "Using array amplitude for source $i, index $(amp_idx[i]): $amplitude"
+        else
+            amplitude = amplitude_value
+            @debug "Using scalar amplitude for source $i: $amplitude"
+        end
+
+        push!(amps, amplitude)
+    end
+
+    return amps
+end
+
+
 function run_nonlinear_simulations_sweep(optimal_params::Dict)
     # Create circuit once
     circuit = create_circuit(optimal_params)
     @debug "Circuit created once for nonlinear sweep"
 
-    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars)) ÷ 4)
+    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars)) ÷ entries_for_every_source)
     amp_keys = [Symbol("source_$(i)_non_linear_amplitude") for i in 1:n_sources]
-    amp_lengths = [length(sim_vars[key]) for key in amp_keys]
 
-    results = []
+    resolved_functions = Dict{Int, Function}()
+    for i in 1:n_sources
+        amplitude_value = sim_vars[amp_keys[i]]
+        if isa(amplitude_value, String)
+            resolved_functions[i] = eval(Symbol(amplitude_value))
+        end
+    end
 
-    amp_indices = Iterators.product((1:length(sim_vars[key]) for key in amp_keys)...)
+    amp_lengths = [isa(sim_vars[key], String) ? 1 : length(sim_vars[key]) for key in amp_keys]
+    amp_indices = Iterators.product((1:amp_lengths[i] for i in 1:n_sources)...)
 
     global number_initial_points_nl = prod(amp_lengths)
     global plot_index_nl = 0
 
     @debug "Running nonlinear simulations for all combinations ($number_initial_points_nl total)"
 
+    results = []
+
     for amp_idx in amp_indices
-        global plot_index_nl += 1
-    
+       global plot_index_nl += 1
+       
         println("-----------------------------------------------------")
         println("Point number ", plot_index_nl, " of ", number_initial_points_nl,
-                ", that is ", round(100*(plot_index_nl/number_initial_points_nl)), "% of the total")
-
-        amps = [sim_vars[amp_keys[i]][amp_idx[i]] for i in 1:n_sources]
+        ", that is ", round(100*(plot_index_nl/number_initial_points_nl)), "% of the total")
+               
+        amps = create_nonlinear_amplitudes(n_sources, amp_keys, amp_idx, optimal_params, resolved_functions)
         @debug "Running nonlinear simulation for amplitudes: $amps"
+       
+        # Nonlinear sim
+        nonlin_sol = nonlinear_simulation(circuit, amps)
+        S_nonlin, Sphase_nonlin = extract_S_parameters(nonlin_sol, circuit.PortNumber)
 
-        sol = nonlinear_simulation(circuit, amps)
-        perf = performance(sol, optimal_params)
+        # Linear sim (reused for delta calculation)
+        S_lin, Sphase_lin = linear_simulation(optimal_params, circuit)
 
-        push!(results, (amps=amps, performance=perf))
-    end
+        # Compute quantities
+        perf = performance(nonlin_sol, optimal_params)
+        delta_quantity = calculate_delta_quantity(S_lin, Sphase_lin, S_nonlin, Sphase_nonlin, optimal_params)
+
+        push!(results, (amps=amps, performance=perf, delta_quantity=delta_quantity))
+        print(results)
+
+       end
 
     return results
 end

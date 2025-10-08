@@ -191,7 +191,8 @@ def show_corr(index):
             corr_next_button.config(state='normal' if index < len(corr_files) - 1 else 'disabled')
 
         except Exception as e:
-            log_message(f"Error loading correlation matrix: {e}", 'error')
+            #log_message(f"Error loading correlation matrix: {e}", 'error')
+            pass
     else:
         corr_canvas.delete("all")
         corr_canvas.create_text(300, 225, text="No correlation matrices available",
@@ -392,7 +393,7 @@ header_frame = tk.Frame(main_frame, bg=COLORS['bg'])
 header_frame.pack(fill='x', pady=(0, 20))
 
 title_label = tk.Label(header_frame, 
-                      text="🔬 Josephson Circuits Optimizer", 
+                      text="💻 Josephson Circuits Optimizer", 
                       font=('Arial', 18, 'bold'),
                       fg=COLORS['primary'],
                       bg=COLORS['bg'])
