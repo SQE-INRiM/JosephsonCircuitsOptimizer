@@ -27,10 +27,10 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
     #display(p)
 
     #sleep(2)
-    p=plot(sim_vars[:frequency_range]/1e9, S11, title="S11", xlabel="Frequency (GHz)", legend=false)
-    plot_update(p)
-    #display(p)
-    #sleep(2)
+    # p=plot(sim_vars[:frequency_range]/1e9, S11, title="S11", xlabel="Frequency (GHz)", legend=false)
+    # plot_update(p)
+    # #display(p)
+    # #sleep(2)
 
     S21band = S_values(S21, [4.75e9,6.75e9])
     maxS21band = maximum(S21band)
@@ -39,8 +39,8 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
     S21phaseBand = S_values(Sphase[(2,1)], 5.75e9)
     S21phasePump = S_values(Sphase[(2,1)], 11.5e9)
     S21phase = S_to_phase(S[(2,1)])
-    p = plot(sim_vars[:frequency_range]/1e9, S21, title="S21", xlabel="Frequency (GHz)", legend=false)
-    plot_update(p)
+    # p = plot(sim_vars[:frequency_range]/1e9, S21, title="S21", xlabel="Frequency (GHz)", legend=false)
+    # plot_update(p)
 
     length = device_params_set[:N]
     deltaK = (S21phasePump-2*S21phaseBand)/length
@@ -48,6 +48,8 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
     deltaK = delta_correction + deltaK
     # @debug "Delta K with correction: $(deltaK)"
 
+    S11sechar=S_values(S11, [22.5e9,23.5e9])
+    meanS11sechar=mean(S11sechar)
     #----------------------------------------------------------------
     """
     # MASK (if necessary)
@@ -59,11 +61,10 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
         deltaK      = deltaK
     )
 
-    conditions_mask = x -> x.meanS11band < -15 && x.S11pump < -8 && x.S21pump > -4 && x.deltaK < 0.2
+    conditions_mask = x -> x.meanS11band < -10 && x.S11pump < -5 && x.S21pump > -3 && x.deltaK < 0.2
 
     # Apply the mask
     if mask(input_mask, conditions_mask) return 1e8 end 
-    
     """
     
     #---------------------------------------------------------------
@@ -77,7 +78,9 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
     metric_phase = abs(deltaK)
     # println("   b. Phase matching contribution: ", metric_phase)
 
-    metric =  (metric_impedance + metric_phase)*100
+    metric_second_harmonic = 10*abs(meanS11sechar)
+
+    metric =  (metric_impedance + metric_phase + metric_second_harmonic)*100
 
     @debug "Impedance matching contribution: $(metric_impedance)"
     @debug "Phase matching contribution: $(metric_phase)"
@@ -102,6 +105,7 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction)
         "Delta K: $(round(deltaK, digits=2))\n\n" *
         "a. Impedance matching contibution: $(round(metric_impedance, digits=4))\n\n" *
         "b. Phase matching contribution: $(round(metric_phase, digits=4))\n\n" *
+        "c. Stopband contribution: $(round(metric_second_harmonic, digits=4))\n\n" *
         "Metric: $(round(metric, digits=3))\n\n" *
         "loadingpitch = $(round(device_params_set[:loadingpitch], digits=3)) \n"*
         "A_small = $(round(device_params_set[:smallJunctionArea], digits=3)) \n" *
