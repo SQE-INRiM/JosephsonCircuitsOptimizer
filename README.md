@@ -23,7 +23,6 @@ You can then run the code through the **GUI**:
 Once the GUI is open, start the process by pressing the **Run Simulation** button.  
 ⚠️ *The first run may take a while, as the Julia environment is initialized.*
 
----
 
 ### **Running directly from Julia**
 
@@ -41,8 +40,6 @@ import JosephsonCircuitsOptimizer as JCO
 JCO.run()
 ```
 
----
-
 ### **Updating the package**
 
 To update to the latest version, run the following command inside the `JosephsonCircuitsOptimizer` directory:
@@ -50,8 +47,6 @@ To update to the latest version, run the following command inside the `Josephson
 ```bash
 git pull
 ```
-
-
 
 
 ## **How It Works**

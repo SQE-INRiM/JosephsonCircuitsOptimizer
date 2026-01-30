@@ -372,6 +372,12 @@ end
 
 
 function plot_delta_vs_amplitude(results)
+    
+    if length(results) < 2
+        @info "Not enough points for amplitude sweep (need ≥ 2)."
+        return nothing
+    end
+    
     # Extract amplitudes as matrix (N x M, where N points, M sources)
     amps_mat = reduce(vcat, [r.amps' for r in results])
     @debug "Amplitudes: $amps_mat"
@@ -383,7 +389,8 @@ function plot_delta_vs_amplitude(results)
     changing_idx = findall(!=(0.0), amp_vars)
 
     if length(changing_idx) == 0
-        error("No amplitude sweep detected: all amplitudes are constant")
+        @info "No amplitude sweep detected (all amplitudes constant). Skipping plot."
+        return nothing
     elseif length(changing_idx) > 1
         @warn "Multiple amplitudes vary, plotting the first varying one only"
     end
@@ -423,6 +430,12 @@ end
 
 
 function plot_performance_vs_amplitude(results)
+
+    if length(results) < 2
+        @info "Not enough points for amplitude sweep (need ≥ 2)."
+        return nothing
+    end
+
     amps_mat = reduce(vcat, [r.amps' for r in results])
     @debug "Results: $results"
     performances = [r.performance for r in results]
@@ -433,7 +446,8 @@ function plot_performance_vs_amplitude(results)
     changing_idx = findall(!=(0.0), amp_vars)
 
     if length(changing_idx) == 0
-        error("No amplitude sweep detected: all amplitudes are constant")
+        @info "No amplitude sweep detected: all amplitudes are constant"
+        return nothing
     elseif length(changing_idx) > 1
         @warn "Multiple amplitudes vary, plotting the first varying one only"
     end

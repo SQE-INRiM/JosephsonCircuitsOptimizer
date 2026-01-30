@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 import subprocess
 import threading
 import os
@@ -17,9 +18,9 @@ current_corr_index = 0
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_path = os.path.abspath(os.path.join(current_dir, '..')).replace('\\', '/')
 src_path = os.path.join(project_path, 'src').replace('\\', '/')
-plot_path = os.path.join(project_path, 'plot_saved').replace('\\', '/')
-corr_path = os.path.join(project_path, 'correlation_matrix_saved').replace('\\', '/')
-
+workspace_path = os.path.join(project_path, "working_space").replace("\\", "/")
+plot_path = os.path.join(workspace_path, "plots").replace("\\", "/")
+corr_path = os.path.join(workspace_path, "correlation_matrix").replace("\\", "/")
 
 # Color scheme
 COLORS = {
@@ -41,6 +42,105 @@ else:
     JULIA_EXE = shutil.which("julia") or "julia"
 
 print(f"Using Julia executable: {JULIA_EXE}")
+
+
+def update_workspace_paths():
+    global plot_path, corr_path
+    ws = workspace_var.get()
+    plot_path = os.path.join(ws, "plots").replace("\\", "/")
+    corr_path = os.path.join(ws, "correlation_matrix").replace("\\", "/")
+
+
+def ensure_workspace_structure(ws: str):
+    """Create the expected subfolders inside a workspace if they don't exist."""
+    os.makedirs(os.path.join(ws, "plots"), exist_ok=True)
+    os.makedirs(os.path.join(ws, "correlation_matrix"), exist_ok=True)
+    os.makedirs(os.path.join(ws, "outputs"), exist_ok=True)
+    os.makedirs(os.path.join(ws, "user_inputs"), exist_ok=True)
+
+
+def open_path(path: str):
+    """Open a file/folder with the OS default application."""
+    abs_path = os.path.abspath(path)
+    try:
+        if sys.platform.startswith("win"):
+            os.startfile(abs_path)  # type: ignore[attr-defined]
+        elif sys.platform == "darwin":
+            subprocess.run(["open", abs_path], check=False)
+        else:
+            subprocess.run(["xdg-open", abs_path], check=False)
+    except Exception as e:
+        # output_box might not exist yet; keep it silent and print to console
+        print(f"Could not open path: {abs_path} ({e})")
+
+
+def refresh_file_tree():
+    """Refresh the embedded file browser tree (requires the GUI widgets to exist)."""
+    global tree
+    if "tree" not in globals():
+        return
+
+    # Clear existing
+    for item in tree.get_children():
+        tree.delete(item)
+
+    root_path = workspace_var.get()
+    if not os.path.isdir(root_path):
+        return
+
+    root_node = tree.insert("", "end",
+                            text=os.path.basename(root_path) or root_path,
+                            open=True,
+                            values=(root_path,))
+
+    preferred = ["user_inputs", "outputs", "plots", "correlation_matrix"]
+    for name in preferred:
+        p = os.path.join(root_path, name)
+        if os.path.isdir(p):
+            node = tree.insert(root_node, "end", text=name, open=False, values=(p,))
+            add_tree_children(node, p, max_items=300)
+
+
+def add_tree_children(parent_node, folder_path: str, max_items: int = 300):
+    try:
+        entries = sorted(os.listdir(folder_path))
+    except Exception:
+        return
+
+    count = 0
+    for entry in entries:
+        if count >= max_items:
+            tree.insert(parent_node, "end", text="… (more)", values=("",))
+            break
+
+        full = os.path.join(folder_path, entry)
+        if os.path.isdir(full):
+            tree.insert(parent_node, "end", text=entry, open=False, values=(full,))
+        else:
+            tree.insert(parent_node, "end", text=entry, values=(full,))
+        count += 1
+
+
+def on_tree_double_click(event):
+    item = tree.selection()
+    if not item:
+        return
+    vals = tree.item(item[0], "values")
+    if not vals:
+        return
+    p = vals[0]
+    if p and os.path.exists(p):
+        open_path(p)
+
+
+def browse_workspace():
+    folder = filedialog.askdirectory(title="Select experiment folder (workspace)")
+    if folder:
+        workspace_var.set(folder.replace("\\", "/"))
+        ensure_workspace_structure(workspace_var.get())
+        update_workspace_paths()
+        refresh_file_tree()
+        log_message(f"Workspace set to: {workspace_var.get()}", "success")
 
 
 def clear_plots():
@@ -250,6 +350,10 @@ def start_simulation():
     progress_bar.start()
     current_plot_index = 0
 
+    # Ensure workspace folders exist
+    ensure_workspace_structure(workspace_var.get())
+    update_workspace_paths()
+
     clear_plots()
     refresh_plot_list()
     clear_corr()
@@ -261,8 +365,9 @@ def start_simulation():
     Pkg.activate("{project_path}")
     push!(LOAD_PATH, "{src_path}")
     using JosephsonCircuitsOptimizer
-    JosephsonCircuitsOptimizer.run()
+    JosephsonCircuitsOptimizer.run(workspace=raw"{workspace_var.get()}", create_workspace=true)
     '''
+
 
     def run_in_thread():
         global process
@@ -350,6 +455,15 @@ def clear_output():
 
 # --- Enhanced GUI ---
 root = tk.Tk()
+# Workspace selector variable (must be created after root exists)
+workspace_var = tk.StringVar(
+    master=root,
+    value=os.path.join(project_path, "working_space").replace("\\", "/")
+)
+
+# Initialize dynamic paths based on workspace_var
+update_workspace_paths()
+
 root.title("Josephson Circuits Optimizer")
 root.geometry("1900x800")
 root.configure(bg=COLORS['bg'])
@@ -421,6 +535,21 @@ clear_btn = ttk.Button(button_frame, text="Clear Output",
                       style="Primary.TButton")
 clear_btn.pack(side='left', padx=(0, 10))
 
+# Workspace row
+ws_frame = tk.Frame(control_frame, bg=COLORS['bg'])
+ws_frame.pack(fill='x', pady=(10, 0))
+
+tk.Label(ws_frame, text="Experiment folder:", bg=COLORS['bg'], fg=COLORS['text']).pack(side='left')
+
+ws_entry = ttk.Entry(ws_frame, textvariable=workspace_var, width=80)
+ws_entry.pack(side='left', padx=(10, 10), fill='x', expand=True)
+
+ws_browse = ttk.Button(ws_frame, text="Browse...", command=browse_workspace, style="Primary.TButton")
+ws_browse.pack(side='left')
+
+ws_open = ttk.Button(ws_frame, text="Open Folder", command=lambda: open_path(workspace_var.get()), style="Primary.TButton")
+ws_open.pack(side='left', padx=(10, 0))
+
 # Progress bar
 progress_frame = tk.Frame(control_frame, bg=COLORS['bg'])
 progress_frame.pack(fill='x', pady=(10, 0))
@@ -459,6 +588,23 @@ output_box.configure(yscrollcommand=output_scrollbar.set)
 
 output_box.pack(side='left', fill='both', expand=True)
 output_scrollbar.pack(side='right', fill='y')
+
+# File browser under output (open files/folders externally on double-click)
+files_frame = tk.LabelFrame(left_panel, text="Experiment Files",
+                            font=('Arial', 10, 'bold'),
+                            fg=COLORS['primary'],
+                            bg=COLORS['bg'],
+                            padx=8, pady=8)
+files_frame.pack(fill='both', expand=False, pady=(10, 0))
+
+tree = ttk.Treeview(files_frame, columns=("fullpath",), show="tree")
+tree.pack(side='left', fill='both', expand=True)
+
+tree_scroll = ttk.Scrollbar(files_frame, orient='vertical', command=tree.yview)
+tree.configure(yscrollcommand=tree_scroll.set)
+tree_scroll.pack(side='right', fill='y')
+
+tree.bind("<Double-1>", on_tree_double_click)
 
 # Right panel - Plots
 right_panel = tk.LabelFrame(content_frame, text="Plot Viewer", 
@@ -548,6 +694,8 @@ corr_status_label.pack(side='right')
 
 # Initialize
 log_message("GUI initialized. Ready to run simulations.", 'success')
+ensure_workspace_structure(workspace_var.get())
+refresh_file_tree()
 update_corr()
 update_plot()
 
