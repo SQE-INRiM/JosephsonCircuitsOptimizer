@@ -35,13 +35,12 @@ include("gui.jl")
 
 
 
-"""
+"""\
     check_required_files(config::Configuration)
 
-Check if the required input files exist in the given working space.
+Check that the required user input files exist in `config.user_inputs_dir`.
 """
-
-function check_required_files()
+function check_required_files(config::Configuration)
     required_files = [
         "drive_physical_quantities.json",
         "device_parameters_space.json",
@@ -58,28 +57,30 @@ function check_required_files()
     end
 end
 
-"""
+"""\
     initialize_workspace(config::Configuration)
 
-Ensure that the given working space is set up correctly.
+Ensure that the working space exists and contains all required input files.
 """
-function initialize_workspace()
+function initialize_workspace(config::Configuration)
     if !isdir(config.WORKING_SPACE)
         error("Working space directory '$(config.WORKING_SPACE)' does not exist.")
     end
 
-    check_required_files()
+    check_required_files(config)
 end
 
 
 
-"""
+"""\
     modules_setup(config::Configuration)
 
 Initialize all dependent modules with the given configuration.
-"""
 
-function modules_setup()
+Note: The individual setup_* functions currently rely on the global `config`.
+This function exists to make the initialization sequence explicit.
+"""
+function modules_setup(config::Configuration)
 
     @info "Initializing modules with configuration..."
     
@@ -93,27 +94,25 @@ function modules_setup()
 end
 
 
-function test_modification()
 
-    println("\n\n MODIFICANDO IN LOCALE\n
-    6 \n")
-
-end
-
-
-
-"""
-    run()
+"""\
+    run(; workspace=nothing, create_workspace=true)
 
 Run the full simulation and optimization process.
+
+- `workspace`: path to the working space folder (defaults to `pwd()/working_space`).
+- `create_workspace`: if true, create missing folders inside the workspace.
 """
-function run()
+function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspace::Bool=true)
+
+    # Build configuration *now* (not at package import time)
+    global config = get_configuration(; workspace=workspace, create=create_workspace)
 
     # Initialize all modules
-    modules_setup()
+    modules_setup(config)
 
-    # Initialize workspace
-    initialize_workspace()
+    # Validate workspace
+    initialize_workspace(config)
 
     # Define paths
     user_input_path = config.user_inputs_dir
@@ -165,13 +164,22 @@ function run()
     results = run_nonlinear_simulations_sweep(optimal_params)
     @debug "Results from nonlinear simulations: $(results)"
 
-    p=plot_delta_vs_amplitude(results)
-    @info "Plotting Delta vs Amplitude."
-    plot_update(p)
-
-    p=plot_performance_vs_amplitude(results)
-    @info "Plotting Performance vs Amplitude."
-    plot_update(p)
+    p = plot_delta_vs_amplitude(results)
+    if p !== nothing
+        @info "Plotting Delta vs Amplitude."
+        plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="delta_vs_amplitude")
+    else
+        @info "Skipping Delta vs Amplitude plot (no sweep / not enough points)."
+    end
+    
+    p = plot_performance_vs_amplitude(results)
+    if p !== nothing
+        @info "Plotting Performance vs Amplitude."
+        plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="performance_vs_amplitude")
+    else
+        @info "Skipping Performance vs Amplitude plot (no sweep / not enough points)."
+    end
+    
 
     #display(p)
     
@@ -228,11 +236,11 @@ function run()
 
             p=plot_delta_vs_amplitude(results)
             @info "Plotting Delta vs Amplitude."
-            plot_update(p)
+            plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="delta_vs_amplitude")
         
             p=plot_performance_vs_amplitude(results)
             @info "Plotting Performance vs Amplitude."
-            plot_update(p)
+            plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="performance_vs_amplitude")
 
 
         end
@@ -240,6 +248,7 @@ function run()
         @debug "Linear delta quantities: $(lin_deltas)"
         @debug "Nonlinear delta quantities: $(nonlin_deltas)"
 
+        
         p = P.plot(collect(1:sim_vars[:n_iterations_nonlinear_correction]), nonlin_deltas, 
             xlabel="Iteration",
             ylabel="Nonlinear Delta Quantity",
@@ -253,7 +262,7 @@ function run()
             xticks=1:sim_vars[:n_iterations_nonlinear_correction]
         )
 
-        plot_update(p)
+        plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="nonlinear_correction_convergence")
         #display(p)
 
         header = Dict(

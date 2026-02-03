@@ -64,7 +64,7 @@ function plot_1d_density_heatmap(fig, df)
 
     if isempty(df)
         error("The input DataFrame is empty. Please provide a non-empty DataFrame.")
-    end 
+    end
 
     metric = df.metric
     df = select(df, Not([:metric]))
@@ -76,27 +76,25 @@ function plot_1d_density_heatmap(fig, df)
     grid = fig[2, 1] = GridLayout()
 
     for (i, col) in enumerate(col_names)
-        println("\nColumn: ", col)
-        ax = Axis(grid[1, i], 
-                  xlabel = "",  # Remove X-axis label
-                  ylabel = col,  # Keep Y-axis label
-                  xticklabelsvisible = false,  # Hide X tick labels
-                  xticksize = 0,
-                  title = ""  # Remove title
-        )
-        apply_style!(ax)  # Apply consistent style
+        @info "Column: $col"
 
-        # Get the unique values and their counts
+        ax = Axis(grid[1, i],
+            xlabel = "",
+            ylabel = col,
+            xticklabelsvisible = false,
+            xticksize = 0,
+            title = ""
+        )
+        apply_style!(ax)
+
         values = df[:, col]
-        #println("Values: ", values)
-        #println("Metric ", metric)
         unique_values = unique(values)
-        println("Unique Values: ", unique_values)
+        @info "Unique Values (unsorted): $unique_values"
         unique_values = sort(unique_values)
-        println("Unique Values: ", unique_values)
-        
-        value_counts=[]
-        metric_values=[]
+        @info "Unique Values (sorted): $unique_values"
+
+        value_counts = []
+        metric_values = []
 
         for unique_val in unique_values
             mask = values .== unique_val
@@ -106,60 +104,49 @@ function plot_1d_density_heatmap(fig, df)
             push!(metric_values, total_metric / counter)
         end
 
-        
-        println("Value Counts: ", value_counts)
-        println("total_metric ", metric_values)
+        @info "Value Counts: $value_counts"
+        @info "total_metric (mean per value): $metric_values"
 
-
-        #value_counts = [count(==(val), values) for val in unique_values]
-        #println("Value Counts: ", value_counts)
-
-        # Normalize value_counts to [0, 1]
         weighted_values = value_counts ./ metric_values
-        println("weighted_values ", weighted_values)
+        @info "weighted_values: $weighted_values"
+
         normalized_counts = weighted_values ./ maximum(weighted_values)
-        println("Normalized Counts: ", normalized_counts)
+        @info "Normalized Counts: $normalized_counts"
 
-        # Create a 2D array by repeating the normalized counts (20 columns)
         hm_matrix = repeat(normalized_counts', outer = (2, 1))
-        println("Heatmap Matrix: ", hm_matrix)
-        xvals = range(0, stop = 1, length = 2)  # x-axis for heatmap
-        println("X Values: ", xvals)
+        @info "Heatmap Matrix: $hm_matrix"
 
-        # Plot the heatmap using the 2D matrix and the custom colormap
+        xvals = range(0, stop = 1, length = 2)
+        @info "X Values: $xvals"
+
         colormap = cgrad([INRIM_blue, INRIM_yellow])
         hm = heatmap!(ax, xvals, unique_values, hm_matrix, colormap = colormap, colorrange = (0, 1))
-        push!(heatmaps, hm)  # Store heatmap for colorbar
+        push!(heatmaps, hm)
 
-        # Set Y-axis limits and ticks based on unique discrete values
         y_min = minimum(unique_values)
-        println("Y Min: ", y_min)
+        @info "Y Min: $y_min"
         y_max = maximum(unique_values)
-        println("Y Max: ", y_max)
+        @info "Y Max: $y_max"
 
-        if length(unique_values) <= 10       
+        if length(unique_values) <= 10
             if y_min == y_max
-                padding = 0.001 * abs(y_min)  # Use 1% of the value as padding
-                padding = padding == 0 ? 0.001 : padding  # If y_min is 0, use a default padding of 0.1
+                padding = 0.001 * abs(y_min)
+                padding = padding == 0 ? 0.001 : padding
                 ylims!(ax, y_min - padding, y_max + padding)
             else
                 padding = 0.5 * (y_max - y_min) / length(unique_values)
                 ylims!(ax, y_min - padding, y_max + padding)
             end
-            
-            ax.yticks = (unique_values, string.(unique_values))  # Set y-axis ticks and labels
+            ax.yticks = (unique_values, string.(unique_values))
         else
-
-            padding = 0.5 * (maximum(values) - minimum(values))/length(unique_values)
+            padding = 0.5 * (maximum(values) - minimum(values)) / length(unique_values)
             ylims!(ax, minimum(values) - padding, maximum(values) + padding)
-
         end
     end
 
-    # Add a colorbar to the right of the figure, using the last heatmap as a reference
-    Colorbar(grid[1, end+1], heatmaps[end], label = "Weighted device counts", labelsize = 22, ticklabelsize = 18, width = 20)
+    Colorbar(grid[1, end+1], heatmaps[end], label = "Weighted device counts",
+             labelsize = 22, ticklabelsize = 18, width = 20)
 end
-
 
 
 function plot_1d_density_heatmap(fig, df, ref_df)
@@ -167,34 +154,31 @@ function plot_1d_density_heatmap(fig, df, ref_df)
     metric = df.metric
     df = select(df, Not([:metric]))
 
-    col_names = names(df)  # Get column names
-    heatmaps = []  # Store heatmaps for colorbar reference
+    col_names = names(df)
+    heatmaps = []
 
-    # Create a grid layout for the 1D density heatmaps
     grid = fig[2, 1] = GridLayout()
 
     for (i, col) in enumerate(col_names)
-        println("\nColumn: ", col)
-        ax = Axis(grid[1, i], 
-                  xlabel = "",  # Remove X-axis label
-                  ylabel = col,  # Keep Y-axis label
-                  xticklabelsvisible = false,  # Hide X tick labels
-                  xticksize = 0,
-                  title = ""  # Remove title
-        )
-        apply_style!(ax)  # Apply consistent style
+        @info "Column: $col"
 
-        # Get the unique values from the reference dataset
+        ax = Axis(grid[1, i],
+            xlabel = "",
+            ylabel = col,
+            xticklabelsvisible = false,
+            xticksize = 0,
+            title = ""
+        )
+        apply_style!(ax)
+
         values = df[:, col]
         ref_values = ref_df[:, col]
-        unique_ref_values = sort(unique(ref_values))  # Unique values from the reference dataset
-        println("Unique Reference Values: ", unique_ref_values)
+        unique_ref_values = sort(unique(ref_values))
+        @info "Unique Reference Values: $unique_ref_values"
 
-        # Initialize arrays to store counts and metric values
         value_counts = zeros(length(unique_ref_values))
         metric_values = zeros(length(unique_ref_values))
 
-        # Calculate counts and metric values for each unique reference value
         for (idx, unique_val) in enumerate(unique_ref_values)
             mask = values .== unique_val
             if any(mask)
@@ -206,47 +190,43 @@ function plot_1d_density_heatmap(fig, df, ref_df)
             end
         end
 
-        println("Value Counts: ", value_counts)
-        println("Metric Values: ", metric_values)
+        @info "Value Counts: $value_counts"
+        @info "Metric Values: $metric_values"
 
-        # Normalize weighted values
-        weighted_values = value_counts ./ (metric_values .+ eps())  # Add eps() to avoid division by zero
+        weighted_values = value_counts ./ (metric_values .+ eps())
         normalized_counts = weighted_values ./ maximum(weighted_values)
-        println("Normalized Counts: ", normalized_counts)
+        @info "Normalized Counts: $normalized_counts"
 
-        # Create a 2D array by repeating the normalized counts (20 columns)
         hm_matrix = repeat(normalized_counts', outer = (2, 1))
-        println("Heatmap Matrix: ", hm_matrix)
-        xvals = range(0, stop = 1, length = 2)  # x-axis for heatmap
+        @info "Heatmap Matrix: $hm_matrix"
 
-        # Plot the heatmap using the 2D matrix and the custom colormap
+        xvals = range(0, stop = 1, length = 2)
+
         colormap = cgrad([INRIM_blue, INRIM_yellow])
         hm = heatmap!(ax, xvals, unique_ref_values, hm_matrix, colormap = colormap, colorrange = (0, 1))
-        push!(heatmaps, hm)  # Store heatmap for colorbar
+        push!(heatmaps, hm)
 
-        # Set Y-axis limits and ticks based on unique reference values
         y_min = minimum(unique_ref_values)
         y_max = maximum(unique_ref_values)
 
-        if length(unique_ref_values) <= 10         
+        if length(unique_ref_values) <= 10
             if y_min == y_max
-                padding = 0.001 * abs(y_min)  # Use 1% of the value as padding
-                padding = padding == 0 ? 0.001 : padding  # If y_min is 0, use a default padding of 0.1
+                padding = 0.001 * abs(y_min)
+                padding = padding == 0 ? 0.001 : padding
                 ylims!(ax, y_min - padding, y_max + padding)
             else
                 padding = 0.5 * (y_max - y_min) / length(unique_ref_values)
                 ylims!(ax, y_min - padding, y_max + padding)
             end
-            
-            ax.yticks = (unique_ref_values, string.(unique_ref_values))  # Set y-axis ticks and labels
+            ax.yticks = (unique_ref_values, string.(unique_ref_values))
         else
             padding = 0.5 * (y_max - y_min) / length(unique_ref_values)
             ylims!(ax, y_min - padding, y_max + padding)
         end
     end
 
-    # Add a colorbar to the right of the figure, using the last heatmap as a reference
-    Colorbar(grid[1, end+1], heatmaps[end], label = "Weighted device counts", labelsize = 22, ticklabelsize = 18, width = 20)
+    Colorbar(grid[1, end+1], heatmaps[end], label = "Weighted device counts",
+             labelsize = 22, ticklabelsize = 18, width = 20)
 end
 
 
@@ -345,6 +325,13 @@ function create_corr_figure(df; df_ref=nothing)
     # Safe save
     save(tmpfile, fig)
     mv(tmpfile, filepath; force = true)
+
+    extra = Dict(
+        "n_points" => nrow(df),
+        "n_columns" => ncol(df)
+    )
+
+    correlation_update(fig; plot_type="correlation", run_id=nothing, extra=extra)
 
     @info "Saved correlation figure → $filepath"
     return filepath

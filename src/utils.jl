@@ -341,37 +341,131 @@ function copy_function(source_file, dest_file)
 end
 
 
-function plot_update(p)
-    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
-    filename = "plot_$timestamp.png"
-    filepath = joinpath(plot_path, filename)
 
+function _meta_summary(params, metric; max_params::Int=4)
+    parts = String[]
+    if metric !== nothing
+        try
+            push!(parts, "metric=$(round(Float64(metric), sigdigits=6))")
+        catch
+            push!(parts, "metric=$(metric)")
+        end
+    end
+    if params isa AbstractDict
+        ks = sort(collect(keys(params)); by=string)
+        shown = first(ks, min(length(ks), max_params))
+        for k in shown
+            v = params[k]
+            if v isa Number
+                push!(parts, "$(k)=$(round(v, sigdigits=6))")
+            else
+                push!(parts, "$(k)=$(v)")
+            end
+        end
+        if length(ks) > max_params
+            push!(parts, "…")
+        end
+    end
+    return join(parts, " | ")
+end
+
+
+function _write_sidecar_json(png_path::AbstractString; params=nothing, metric=nothing,
+    plot_type::AbstractString="plot", run_id=nothing, extra=Dict())
+    meta = Dict{String,Any}(
+    "png" => basename(png_path),
+    "timestamp" => string(Dates.now()),
+    "plot_type" => plot_type
+    )
+    run_id !== nothing && (meta["run_id"] = run_id)
+    metric !== nothing && (meta["metric"] = metric)
+
+    if params isa AbstractDict
+        meta["params"] = Dict(string(k)=>v for (k,v) in params)
+    elseif params !== nothing
+        meta["params"] = params
+    end
+
+    if extra isa AbstractDict && !isempty(extra)
+        meta["extra"] = Dict(string(k)=>v for (k,v) in extra)
+    elseif extra !== nothing && !(isempty(extra))
+        meta["extra"] = extra
+    end
+
+    json_path = replace(String(png_path), r"\.png$" => ".json")
+    write(json_path, JSON.json(meta, 4))
+
+    return json_path
+end
+
+function plot_update(p; params=nothing, metric=nothing, plot_type::AbstractString="plot", run_id=nothing, extra=Dict())
+    mkpath(plot_path)
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
+    filepath = joinpath(plot_path, "plot_$timestamp.png")
+
+    summary = _meta_summary(params, metric)
+    
+    if !isempty(summary)
+        try
+            P.plot!(p; subtitle=summary)
+        catch
+        end
+    end
+    
     savefig(p, filepath)
+    _write_sidecar_json(filepath; params=params, metric=metric, plot_type=plot_type, run_id=run_id, extra=extra)
 
     @info "Saved plot to $filepath"
+    return filepath
 end
 
+function plot_update(p, params, metric; plot_type::AbstractString="plot", run_id=nothing, extra=Dict())
+    return plot_update(p; params=params, metric=metric, plot_type=plot_type, run_id=run_id, extra=extra)
+end
+function plot_update(p, params; metric=nothing, plot_type::AbstractString="plot", run_id=nothing, extra=Dict())
+    return plot_update(p; params=params, metric=metric, plot_type=plot_type, run_id=run_id, extra=extra)
+end
+"""
+    correlation_update(fig::Figure; params=nothing, metric=nothing, plot_type="correlation", run_id=nothing, extra=Dict())
 
-function correlation_update(fig::Figure)
-    # Ensure folder exists
+Save a Makie `Figure` into `corr_path` safely (write to .part then move),
+and write a sidecar JSON metadata file with the same basename.
+"""
+function correlation_update(fig::Figure;
+    params=nothing,
+    metric=nothing,  # will be skipped if array (by your sidecar writer)
+    plot_type::AbstractString="correlation",
+    run_id=nothing,
+    extra::Dict=Dict()
+    )
+    
     isdir(corr_path) || mkpath(corr_path)
 
-    # Millisecond-resolution timestamp
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
-    filename = "corr_$timestamp.png"
-    filepath = joinpath(corr_path, filename)
+    rid = isnothing(run_id) ? "" : "_run$(run_id)"
 
-    tmp_filepath = filepath * ".part.png"
+    filename  = "corr_$(timestamp)$(rid).png"
+    filepath  = joinpath(corr_path, filename)
+    tmpfile   = filepath * ".part.png"
 
-    # Save safely
-    save(tmp_filepath, fig)
-    mv(tmp_filepath, filepath; force = true)
+    save(tmpfile, fig)
+    mv(tmpfile, filepath; force=true)
 
-    @info "Saved correlation figure to $filepath"
+    _write_sidecar_json(filepath; params=params, metric=metric, plot_type=plot_type, run_id=run_id, extra=extra)
+
+    @info "Saved correlation figure → $filepath"
+    return filepath
 end
+
 
 
 function plot_delta_vs_amplitude(results)
+    
+    if length(results) < 2
+        @info "Not enough points for amplitude sweep (need ≥ 2)."
+        return nothing
+    end
+    
     # Extract amplitudes as matrix (N x M, where N points, M sources)
     amps_mat = reduce(vcat, [r.amps' for r in results])
     @debug "Amplitudes: $amps_mat"
@@ -383,7 +477,8 @@ function plot_delta_vs_amplitude(results)
     changing_idx = findall(!=(0.0), amp_vars)
 
     if length(changing_idx) == 0
-        error("No amplitude sweep detected: all amplitudes are constant")
+        @info "No amplitude sweep detected (all amplitudes constant). Skipping plot."
+        return nothing
     elseif length(changing_idx) > 1
         @warn "Multiple amplitudes vary, plotting the first varying one only"
     end
@@ -423,6 +518,12 @@ end
 
 
 function plot_performance_vs_amplitude(results)
+
+    if length(results) < 2
+        @info "Not enough points for amplitude sweep (need ≥ 2)."
+        return nothing
+    end
+
     amps_mat = reduce(vcat, [r.amps' for r in results])
     @debug "Results: $results"
     performances = [r.performance for r in results]
@@ -433,7 +534,8 @@ function plot_performance_vs_amplitude(results)
     changing_idx = findall(!=(0.0), amp_vars)
 
     if length(changing_idx) == 0
-        error("No amplitude sweep detected: all amplitudes are constant")
+        @info "No amplitude sweep detected: all amplitudes are constant"
+        return nothing
     elseif length(changing_idx) > 1
         @warn "Multiple amplitudes vary, plotting the first varying one only"
     end
