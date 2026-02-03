@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 import subprocess
 import threading
 import os
 from PIL import Image, ImageTk, UnidentifiedImageError
 import shutil
 import sys
+import json
 
 process = None
 plot_files = []
@@ -17,9 +19,9 @@ current_corr_index = 0
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_path = os.path.abspath(os.path.join(current_dir, '..')).replace('\\', '/')
 src_path = os.path.join(project_path, 'src').replace('\\', '/')
-plot_path = os.path.join(project_path, 'plot_saved').replace('\\', '/')
-corr_path = os.path.join(project_path, 'correlation_matrix_saved').replace('\\', '/')
-
+workspace_path = os.path.join(project_path, "working_space").replace("\\", "/")
+plot_path = os.path.join(workspace_path, "plots").replace("\\", "/")
+corr_path = os.path.join(workspace_path, "correlation_matrix").replace("\\", "/")
 
 # Color scheme
 COLORS = {
@@ -43,12 +45,155 @@ else:
 print(f"Using Julia executable: {JULIA_EXE}")
 
 
+def update_workspace_paths():
+    global plot_path, corr_path
+    ws = workspace_var.get()
+    plot_path = os.path.join(ws, "plots").replace("\\", "/")
+    corr_path = os.path.join(ws, "correlation_matrix").replace("\\", "/")
+
+
+def ensure_workspace_structure(ws: str):
+    """Create the expected subfolders inside a workspace if they don't exist."""
+    os.makedirs(os.path.join(ws, "plots"), exist_ok=True)
+    os.makedirs(os.path.join(ws, "correlation_matrix"), exist_ok=True)
+    os.makedirs(os.path.join(ws, "outputs"), exist_ok=True)
+    os.makedirs(os.path.join(ws, "user_inputs"), exist_ok=True)
+
+
+def open_path(path: str):
+    """Open a file/folder with the OS default application."""
+    abs_path = os.path.abspath(path)
+    try:
+        if sys.platform.startswith("win"):
+            os.startfile(abs_path)  # type: ignore[attr-defined]
+        elif sys.platform == "darwin":
+            subprocess.run(["open", abs_path], check=False)
+        else:
+            subprocess.run(["xdg-open", abs_path], check=False)
+    except Exception as e:
+        # output_box might not exist yet; keep it silent and print to console
+        print(f"Could not open path: {abs_path} ({e})")
+
+
+def refresh_file_tree():
+    """Refresh the embedded file browser tree (requires the GUI widgets to exist)."""
+    global tree
+    if "tree" not in globals():
+        return
+
+    # Clear existing
+    for item in tree.get_children():
+        tree.delete(item)
+
+    root_path = workspace_var.get()
+    if not os.path.isdir(root_path):
+        return
+
+    root_node = tree.insert("", "end",
+                            text=os.path.basename(root_path) or root_path,
+                            open=True,
+                            values=(root_path,))
+
+    preferred = ["user_inputs", "outputs", "plots", "correlation_matrix"]
+    for name in preferred:
+        p = os.path.join(root_path, name)
+        if os.path.isdir(p):
+            node = tree.insert(root_node, "end", text=name, open=False, values=(p,))
+            add_tree_children(node, p, max_items=300)
+
+
+def add_tree_children(parent_node, folder_path: str, max_items: int = 300):
+    try:
+        entries = sorted(os.listdir(folder_path))
+    except Exception:
+        return
+
+    count = 0
+    for entry in entries:
+        if count >= max_items:
+            tree.insert(parent_node, "end", text="… (more)", values=("",))
+            break
+
+        full = os.path.join(folder_path, entry)
+        if os.path.isdir(full):
+            tree.insert(parent_node, "end", text=entry, open=False, values=(full,))
+        else:
+            tree.insert(parent_node, "end", text=entry, values=(full,))
+        count += 1
+
+
+def on_tree_double_click(event):
+    item = tree.selection()
+    if not item:
+        return
+    vals = tree.item(item[0], "values")
+    if not vals:
+        return
+    p = vals[0]
+    if p and os.path.exists(p):
+        open_path(p)
+
+
+def browse_workspace():
+    folder = filedialog.askdirectory(title="Select experiment folder (workspace)")
+    if folder:
+        workspace_var.set(folder.replace("\\", "/"))
+        ensure_workspace_structure(workspace_var.get())
+        update_workspace_paths()
+        refresh_file_tree()
+        log_message(f"Workspace set to: {workspace_var.get()}", "success")
+
+
 def clear_plots():
     if os.path.exists(plot_path):
         for f in os.listdir(plot_path):
             if f.endswith(".png"):
                 os.remove(os.path.join(plot_path, f))
         log_message("✓ Cleared old plots.", 'success')
+
+
+
+
+def load_sidecar_json(image_path):
+    if not image_path or not image_path.endswith(".png"):
+        return None
+    json_path = image_path[:-4] + ".json"
+    if not os.path.exists(json_path):
+        return None
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+def format_metadata(meta):
+    if not meta:
+        return "No metadata available for this image."
+
+    lines = []
+    # Put key fields first (if present)
+    for k in ["plot_type", "timestamp", "metric", "png"]:
+        if k in meta:
+            lines.append(f"{k}: {meta[k]}")
+
+    # Params
+    params = meta.get("params", None)
+    if isinstance(params, dict) and params:
+        lines.append("")
+        lines.append("params:")
+        for key in sorted(params.keys()):
+            lines.append(f"  {key}: {params[key]}")
+
+    # Any extra
+    extra = meta.get("extra", None)
+    if isinstance(extra, dict) and extra:
+        lines.append("")
+        lines.append("extra:")
+        for key in sorted(extra.keys()):
+            lines.append(f"  {key}: {extra[key]}")
+
+    return "\n".join(lines)
+
 
 def log_message(message, msg_type='info'):
     """Add colored message to output with timestamp"""
@@ -103,6 +248,8 @@ def show_plot(index):
                 text=f"Plot {index+1} of {len(plot_files)}: {os.path.basename(plot_files[index])}"
             )
 
+            update_plot_metadata(plot_files[index])
+
             # Update navigation buttons
             prev_button.config(state='normal' if index > 0 else 'disabled')
             next_button.config(state='normal' if index < len(plot_files) - 1 else 'disabled')
@@ -119,6 +266,7 @@ def show_plot(index):
         plot_canvas.create_text(300, 225, text="No plots available",
                                 font=('Arial', 14), fill=COLORS['dark'])
         status_label.config(text="No plots to display")
+        update_plot_metadata(None)
         prev_button.config(state='disabled')
         next_button.config(state='disabled')
 
@@ -148,12 +296,22 @@ def update_plot():
 
 
 
+
 def clear_corr():
+    removed = 0
     if os.path.exists(corr_path):
         for f in os.listdir(corr_path):
-            if f.endswith(".png"):
-                os.remove(os.path.join(corr_path, f))
-        log_message("✓ Cleared old covariance matrices.", 'success')
+            if f.endswith(".png") or f.endswith(".json"):
+                try:
+                    os.remove(os.path.join(corr_path, f))
+                    removed += 1
+                except Exception:
+                    pass
+    log_message(f"✓ Cleared matrices + metadata ({removed} files).", 'success')
+    refresh_corr_list()
+    show_corr(-1)
+    update_corr_metadata(None)
+
 
 def refresh_corr_list():
     global corr_files
@@ -186,6 +344,7 @@ def show_corr(index):
             corr_status_label.config(
                 text=f"Matrix {index+1} of {len(corr_files)}: {os.path.basename(corr_files[index])}"
             )
+            update_corr_metadata(corr_files[index])
 
             corr_prev_button.config(state='normal' if index > 0 else 'disabled')
             corr_next_button.config(state='normal' if index < len(corr_files) - 1 else 'disabled')
@@ -198,6 +357,7 @@ def show_corr(index):
         corr_canvas.create_text(300, 225, text="No correlation matrices available",
                                 font=('Arial', 14), fill=COLORS['dark'])
         corr_status_label.config(text="No correlation matrices to display")
+        update_corr_metadata(None)
         corr_prev_button.config(state='disabled')
         corr_next_button.config(state='disabled')
 
@@ -238,6 +398,37 @@ def toggle_simulation():
     else:
         stop_simulation()
 
+
+
+def clear_plots():
+    removed = 0
+    if os.path.exists(plot_path):
+        for f in os.listdir(plot_path):
+            if f.endswith(".png") or f.endswith(".json"):
+                try:
+                    os.remove(os.path.join(plot_path, f))
+                    removed += 1
+                except Exception:
+                    pass
+    log_message(f"✓ Cleared plots + metadata ({removed} files).", 'success')
+    refresh_plot_list()
+    show_plot(-1)
+    update_plot_metadata(None)
+
+
+def clear_corr():
+    removed = 0
+    if os.path.exists(corr_path):
+        for f in os.listdir(corr_path):
+            if f.endswith(".png") or f.endswith(".json"):
+                os.remove(os.path.join(corr_path, f))
+                removed += 1
+    log_message(f"✓ Cleared matrices + metadata ({removed} files).", 'success')
+    refresh_corr_list()
+    show_corr(-1)
+    update_corr_metadata(None)
+
+
 def start_simulation():
     global process, current_plot_index
     if process is not None:
@@ -250,9 +441,13 @@ def start_simulation():
     progress_bar.start()
     current_plot_index = 0
 
-    clear_plots()
+    # Ensure workspace folders exist
+    ensure_workspace_structure(workspace_var.get())
+    update_workspace_paths()
+
+    #clear_plots()
     refresh_plot_list()
-    clear_corr()
+    #clear_corr()
     refresh_corr_list()
     log_message("Starting Josephson simulation...", 'info')
 
@@ -261,8 +456,9 @@ def start_simulation():
     Pkg.activate("{project_path}")
     push!(LOAD_PATH, "{src_path}")
     using JosephsonCircuitsOptimizer
-    JosephsonCircuitsOptimizer.run()
+    JosephsonCircuitsOptimizer.run(workspace=raw"{workspace_var.get()}", create_workspace=true)
     '''
+
 
     def run_in_thread():
         global process
@@ -350,8 +546,18 @@ def clear_output():
 
 # --- Enhanced GUI ---
 root = tk.Tk()
+
+# Workspace selector variable (must be created after root exists)
+workspace_var = tk.StringVar(
+    master=root,
+    value=os.path.join(project_path, "working_space").replace("\\", "/")
+)
+
+# Initialize dynamic paths based on workspace_var
+update_workspace_paths()
+
 root.title("Josephson Circuits Optimizer")
-root.geometry("1900x800")
+root.geometry("1900x1000")
 root.configure(bg=COLORS['bg'])
 
 # Configure ttk styles
@@ -421,6 +627,32 @@ clear_btn = ttk.Button(button_frame, text="Clear Output",
                       style="Primary.TButton")
 clear_btn.pack(side='left', padx=(0, 10))
 
+clear_plots_btn = ttk.Button(button_frame, text="Clear Plots", 
+                             command=clear_plots,
+                             style="Primary.TButton")
+clear_plots_btn.pack(side='left', padx=(0, 10))
+
+clear_corr_btn = ttk.Button(button_frame, text="Clear Matrices", 
+                            command=clear_corr,
+                            style="Primary.TButton")
+clear_corr_btn.pack(side='left', padx=(0, 10))
+
+
+# Workspace row
+ws_frame = tk.Frame(control_frame, bg=COLORS['bg'])
+ws_frame.pack(fill='x', pady=(10, 0))
+
+tk.Label(ws_frame, text="Experiment folder:", bg=COLORS['bg'], fg=COLORS['text']).pack(side='left')
+
+ws_entry = ttk.Entry(ws_frame, textvariable=workspace_var, width=80)
+ws_entry.pack(side='left', padx=(10, 10), fill='x', expand=True)
+
+ws_browse = ttk.Button(ws_frame, text="Browse...", command=browse_workspace, style="Primary.TButton")
+ws_browse.pack(side='left')
+
+ws_open = ttk.Button(ws_frame, text="Open Folder", command=lambda: open_path(workspace_var.get()), style="Primary.TButton")
+ws_open.pack(side='left', padx=(10, 0))
+
 # Progress bar
 progress_frame = tk.Frame(control_frame, bg=COLORS['bg'])
 progress_frame.pack(fill='x', pady=(10, 0))
@@ -430,6 +662,13 @@ tk.Label(progress_frame, text="Status:", font=('Arial', 9),
 
 progress_bar = ttk.Progressbar(progress_frame, mode='determinate', length=200)
 progress_bar.pack(side='left', padx=(10, 0), fill='x', expand=True)
+
+
+def update_plot_metadata(image_path):
+    meta = load_sidecar_json(image_path)
+    plot_metadata_box.delete(1.0, tk.END)
+    plot_metadata_box.insert(tk.END, format_metadata(meta))
+
 
 # Main content area
 content_frame = tk.Frame(main_frame, bg=COLORS['bg'])
@@ -459,6 +698,23 @@ output_box.configure(yscrollcommand=output_scrollbar.set)
 
 output_box.pack(side='left', fill='both', expand=True)
 output_scrollbar.pack(side='right', fill='y')
+
+# File browser under output (open files/folders externally on double-click)
+files_frame = tk.LabelFrame(left_panel, text="Experiment Files",
+                            font=('Arial', 10, 'bold'),
+                            fg=COLORS['primary'],
+                            bg=COLORS['bg'],
+                            padx=8, pady=8)
+files_frame.pack(fill='both', expand=False, pady=(10, 0))
+
+tree = ttk.Treeview(files_frame, columns=("fullpath",), show="tree")
+tree.pack(side='left', fill='both', expand=True)
+
+tree_scroll = ttk.Scrollbar(files_frame, orient='vertical', command=tree.yview)
+tree.configure(yscrollcommand=tree_scroll.set)
+tree_scroll.pack(side='right', fill='y')
+
+tree.bind("<Double-1>", on_tree_double_click)
 
 # Right panel - Plots
 right_panel = tk.LabelFrame(content_frame, text="Plot Viewer", 
@@ -497,6 +753,22 @@ status_label = tk.Label(nav_frame, text="No plots to display",
                        bg=COLORS['bg'])
 status_label.pack(side='right')
 
+
+# Plot metadata viewer
+plot_meta_label = tk.Label(right_panel, text="Plot metadata",
+                           font=('Arial', 10, 'bold'),
+                           fg=COLORS['primary'],
+                           bg=COLORS['bg'])
+plot_meta_label.pack(anchor='w', pady=(10, 0))
+
+plot_metadata_box = tk.Text(right_panel, height=10,
+                            font=('Consolas', 9),
+                            bg='#f5f5f5',
+                            fg=COLORS['text'],
+                            wrap=tk.WORD)
+plot_metadata_box.pack(fill='x', pady=(5, 0))
+
+
 # Footer
 footer_frame = tk.Frame(main_frame, bg=COLORS['bg'])
 footer_frame.pack(fill='x', pady=(20, 0))
@@ -515,6 +787,13 @@ corr_panel = tk.LabelFrame(content_frame, text="Correlation Viewer",
                            bg=COLORS['bg'],
                            padx=10, pady=10)
 corr_panel.pack(side='right', fill='both', expand=True)
+
+
+def update_corr_metadata(image_path):
+    meta = load_sidecar_json(image_path)
+    corr_metadata_box.delete(1.0, tk.END)
+    corr_metadata_box.insert(tk.END, format_metadata(meta))
+
 
 # Correlation canvas
 corr_canvas = tk.Canvas(corr_panel, width=600, height=450,
@@ -546,8 +825,26 @@ corr_status_label = tk.Label(corr_nav_frame, text="No correlation matrices to di
 corr_status_label.pack(side='right')
 
 
+# Correlation metadata viewer
+corr_meta_label = tk.Label(corr_panel, text="Matrix metadata",
+                           font=('Arial', 10, 'bold'),
+                           fg=COLORS['primary'],
+                           bg=COLORS['bg'])
+corr_meta_label.pack(anchor='w', pady=(10, 0))
+
+corr_metadata_box = tk.Text(corr_panel, height=10,
+                            font=('Consolas', 9),
+                            bg='#f5f5f5',
+                            fg=COLORS['text'],
+                            wrap=tk.WORD)
+corr_metadata_box.pack(fill='x', pady=(5, 0))
+
+
+
 # Initialize
 log_message("GUI initialized. Ready to run simulations.", 'success')
+ensure_workspace_structure(workspace_var.get())
+refresh_file_tree()
 update_corr()
 update_plot()
 
