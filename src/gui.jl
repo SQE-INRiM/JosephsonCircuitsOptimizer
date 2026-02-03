@@ -76,7 +76,7 @@ function plot_1d_density_heatmap(fig, df)
     grid = fig[2, 1] = GridLayout()
 
     for (i, col) in enumerate(col_names)
-        @info "Column: $col"
+        @debug "Column: $col"
 
         ax = Axis(grid[1, i],
             xlabel = "",
@@ -89,9 +89,9 @@ function plot_1d_density_heatmap(fig, df)
 
         values = df[:, col]
         unique_values = unique(values)
-        @info "Unique Values (unsorted): $unique_values"
+        @debug "Unique Values (unsorted): $unique_values"
         unique_values = sort(unique_values)
-        @info "Unique Values (sorted): $unique_values"
+        @debug "Unique Values (sorted): $unique_values"
 
         value_counts = []
         metric_values = []
@@ -104,29 +104,29 @@ function plot_1d_density_heatmap(fig, df)
             push!(metric_values, total_metric / counter)
         end
 
-        @info "Value Counts: $value_counts"
-        @info "total_metric (mean per value): $metric_values"
+        @debug "Value Counts: $value_counts"
+        @debug "total_metric (mean per value): $metric_values"
 
         weighted_values = value_counts ./ metric_values
-        @info "weighted_values: $weighted_values"
+        @debug "weighted_values: $weighted_values"
 
         normalized_counts = weighted_values ./ maximum(weighted_values)
-        @info "Normalized Counts: $normalized_counts"
+        @debug "Normalized Counts: $normalized_counts"
 
         hm_matrix = repeat(normalized_counts', outer = (2, 1))
-        @info "Heatmap Matrix: $hm_matrix"
+        @debug "Heatmap Matrix: $hm_matrix"
 
         xvals = range(0, stop = 1, length = 2)
-        @info "X Values: $xvals"
+        @debug "X Values: $xvals"
 
         colormap = cgrad([INRIM_blue, INRIM_yellow])
         hm = heatmap!(ax, xvals, unique_values, hm_matrix, colormap = colormap, colorrange = (0, 1))
         push!(heatmaps, hm)
 
         y_min = minimum(unique_values)
-        @info "Y Min: $y_min"
+        @debug "Y Min: $y_min"
         y_max = maximum(unique_values)
-        @info "Y Max: $y_max"
+        @debug "Y Max: $y_max"
 
         if length(unique_values) <= 10
             if y_min == y_max
@@ -160,7 +160,7 @@ function plot_1d_density_heatmap(fig, df, ref_df)
     grid = fig[2, 1] = GridLayout()
 
     for (i, col) in enumerate(col_names)
-        @info "Column: $col"
+        @debug "Column: $col"
 
         ax = Axis(grid[1, i],
             xlabel = "",
@@ -174,7 +174,7 @@ function plot_1d_density_heatmap(fig, df, ref_df)
         values = df[:, col]
         ref_values = ref_df[:, col]
         unique_ref_values = sort(unique(ref_values))
-        @info "Unique Reference Values: $unique_ref_values"
+        @debug "Unique Reference Values: $unique_ref_values"
 
         value_counts = zeros(length(unique_ref_values))
         metric_values = zeros(length(unique_ref_values))
@@ -190,15 +190,15 @@ function plot_1d_density_heatmap(fig, df, ref_df)
             end
         end
 
-        @info "Value Counts: $value_counts"
-        @info "Metric Values: $metric_values"
+        @debug "Value Counts: $value_counts"
+        @debug "Metric Values: $metric_values"
 
         weighted_values = value_counts ./ (metric_values .+ eps())
         normalized_counts = weighted_values ./ maximum(weighted_values)
-        @info "Normalized Counts: $normalized_counts"
+        @debug "Normalized Counts: $normalized_counts"
 
         hm_matrix = repeat(normalized_counts', outer = (2, 1))
-        @info "Heatmap Matrix: $hm_matrix"
+        @debug "Heatmap Matrix: $hm_matrix"
 
         xvals = range(0, stop = 1, length = 2)
 
@@ -321,10 +321,6 @@ function create_corr_figure(df; df_ref=nothing)
     filename  = "corr_$timestamp.png"
     filepath  = joinpath(corr_path, filename)
     tmpfile   = filepath * ".part.png"
-
-    # Safe save
-    save(tmpfile, fig)
-    mv(tmpfile, filepath; force = true)
 
     extra = Dict(
         "n_points" => nrow(df),

@@ -18,7 +18,7 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction::Float64
 
     gain_db = gain_db_from_S11(S)
 
-    p = plot(
+    p = P.plot(
         f_GHz,
         -gain_db,
         label="",
@@ -27,7 +27,7 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction::Float64
         legend=:bottomleft,
     )
     metric = -maximum(gain_db)
-    plot_update(p, device_params_set, metric)
+    #plot_update(p, device_params_set, metric)
     
     return metric
 end
