@@ -320,7 +320,6 @@ function create_corr_figure(df; df_ref=nothing)
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
     filename  = "corr_$timestamp.png"
     filepath  = joinpath(corr_path, filename)
-    tmpfile   = filepath * ".part.png"
 
     extra = Dict(
         "n_points" => nrow(df),

@@ -18,7 +18,7 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction::Float64
 
     gain_db = gain_db_from_S11(S)
 
-    p = P.plot(
+    p = plot(
         f_GHz,
         -gain_db,
         label="",

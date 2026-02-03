@@ -24,6 +24,8 @@ using .Config
 
 # Include other module files
 include("utils.jl")
+include("Bookkeeping.jl")
+using .Bookkeeping
 include("CircuitModule.jl")
 include("CostModule.jl")
 include("simulator.jl")
@@ -281,7 +283,24 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         # @info "Saving optimal physical quantities to: $optimal_quantities_file from the nonlinear simulation."
         # save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
 
-        # @info "✅ Simulation and optimization processes with nonlinear correction completed! Results saved in '$output_path'."
+        
+    # --- Reproducibility bookkeeping (run_config.json, versions.txt, LATEST.txt) ---
+    metric_history = (isdefined(@__MODULE__, :cost_history) ? cost_history : Dict())
+    try
+        write_run_bookkeeping(output_path;
+            config=config,
+            parameter_space=device_parameters_space,
+            best_device_parameters=optimal_params,
+            best_metric=optimal_metric,
+            metric_history=metric_history,
+            sim_settings=sim_vars,
+            optimizer_settings=optimizer_config
+        )
+    catch e
+        @warn "Bookkeeping step failed (run still OK): $e"
+    end
+
+    @info "✅ Simulation and optimization processes with nonlinear correction completed! Results saved in '$output_path'."
 
     
     end
@@ -302,7 +321,23 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
     save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
 
     
-    @info "✅ Simulation and optimization processes with nonlinear correction completed! Results saved in '$output_path'."
+        # --- Reproducibility bookkeeping (run_config.json, versions.txt, LATEST.txt) ---
+        metric_history = (isdefined(@__MODULE__, :cost_history) ? cost_history : Dict())
+    try
+        write_run_bookkeeping(output_path;
+            config=config,
+            parameter_space=device_parameters_space,
+            best_device_parameters=optimal_params,
+            best_metric=optimal_metric,
+            metric_history=metric_history,
+            sim_settings=sim_vars,
+            optimizer_settings=optimizer_config
+        )
+    catch e
+        @warn "Bookkeeping step failed (run still OK): $e"
+    end
+
+@info "✅ Simulation and optimization processes with nonlinear correction completed! Results saved in '$output_path'."
 
 
 end

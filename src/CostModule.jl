@@ -3,8 +3,20 @@
 
 using ..Config  # Access WORKING_SPACE
 
+# History of metric evaluations (for reproducibility / post-mortem)
+global cost_history = Dict{String,Any}(
+    "params_vecs" => Vector{Vector{Float64}}(),
+    "metrics"     => Float64[],
+    "timestamps_utc" => String[]
+)
+
 
 function setup_cost()
+
+    # reset history for a fresh run
+    empty!(cost_history["params_vecs"])
+    empty!(cost_history["metrics"])
+    empty!(cost_history["timestamps_utc"])
 
     user_cost_path = joinpath(config.user_inputs_dir, "user_cost_and_performance.jl")
     
@@ -108,6 +120,14 @@ function cost(vec)
     global delta_correction
     # Calculate the user-defined metric based on the simulation results.
     metric = Base.invokelatest(user_cost, S, Sphase, device_params_temp, delta_correction)
+
+    # Save history (best-effort)
+    try
+        push!(cost_history["params_vecs"], Float64.(vec))
+        push!(cost_history["metrics"], Float64(metric))
+        push!(cost_history["timestamps_utc"], Dates.format(Dates.now(Dates.UTC), dateformat"yyyy-mm-ddTHH:MM:SS"))
+    catch
+    end
 
     # Add additional conditions or checks for the cost if needed.
     return metric
