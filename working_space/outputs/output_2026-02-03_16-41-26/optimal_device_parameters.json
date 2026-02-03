@@ -1,0 +1,10 @@
+{
+    "header": {
+        "optimal_metric": 1.9152507813257065e-11,
+        "description": "Optimal parameters for the model"
+    },
+    "data": {
+        "Lj": 1.4e-9,
+        "Cc": 1.0e-13
+    }
+}

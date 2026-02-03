@@ -2,6 +2,8 @@
 # JCO calls: user_cost(S, Sphase, device_params_set, delta_correction)
 # plot_update(p, device_params_set, metric)
 
+using Plots
+
 """Return gain (dB) from S11 for a 1-port circuit."""
 function gain_db_from_S11(S::Dict{Tuple{Int,Int}, Vector{ComplexF64}})
     s11 = S[(1,1)]
