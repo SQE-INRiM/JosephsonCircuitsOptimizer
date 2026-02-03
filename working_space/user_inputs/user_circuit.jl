@@ -15,7 +15,7 @@ function create_user_circuit(device_params_set::Dict)
 
     circuitdefs = Dict(
         Lj => device_params_set[:Lj],
-        Cc => 100.0e-15,
+        Cc => device_params_set[:Cc],
         Cj => 1000.0e-15,
         R  => 50.0
     )

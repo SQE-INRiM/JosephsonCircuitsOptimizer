@@ -77,6 +77,24 @@ function run_optimization(df::DataFrame)
     if isempty(df)
         error("The input DataFrame in the optimizer is empty. Please provide a non-empty DataFrame.")
     end   
+    
+    # Determine the number of parameters (dimensions) from the DataFrame
+    param_cols = names(df)[1:end-1]
+    d = length(param_cols)
+
+    if d < 2
+        error("""
+    Surrogate optimization is disabled for d < 2.
+
+    Reason:
+        The current Surrogates.jl backend is unstable in 1D.
+    
+    What to do instead:
+        Add a second free parameter, with also a constant value.
+
+    Detected parameters: $(param_cols)
+    """)
+    end
 
     global plot_index = 0
 
