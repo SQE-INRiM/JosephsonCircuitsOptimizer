@@ -6,46 +6,47 @@ For this reason, it is possible to calculate the design of a single circuit in a
 
 ## **Installation**
 
-### **Main Method (via Git clone)**  
-
-The recommended way to install the JCO package is by cloning the repository directly from GitHub:  
+The recommended way to install the JCO package is by cloning the repository directly from GitHub:
 
 ```bash
 git clone https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer.git
 ```
 
-The package requires a working space in which you set the details of the simulation and optimization process.
-Inside the cloned folder you will find the `working_space` directory, you can *modify this folder* with your desired configuration. The structure of the `working_space` is shown below.
-Then you can run the code through the *GUI*:
+The package requires a **working space** where the simulation and optimization parameters are defined.  
+Inside the cloned folder, you will find the `working_space` directory, which can be **customized with your desired configuration**. The structure of the `working_space` is shown below.
 
-- On *Windows*, double-click `launch_gui.bat`
-- On *macOS/Linux*, double-click or run `launch_gui.sh`
+You can then run the code through the **GUI**:
 
-Once the GUI is open, you can start the process by pressing the *Run Simulation* button.
-⚠️ The first run may take a while as the environment is being initialized.
+- On **Windows**, double-click `launch_gui.bat`
+- On **macOS/Linux**, double-click or run `launch_gui.sh`
 
-To update the latest version, inside the JosephsonCircuitsOptimizer directory run:
+Once the GUI is open, start the process by pressing the **Run Simulation** button.  
+⚠️ *The first run may take a while, as the Julia environment is initialized.*
+
+### **Running directly from Julia**
+
+You can also work directly in Julia by navigating to the `JosephsonCircuitsOptimizer` folder and activating the local environment:
+
+```julia
+using Pkg
+Pkg.activate(".")
+```
+
+This activates the package environment. To start the simulation and optimization process:
+
+```julia
+import JosephsonCircuitsOptimizer as JCO
+JCO.run()
+```
+
+### **Updating the package**
+
+To update to the latest version, run the following command inside the `JosephsonCircuitsOptimizer` directory:
+
 ```bash
 git pull
 ```
 
-### **Alternative Method (via Julia package manager)**  
-
-You can also work directly in Julia by installing the package with:
-
-```julia
-using Pkg
-Pkg.add(url="https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer", rev="v0.1.0")
-```
-
-This will download and install the package as a Julia library.
-The package requires an external working space. If a folder named `working_space` does not exist in your working directory, it will be created automatically.
-You can load and use the package with:
-
-```julia
-import JosephsonCircuitsOptimizer as JCO 
-JCO.run()
-```
 
 
 ## **How It Works**
