@@ -211,7 +211,14 @@ function run_linear_simulations_sweep(device_parameters_space::Dict; filter_df::
     global plot_index = 0
 
     println("\nStarting points calculations")
-    initial_values = [cost(p) for p in initial_points]
+    # Emit parseable progress for the GUI
+    ctx = Progress.start!(; N=number_initial_points, stage="LIN")
+    initial_values = Vector{Float64}(undef, number_initial_points)
+    for (i, p) in enumerate(initial_points)
+        initial_values[i] = cost(p)
+        Progress.tick!(ctx; i=i)
+    end
+    Progress.finish!(ctx)
     println("Total points excluded: ", point_exluded)
 
     df = DataFrame(initial_points)
@@ -326,16 +333,16 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
     global number_initial_points_nl = prod(amp_lengths)
     global plot_index_nl = 0
 
+    ctx = Progress.start!(; N=number_initial_points_nl, stage="HB")
+
     @debug "Running nonlinear simulations for all combinations ($number_initial_points_nl total)"
 
     results = []
 
     for amp_idx in amp_indices
        global plot_index_nl += 1
-       
-        println("-----------------------------------------------------")
-        println("Point number ", plot_index_nl, " of ", number_initial_points_nl,
-        ", that is ", round(100*(plot_index_nl/number_initial_points_nl)), "% of the total")
+
+        Progress.tick!(ctx; i=plot_index_nl)
                
         amps = create_nonlinear_amplitudes(n_sources, amp_keys, amp_idx, optimal_params, resolved_functions)
         @debug "Running nonlinear simulation for amplitudes: $amps"
@@ -355,6 +362,8 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
         print(results)
 
        end
+
+    Progress.finish!(ctx)
 
     return results
 end

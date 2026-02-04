@@ -134,7 +134,11 @@ function run_optimization(df::DataFrame)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler   = _make_sampling_strategy(samp_name)
 
-    global number_initial_points = 0   # n_maxiters*n_num_new_samples
+    # Used by `cost(vec)` to distinguish between the initial dataset and BO evaluations
+    global number_initial_points = length(initial_points)
+
+    # Progress lines for the GUI: BO evaluations only
+    global cost_progress_ctx = Progress.start!(; N=n_maxiters*n_num_new_samples, stage="BO")
 
     # Perform surrogate optimization using the surrogate optimizer function
     result = surrogate_optimize!(
@@ -147,6 +151,12 @@ function run_optimization(df::DataFrame)
         maxiters = n_maxiters,                  # Maximum number of iterations
         num_new_samples = n_num_new_samples     # Number of new points to generate for each iteration
     )
+
+    # Close progress context (best-effort)
+    try
+        Progress.finish!(cost_progress_ctx)
+    catch
+    end
 
     # Extract the optimized vector and its corresponding metric
     optimal_vec = result[1]                # Optimized vector

@@ -8,6 +8,8 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 import shutil
 import sys
 import json
+import re
+import math
 
 process = None
 plot_files = []
@@ -73,6 +75,62 @@ def open_path(path: str):
     except Exception as e:
         # output_box might not exist yet; keep it silent and print to console
         print(f"Could not open path: {abs_path} ({e})")
+
+
+_progress_re = re.compile(r"^PROGRESS\s+(.*)$")
+
+
+def _parse_kv_blob(blob: str) -> dict:
+    out = {}
+    for part in blob.split():
+        if "=" not in part:
+            continue
+        k, v = part.split("=", 1)
+        out[k.strip()] = v.strip()
+    return out
+
+
+def _format_eta(seconds: float) -> str:
+    if seconds is None or (isinstance(seconds, float) and math.isnan(seconds)) or seconds < 0:
+        return "--"
+    total = int(round(seconds))
+    m, s = divmod(total, 60)
+    h, m = divmod(m, 60)
+    if h > 0:
+        return f"{h}h {m:02d}m {s:02d}s"
+    return f"{m}m {s:02d}s"
+
+
+def handle_progress_line(line: str) -> bool:
+    """Return True if the line was a progress line and was handled."""
+    m = _progress_re.match(line.strip())
+    if not m:
+        return False
+
+    kv = _parse_kv_blob(m.group(1))
+    try:
+        i = int(float(kv.get("i", "0")))
+        N = int(float(kv.get("N", "0")))
+    except Exception:
+        return True
+
+    stage = kv.get("stage", "")
+    eta_raw = kv.get("ETA", "NaN")
+    try:
+        eta_s = float(eta_raw.rstrip("s"))
+    except Exception:
+        eta_s = float('nan')
+
+    def _update():
+        if N > 0:
+            progress_bar.config(mode='determinate', maximum=N)
+            progress_bar['value'] = max(0, min(i, N))
+        if stage:
+            stage_label.config(text=f"Stage: {stage}")
+        eta_label.config(text=f"ETA: {_format_eta(eta_s)}")
+
+    root.after(0, _update)
+    return True
 
 
 def refresh_file_tree():
@@ -535,7 +593,10 @@ def start_simulation():
             for line in process.stdout:
                 if process is None:  # Check if stopped
                     break
-                root.after(0, lambda: log_message(line.strip(), 'info'))
+                # Progress lines are parsed and update the progress bar/ETA
+                if handle_progress_line(line):
+                    continue
+                root.after(0, lambda l=line: log_message(l.strip(), 'info'))
             
             process.wait()
             root.after(0, simulation_finished)
@@ -562,6 +623,8 @@ def simulation_finished():
     main_button.config(text="Start Simulation", style="Success.TButton")
     progress_bar.stop()
     progress_bar.config(mode='determinate', value=0)
+    stage_label.config(text="Stage: --")
+    eta_label.config(text="ETA: --")
     log_message("Simulation finished.", 'success')
 
 def run_function(func_name="run"):
@@ -737,6 +800,15 @@ tk.Label(progress_frame, text="Status:", font=('Arial', 9),
 
 progress_bar = ttk.Progressbar(progress_frame, mode='determinate', length=200)
 progress_bar.pack(side='left', padx=(10, 0), fill='x', expand=True)
+
+# Progress details
+stage_label = tk.Label(progress_frame, text="Stage: --", font=('Arial', 9),
+                       bg=COLORS['bg'], fg=COLORS['text'])
+stage_label.pack(side='left', padx=(10, 0))
+
+eta_label = tk.Label(progress_frame, text="ETA: --", font=('Arial', 9),
+                     bg=COLORS['bg'], fg=COLORS['text'])
+eta_label.pack(side='left', padx=(10, 0))
 
 
 def update_plot_metadata(image_path):

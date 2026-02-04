@@ -107,6 +107,16 @@ function cost(vec)
 
     println("-----------------------------------------------------")
 
+    # If a BO progress context exists, emit parseable progress lines for GUI
+    # (we count only evaluations performed after the initial dataset)
+    if isdefined(@__MODULE__, :cost_progress_ctx) && plot_index > number_initial_points
+        i_bo = plot_index - number_initial_points
+        try
+            Progress.tick!(cost_progress_ctx; i=i_bo)
+        catch
+        end
+    end
+
     if plot_index < number_initial_points+1
         println("Point number ", plot_index, " of ", number_initial_points, ", that are the ", round(100*(plot_index/number_initial_points))," % of the total" )
     else

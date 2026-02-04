@@ -34,7 +34,7 @@ end
 
 # Optional hooks (used by the optimizer/nonlinear pipeline). Keep them defined for completeness.
 function user_performance(sol, optimal_params)
-    return Dict("note" => "Minimal example: no nonlinear performance computed")
+    return 0.0
 end
 
 function user_delta_quantity(S, Sphase, optimal_params)

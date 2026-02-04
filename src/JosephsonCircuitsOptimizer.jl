@@ -12,7 +12,7 @@ import Plots: savefig
 import GLMakie as M
 using FileIO
 
-export plot, mplot, run
+export plot, mplot, run, seed_next_run_from_latest!
 
 const plot = P.plot
 const mplot = M.plot
@@ -23,6 +23,8 @@ using .Config
 
 # Include other module files
 include("utils.jl")
+include("Progress.jl")
+using .Progress
 include("Bookkeeping.jl")
 using .Bookkeeping
 include("CircuitModule.jl")
