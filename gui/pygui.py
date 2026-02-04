@@ -144,6 +144,68 @@ def browse_workspace():
         log_message(f"Workspace set to: {workspace_var.get()}", "success")
 
 
+
+
+def restore_latest_inputs_snapshot():
+    """Restore inputs_snapshot from the latest run into the current workspace user_inputs."""
+    ensure_workspace_structure(workspace_var.get())
+    update_workspace_paths()
+    refresh_file_tree()
+    log_message("Restoring latest inputs_snapshot into user_inputs...", "info")
+
+    julia_code = f'''
+    using Pkg
+    Pkg.activate("{project_path}")
+    push!(LOAD_PATH, "{src_path}")
+    using JosephsonCircuitsOptimizer
+    JosephsonCircuitsOptimizer.seed_next_run_from_latest!(workspace=raw"{workspace_var.get()}")
+    '''
+    def run_in_thread():
+        try:
+            p = subprocess.Popen(
+                [JULIA_EXE, '--project=' + project_path, '-e', julia_code],
+                cwd=project_path,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+            for line in p.stdout:
+                root.after(0, lambda l=line: log_message(l.strip(), "info"))
+            p.wait()
+            root.after(0, lambda: (refresh_file_tree(),
+                                   log_message("✓ Latest inputs_snapshot restored.", "success")))
+        except Exception as e:
+            root.after(0, lambda: log_message(f"Error restoring latest inputs_snapshot: {e}", "error"))
+
+    threading.Thread(target=run_in_thread, daemon=True).start()
+
+
+def set_workspace_to_default():
+    """
+    Force workspace to the repository default working_space folder.
+    """
+    default_ws = os.path.normpath(os.path.join(project_path, "working_space"))
+
+    workspace_var.set(default_ws)
+
+    try:
+        ensure_workspace_structure(default_ws)
+    except Exception:
+        pass
+
+    try:
+        update_workspace_paths()
+    except Exception:
+        pass
+
+    try:
+        refresh_file_tree()
+    except Exception:
+        pass
+
+    log_message(f"Workspace set to default: {default_ws}", "success")
+
+
 def clear_plots():
     if os.path.exists(plot_path):
         for f in os.listdir(plot_path):
@@ -637,6 +699,19 @@ clear_corr_btn = ttk.Button(button_frame, text="Clear Matrices",
                             style="Primary.TButton")
 clear_corr_btn.pack(side='left', padx=(0, 10))
 
+restore_btn = ttk.Button(button_frame,
+                         text="Restore LATEST inputs",
+                         command=restore_latest_inputs_snapshot,
+                         style="Primary.TButton")
+restore_btn.pack(side='right')
+
+default_ws_btn = ttk.Button(
+    button_frame,
+    text="Use default workspace",
+    command=set_workspace_to_default,
+    style="Primary.TButton"
+)
+default_ws_btn.pack(side="right", padx=(0, 10))
 
 # Workspace row
 ws_frame = tk.Frame(control_frame, bg=COLORS['bg'])
