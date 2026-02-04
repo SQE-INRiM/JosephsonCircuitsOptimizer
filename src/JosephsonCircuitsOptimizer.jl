@@ -21,7 +21,6 @@ const mplot = M.plot
 include("Config.jl")
 using .Config
 
-
 # Include other module files
 include("utils.jl")
 include("Bookkeeping.jl")
@@ -31,6 +30,10 @@ include("CostModule.jl")
 include("simulator.jl")
 include("optimizer.jl")
 include("gui.jl")
+include("Resume.jl")
+using .Resume
+
+export restore_latest_inputs_snapshot_config
 
 # using Logging
 # global_logger(ConsoleLogger(stderr, Logging.Debug)) # Info
@@ -96,6 +99,17 @@ function modules_setup(config::Configuration)
 end
 
 
+
+function seed_next_run_from_latest!(; workspace::Union{Nothing,AbstractString}=nothing)
+
+    global config_1 = get_configuration(; workspace=workspace, create=false)
+    
+    return restore_latest_inputs_snapshot_config(; workspace=config_1.WORKING_SPACE,
+        user_inputs_dir = config_1.user_inputs_dir
+        )
+end
+
+    
 
 """\
     run(; workspace=nothing, create_workspace=true)
