@@ -4,6 +4,6 @@
   "source_1_on_port": 1,
   "source_1_frequency": 4.75001e9,
   "source_1_linear_amplitude": 0.00565e-6,
-  "source_1_non_linear_amplitude": { "start": 0.565e-6, "step": 0.565e-6, "stop": 1.695e-6 },
+  "source_1_non_linear_amplitude":  [0.565e-6, 1.695e-6, 5.65e-6, 16.95e-6, 56.5e-6],
   "source_1_non_linear_amplitude_for_delta_correction": 0.565e-6
 }

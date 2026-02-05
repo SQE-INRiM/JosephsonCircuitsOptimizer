@@ -77,62 +77,6 @@ def open_path(path: str):
         print(f"Could not open path: {abs_path} ({e})")
 
 
-_progress_re = re.compile(r"^PROGRESS\s+(.*)$")
-
-
-def _parse_kv_blob(blob: str) -> dict:
-    out = {}
-    for part in blob.split():
-        if "=" not in part:
-            continue
-        k, v = part.split("=", 1)
-        out[k.strip()] = v.strip()
-    return out
-
-
-def _format_eta(seconds: float) -> str:
-    if seconds is None or (isinstance(seconds, float) and math.isnan(seconds)) or seconds < 0:
-        return "--"
-    total = int(round(seconds))
-    m, s = divmod(total, 60)
-    h, m = divmod(m, 60)
-    if h > 0:
-        return f"{h}h {m:02d}m {s:02d}s"
-    return f"{m}m {s:02d}s"
-
-
-def handle_progress_line(line: str) -> bool:
-    """Return True if the line was a progress line and was handled."""
-    m = _progress_re.match(line.strip())
-    if not m:
-        return False
-
-    kv = _parse_kv_blob(m.group(1))
-    try:
-        i = int(float(kv.get("i", "0")))
-        N = int(float(kv.get("N", "0")))
-    except Exception:
-        return True
-
-    stage = kv.get("stage", "")
-    eta_raw = kv.get("ETA", "NaN")
-    try:
-        eta_s = float(eta_raw.rstrip("s"))
-    except Exception:
-        eta_s = float('nan')
-
-    def _update():
-        if N > 0:
-            progress_bar.config(mode='determinate', maximum=N)
-            progress_bar['value'] = max(0, min(i, N))
-        if stage:
-            stage_label.config(text=f"Stage: {stage}")
-        eta_label.config(text=f"ETA: {_format_eta(eta_s)}")
-
-    root.after(0, _update)
-    return True
-
-
 def refresh_file_tree():
     """Refresh the embedded file browser tree (requires the GUI widgets to exist)."""
     global tree
@@ -593,12 +537,17 @@ def start_simulation():
             for line in process.stdout:
                 if process is None:  # Check if stopped
                     break
-                # Progress lines are parsed and update the progress bar/ETA
-                if handle_progress_line(line):
-                    continue
-                root.after(0, lambda l=line: log_message(l.strip(), 'info'))
-            
-            process.wait()
+                line = line.strip()
+                if line.startswith("STAGE"):
+                    root.after(0, _handle_stage_line, line)
+                elif line.startswith("PROGRESS_DONE"):
+                    root.after(0, _handle_progress_done, line)
+                elif line.startswith("PROGRESS"):
+                    root.after(0, _handle_progress_line, line)
+                else:
+                    root.after(0, lambda l=line: log_message(l, 'info'))
+
+            rc = process.wait()
             root.after(0, simulation_finished)
         except Exception as e:
             root.after(0, lambda: log_message(f"Error running simulation: {e}", 'error'))
@@ -623,8 +572,8 @@ def simulation_finished():
     main_button.config(text="Start Simulation", style="Success.TButton")
     progress_bar.stop()
     progress_bar.config(mode='determinate', value=0)
-    stage_label.config(text="Stage: --")
-    eta_label.config(text="ETA: --")
+    stage_value_label.config(text="Stage: —")
+    eta_value_label.config(text="ETA: —")
     log_message("Simulation finished.", 'success')
 
 def run_function(func_name="run"):
@@ -791,24 +740,104 @@ ws_browse.pack(side='left')
 ws_open = ttk.Button(ws_frame, text="Open Folder", command=lambda: open_path(workspace_var.get()), style="Primary.TButton")
 ws_open.pack(side='left', padx=(10, 0))
 
-# Progress bar
+# Progress + Stage + ETA (single status bar)
 progress_frame = tk.Frame(control_frame, bg=COLORS['bg'])
 progress_frame.pack(fill='x', pady=(10, 0))
 
-tk.Label(progress_frame, text="Status:", font=('Arial', 9), 
-         bg=COLORS['bg'], fg=COLORS['text']).pack(side='left')
+tk.Label(progress_frame,
+         text="Status:",
+         font=('Arial', 9),
+         bg=COLORS['bg'],
+         fg=COLORS['text']).pack(side='left')
 
-progress_bar = ttk.Progressbar(progress_frame, mode='determinate', length=200)
-progress_bar.pack(side='left', padx=(10, 0), fill='x', expand=True)
+progress_bar = ttk.Progressbar(progress_frame,
+                               mode='determinate',
+                               length=200)
+progress_bar.pack(side='left', padx=(10, 15), fill='x', expand=True)
 
-# Progress details
-stage_label = tk.Label(progress_frame, text="Stage: --", font=('Arial', 9),
-                       bg=COLORS['bg'], fg=COLORS['text'])
-stage_label.pack(side='left', padx=(10, 0))
+stage_value_label = tk.Label(progress_frame,
+                             text="Stage: —",
+                             font=('Arial', 12),
+                             bg=COLORS['bg'],
+                             fg=COLORS['text'])
+stage_value_label.pack(side='right', padx=(10, 0))
 
-eta_label = tk.Label(progress_frame, text="ETA: --", font=('Arial', 9),
-                     bg=COLORS['bg'], fg=COLORS['text'])
-eta_label.pack(side='left', padx=(10, 0))
+eta_value_label = tk.Label(progress_frame,
+                           text="ETA: —",
+                           font=('Arial', 12),
+                           bg=COLORS['bg'],
+                           fg=COLORS['text'])
+eta_value_label.pack(side='right', padx=(10, 0))
+
+
+def _format_eta(seconds: float) -> str:
+    try:
+        if seconds < 0 or seconds != seconds:  # NaN or negative
+            return "—"
+        seconds = int(round(seconds))
+        m = seconds // 60
+        s = seconds % 60
+        if m > 0:
+            return f"{m}m {s:02d}s"
+        return f"{s}s"
+    except Exception:
+        return "—"
+
+
+def _handle_stage_line(line: str):
+    # STAGE name=HB
+    try:
+        name = line.split("name=", 1)[1].strip()
+    except Exception:
+        name = "—"
+    stage_value_label.config(text=f"Stage: {name}")
+    eta_value_label.config(text="ETA: —")
+    # Spinner during stage-only updates (INIT/LIN/PLOT)
+    progress_bar.config(mode='indeterminate')
+    progress_bar.start()
+
+
+def _handle_progress_line(line: str):
+    # PROGRESS i=12 N=40 ETA=183.5s stage=HB
+    parts = {}
+    for token in line.replace("PROGRESS", "").strip().split():
+        if "=" in token:
+            k, v = token.split("=", 1)
+            parts[k.strip()] = v.strip()
+
+    try:
+        i = int(parts.get("i", "0"))
+        N = int(parts.get("N", "0"))
+    except Exception:
+        return
+
+    stage = parts.get("stage", "—")
+    stage_value_label.config(text=f"Stage: {stage}")
+
+    # determinate progress
+    progress_bar.stop()
+    progress_bar.config(mode='determinate', maximum=max(N, 1), value=min(i, max(N, 1)))
+
+    # ETA may be absent
+    if "ETA" in parts:
+        eta_s = parts["ETA"].replace("s", "")
+        try:
+            eta_value_label.config(text=f"ETA: {_format_eta(float(eta_s))}")
+        except Exception:
+            eta_value_label.config(text="ETA: —")
+    else:
+        eta_value_label.config(text="ETA: —")
+
+
+def _handle_progress_done(line: str):
+    # PROGRESS_DONE stage=HB
+    try:
+        stage = line.split("stage=", 1)[1].strip()
+    except Exception:
+        stage = "—"
+    stage_value_label.config(text=f"Stage: {stage}")
+    eta_value_label.config(text="ETA: —")
+    progress_bar.stop()
 
 
 def update_plot_metadata(image_path):

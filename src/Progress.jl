@@ -1,63 +1,111 @@
 module Progress
 
-"""A small progress + ETA emitter (stdout).
+using Dates
 
-This module is intentionally dependency-free so it can be used anywhere.
+# ----------------------------
+# Internal state (per stage)
+# ----------------------------
+mutable struct ProgressState
+    last_time::Float64
+    ema_dt::Float64
+    n_samples::Int
+end
 
-It emits parseable single-line messages for the Python GUI:
+const STATES = Dict{String,ProgressState}()
 
-    PROGRESS i=12 N=40 ETA=183.5s stage=HB
+const EMA_ALPHA = 0.2        # strong smoothing
+const MIN_SAMPLES_FOR_ETA = 3
 
-The ETA is computed from an exponential moving average of seconds/step.
+# ----------------------------
+# Utilities
+# ----------------------------
+_now() = time()
+
+function _get_state(stage::String)
+    if !haskey(STATES, stage)
+        STATES[stage] = ProgressState(_now(), 0.0, 0)
+    end
+    return STATES[stage]
+end
+
+# ----------------------------
+# Public API
+# ----------------------------
+
 """
+Emit a stage-only message (no progress, no ETA).
+GUI should switch to indeterminate mode.
+"""
+function emit_stage(stage::String)
+    println("STAGE name=$stage")
+end
 
-mutable struct ProgressCtx
+"""
+Emit a progress tick.
+ETA is emitted only if enough samples exist and N >= 5.
+"""
+function tick_progress!(i::Int, N::Int; stage::String)
+    st = _get_state(stage)
+    t = _now()
+    dt = t - st.last_time
+    st.last_time = t
+
+    # update EMA (ignore first tick)
+    if st.n_samples > 0
+        st.ema_dt = st.n_samples == 1 ? dt :
+                    EMA_ALPHA * dt + (1 - EMA_ALPHA) * st.ema_dt
+    end
+    st.n_samples += 1
+
+    if N < MIN_SAMPLES_FOR_ETA || st.n_samples < MIN_SAMPLES_FOR_ETA
+        println("PROGRESS i=$i N=$N stage=$stage")
+    else
+        eta = max(st.ema_dt * (N - i), 0.0)
+        println("PROGRESS i=$i N=$N ETA=$(round(eta, digits=1))s stage=$stage")
+    end
+end
+
+"""
+Signal end of a stage.
+"""
+function emit_done(stage::String)
+    println("PROGRESS_DONE stage=$stage")
+end
+
+
+# ----------------------------
+# Compatibility API (older callers)
+# ----------------------------
+
+struct ProgressCtx
     N::Int
     stage::String
-    t0::Float64
-    last_t::Float64
-    ema_s_per_step::Float64
-    alpha::Float64
 end
 
-_now_s() = time()
-
-"""Create and announce a new progress context."""
-function start!(; N::Integer, stage::AbstractString, alpha::Real=0.20)
-    t = _now_s()
-    ctx = ProgressCtx(Int(N), String(stage), t, t, 0.0, float(alpha))
-    # Initial line (i=0) so GUI can set max and stage immediately
-    println("PROGRESS i=0 N=$(ctx.N) ETA=NaNs stage=$(ctx.stage)")
-    flush(stdout)
-    return ctx
+"""
+Start a stage progress context (compatibility shim).
+Existing code may call: ctx = Progress.start!(; N=..., stage="LIN")
+"""
+function start!(; N::Int, stage::String)
+    emit_stage(stage)
+    return ProgressCtx(N, stage)
 end
 
-"""Emit a progress update for step i (1-based)."""
-function tick!(ctx::ProgressCtx; i::Integer)
-    i = Int(i)
-    t = _now_s()
-    dt = max(t - ctx.last_t, 1e-6)
-    ctx.last_t = t
-
-    # Update EMA seconds/step once we have at least one step
-    if i >= 1
-        sps = dt
-        ctx.ema_s_per_step = ctx.ema_s_per_step == 0.0 ? sps : (ctx.alpha*sps + (1-ctx.alpha)*ctx.ema_s_per_step)
-    end
-
-    remaining = max(ctx.N - i, 0)
-    eta = (ctx.ema_s_per_step == 0.0) ? NaN : ctx.ema_s_per_step * remaining
-
-    println("PROGRESS i=$(i) N=$(ctx.N) ETA=$(round(eta; digits=3))s stage=$(ctx.stage)")
-    flush(stdout)
+"""
+Tick the progress context (compatibility shim).
+Existing code may call: Progress.tick!(ctx; i=...)
+"""
+function tick!(ctx::ProgressCtx; i::Int)
+    tick_progress!(i, ctx.N; stage=ctx.stage)
     return nothing
 end
 
-"""Mark progress finished (emits a final line)."""
+"""
+Finish the progress context (compatibility shim).
+Existing code may call: Progress.finish!(ctx)
+"""
 function finish!(ctx::ProgressCtx)
-    println("PROGRESS i=$(ctx.N) N=$(ctx.N) ETA=0.0s stage=$(ctx.stage)")
-    println("PROGRESS_DONE stage=$(ctx.stage)")
-    flush(stdout)
+    emit_done(ctx.stage)
     return nothing
 end
 

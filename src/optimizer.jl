@@ -96,8 +96,6 @@ function run_optimization(df::DataFrame)
     """)
     end
 
-    global plot_index = 0
-
     # Determine the bounds for the optimization variables from the DataFrame
     bounds = [(minimum(df[:, col]), maximum(df[:, col])) for col in names(df)[1:end-1]]
 
@@ -113,6 +111,9 @@ function run_optimization(df::DataFrame)
 
     # Extract initial points from the DataFrame (all columns except the last one)
     initial_points = [Tuple(row[1:end-1]) for row in eachrow(df)]
+    
+    global number_initial_points = length(initial_points)
+    global plot_index = number_initial_points
 
     # Extract initial values (the last column of the DataFrame)
     initial_values = df[:, end]
@@ -147,7 +148,7 @@ function run_optimization(df::DataFrame)
         lb,                # Lower bounds
         ub,                # Upper bounds
         surrogate,        # The surrogate model instance
-        sampler,    # Sampling strategy (random sampling)
+        sampler,        # Sampling strategy (random sampling)
         maxiters = n_maxiters,                  # Maximum number of iterations
         num_new_samples = n_num_new_samples     # Number of new points to generate for each iteration
     )
