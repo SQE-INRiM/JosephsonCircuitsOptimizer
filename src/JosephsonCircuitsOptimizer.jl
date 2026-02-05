@@ -162,7 +162,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
     output_path = joinpath(base_output_path, "output_" * timestamp)
     mkpath(output_path)
 
-    @info "📂 Results will be saved in: $output_path"
+    @info "Results will be saved in: $output_path"
 
     # Variables we may want to use after the try (bookkeeping etc.)
     results = nothing
@@ -295,7 +295,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         end
 
         write_status(output_path; status="completed", stage="DONE")
-        @info "✅ Run completed."
+        @info "Run completed."
 
     catch e
         if e isa StopRequested
@@ -306,7 +306,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 end
             catch
             end
-            @warn "⏹️ Stop requested by user. Exiting cleanly."
+            @warn "Stop requested by user. Exiting cleanly."
             return nothing
         else
             write_status(output_path; status="error", stage="ERROR", message=string(e))
@@ -364,7 +364,7 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
     output_path = joinpath(base_output_path, "output_" * timestamp)
     mkpath(output_path)
 
-    @info "📂 Results will be saved in: $output_path"
+    @info "Results will be saved in: $output_path"
 
     device_parameters_space = nothing
     df = nothing
@@ -387,12 +387,12 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
         create_corr_figure(df)
 
         write_status(output_path; status="completed", stage="DONE")
-        @info "✅ Sweep-only run completed."
+        @info "Sweep-only run completed."
 
     catch e
         if e isa StopRequested
             write_status(output_path; status="stopped", stage="STOPPED", message="Stop requested by user.")
-            @warn "⏹️ Stop requested by user. Exiting sweep-only run cleanly."
+            @warn "Stop requested by user. Exiting sweep-only run cleanly."
             return nothing
         else
             write_status(output_path; status="error", stage="ERROR", message=string(e))
@@ -454,7 +454,7 @@ function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}
     output_path = joinpath(base_output_path, "output_" * timestamp)
     mkpath(output_path)
 
-    @info "📂 Results will be saved in: $output_path"
+    @info "Results will be saved in: $output_path"
 
     results = nothing
     optimal_params = nothing
@@ -521,12 +521,12 @@ function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}
         end
 
         write_status(output_path; status="completed", stage="DONE")
-        @info "✅ Dataset-only run completed."
+        @info "Dataset-only run completed."
 
     catch e
         if e isa StopRequested
             write_status(output_path; status="stopped", stage="STOPPED", message="Stop requested by user.")
-            @warn "⏹️ Stop requested by user. Exiting dataset-only run cleanly."
+            @warn "Stop requested by user. Exiting dataset-only run cleanly."
             return nothing
         else
             write_status(output_path; status="error", stage="ERROR", message=string(e))
