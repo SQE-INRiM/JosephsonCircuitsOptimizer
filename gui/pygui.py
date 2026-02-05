@@ -297,22 +297,131 @@ def format_metadata(meta):
 
     return "\n".join(lines)
 
+TAG_RE = re.compile(r"^\[(INFO|WARN|ERROR|PROGRESS)\]\s*(.*)$")
+
+def classify_log_line(line: str):
+    """
+    Returns (message, msg_type) where msg_type is one of:
+    'info', 'warning', 'error', 'success', 'progress'
+    """
+    s = line.strip()
+    if not s:
+        return ("", "info")
+
+    # Explicit tags: [INFO] ..., [WARN] ..., ...
+    m = TAG_RE.match(s)
+    if m:
+        tag = m.group(1)
+        msg = m.group(2)
+        if tag == "INFO":
+            return (msg, "info")
+        if tag == "WARN":
+            return (msg, "warning")
+        if tag == "ERROR":
+            return (msg, "error")
+        if tag == "PROGRESS":
+            return (msg, "progress")
+
+    # Julia logger formatting (common cases)
+    # Examples: "┌ Warning: ...", "┌ Info: ...", "ERROR: ..."
+    s2 = s.lstrip("│ ").strip()
+
+    if s2.startswith("┌ Warning:") or s2.startswith("Warning:"):
+        return (s2.replace("┌ ", "").replace("Warning:", "").strip(), "warning")
+    if s2.startswith("┌ Info:") or s2.startswith("Info:"):
+        return (s2.replace("┌ ", "").replace("Info:", "").strip(), "info")
+    if s2.startswith("ERROR:") or "ERROR:" in s2:
+        return (s2, "error")
+
+    # Your existing progress protocol should still be handled elsewhere
+    return (s, "info")
+
+
+def is_type_visible(msg_type: str) -> bool:
+    if msg_type == "info":
+        return show_info.get()
+    if msg_type == "warning":
+        return show_warn.get()
+    if msg_type == "error":
+        return show_error.get()
+    if msg_type == "progress":
+        return show_progress.get()
+    # success and anything else always visible
+    return True
+
+
+def rerender_output():
+    """Rebuild the output panel from log_buffer based on current filters."""
+    try:
+        output_box.config(state=tk.NORMAL)
+        output_box.delete("1.0", tk.END)
+
+        # Configure text tags for colors (once per render)
+        output_box.tag_configure("success", foreground=COLORS['success'])
+        output_box.tag_configure("error", foreground=COLORS['danger'])
+        output_box.tag_configure("warning", foreground=COLORS['warning'])
+        output_box.tag_configure("info", foreground=COLORS['text'])
+        output_box.tag_configure("timestamp", foreground=COLORS['dark'], font=('Consolas', 8))
+        output_box.tag_configure("progress", foreground=COLORS['secondary'])
+
+        for ts, typ, msg in log_buffer:
+            if not is_type_visible(typ):
+                continue
+            output_box.insert(tk.END, f"[{ts}] ", "timestamp")
+            output_box.insert(tk.END, f"{msg}\n", typ)
+
+        output_box.config(state=tk.DISABLED)
+        if auto_scroll.get():
+            output_box.see(tk.END)
+    except Exception:
+        # GUI might not be fully initialized yet
+        pass
+
+
+def clear_logs():
+    try:
+        log_buffer.clear()
+    except Exception:
+        pass
+    rerender_output()
 
 def log_message(message, msg_type='info'):
-    """Add colored message to output with timestamp"""
+    """Append a message to the log buffer and (if visible) to the output box."""
     import datetime
     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    
-    # Configure text tags for colors
-    output_box.tag_configure("success", foreground=COLORS['success'])
-    output_box.tag_configure("error", foreground=COLORS['danger'])
-    output_box.tag_configure("warning", foreground=COLORS['warning'])
-    output_box.tag_configure("info", foreground=COLORS['text'])
-    output_box.tag_configure("timestamp", foreground=COLORS['dark'], font=('Consolas', 8))
-    
-    output_box.insert(tk.END, f"[{timestamp}] ", "timestamp")
-    output_box.insert(tk.END, f"{message}\n", msg_type)
-    output_box.see(tk.END)
+    message = (message or "").rstrip("")
+
+    # Store everything
+    try:
+        log_buffer.append((timestamp, msg_type, message))
+        if len(log_buffer) > MAX_LOG_LINES:
+            del log_buffer[:len(log_buffer) - MAX_LOG_LINES]
+    except Exception:
+        pass
+
+    # If filtered out, don't render now (it stays in buffer for later toggles)
+    if not is_type_visible(msg_type):
+        return
+
+    try:
+        output_box.config(state=tk.NORMAL)
+
+        # Configure tags (safe even if repeated)
+        output_box.tag_configure("success", foreground=COLORS['success'])
+        output_box.tag_configure("error", foreground=COLORS['danger'])
+        output_box.tag_configure("warning", foreground=COLORS['warning'])
+        output_box.tag_configure("info", foreground=COLORS['text'])
+        output_box.tag_configure("timestamp", foreground=COLORS['dark'], font=('Consolas', 8))
+        output_box.tag_configure("progress", foreground=COLORS['secondary'])
+
+        output_box.insert(tk.END, f"[{timestamp}] ", "timestamp")
+        output_box.insert(tk.END, f"{message}", msg_type)
+
+        output_box.config(state=tk.DISABLED)
+        if auto_scroll.get():
+            output_box.see(tk.END)
+    except Exception:
+        pass
 
 def refresh_plot_list():
     global plot_files
@@ -592,7 +701,9 @@ def start_simulation():
                 elif line.startswith("PROGRESS"):
                     root.after(0, _handle_progress_line, line)
                 else:
-                    root.after(0, lambda l=line: log_message(l, 'info'))
+                    msg, typ = classify_log_line(line)
+                    if msg:
+                        root.after(0, lambda m=msg, t=typ: log_message(m, t))
 
             rc = process.wait()
             root.after(0, simulation_finished)
@@ -673,13 +784,18 @@ def run_function(func_name="run"):
 
     threading.Thread(target=run_in_thread, daemon=True).start()
 
-def clear_output():
-    """Clear the output console"""
-    output_box.delete(1.0, tk.END)
-    log_message("Output cleared.", 'info')
-
 # --- Enhanced GUI ---
 root = tk.Tk()
+
+show_info = tk.BooleanVar(value=True)
+show_warn = tk.BooleanVar(value=True)
+show_error = tk.BooleanVar(value=True)
+show_progress = tk.BooleanVar(value=True)
+auto_scroll = tk.BooleanVar(value=True)
+
+# --- Log buffer (for filtering / re-render) ---
+log_buffer = []  # (timestamp, msg_type, message)
+MAX_LOG_LINES = 5000
 
 # Workspace selector variable (must be created after root exists)
 workspace_var = tk.StringVar(
@@ -755,11 +871,6 @@ main_button = ttk.Button(button_frame, text="Start Simulation",
                         command=toggle_simulation,
                         style="Success.TButton")
 main_button.pack(side='left', padx=(0, 10))
-
-clear_btn = ttk.Button(button_frame, text="Clear Output", 
-                      command=clear_output,
-                      style="Primary.TButton")
-clear_btn.pack(side='left', padx=(0, 10))
 
 clear_plots_btn = ttk.Button(button_frame, text="Clear Plots", 
                              command=clear_plots,
@@ -917,6 +1028,16 @@ left_panel = tk.LabelFrame(content_frame, text="Simulation Output",
                           bg=COLORS['bg'],
                           padx=10, pady=10)
 left_panel.pack(side='left', fill='both', expand=True, padx=(0, 10))
+
+filters_frame = tk.Frame(left_panel, bg=COLORS['bg'])
+filters_frame.pack(fill='x', pady=(0, 6))
+
+tk.Checkbutton(filters_frame, text="INFO", variable=show_info, command=rerender_output, bg=COLORS['bg']).pack(side='left')
+tk.Checkbutton(filters_frame, text="WARN", variable=show_warn, command=rerender_output, bg=COLORS['bg']).pack(side='left')
+tk.Checkbutton(filters_frame, text="ERROR", variable=show_error, command=rerender_output, bg=COLORS['bg']).pack(side='left')
+tk.Checkbutton(filters_frame, text="PROGRESS", variable=show_progress, command=rerender_output, bg=COLORS['bg']).pack(side='left')
+tk.Checkbutton(filters_frame, text="Auto-scroll", variable=auto_scroll, bg=COLORS['bg']).pack(side='right')
+tk.Button(filters_frame, text="Clear logs", command=clear_logs, bg=COLORS['bg'], fg=COLORS['text']).pack(side='right', padx=(6,0))
 
 # Output text with scrollbar
 output_frame = tk.Frame(left_panel, bg=COLORS['bg'])

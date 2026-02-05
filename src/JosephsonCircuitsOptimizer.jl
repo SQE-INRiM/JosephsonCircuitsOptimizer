@@ -5,7 +5,7 @@ using JosephsonCircuits
 using DataFrames, Symbolics, LaTeXStrings
 using DSP, JSON, HDF5, GaussianProcesses, Surrogates
 using Makie, Colors, StatsBase, KernelDensity
-using Statistics, LinearAlgebra, Dates, Logging, Interpolations
+using Statistics, LinearAlgebra, Dates, Logging, LoggingExtras, Interpolations
 using Pkg, QuasiMonteCarlo, Random
 import Plots as P
 import Plots: savefig
@@ -40,7 +40,22 @@ export restore_latest_inputs_snapshot_config
 # using Logging
 # global_logger(ConsoleLogger(stderr, Logging.Debug)) # Info
 
-
+function set_plain_logger!(minlevel::LogLevel=Logging.Info)
+    logger = LoggingExtras.MinLevelLogger(
+        LoggingExtras.FormatLogger() do io, args
+            # args.level, args.message, args._module, args.file, args.line, args.group, args.id, args.kwargs
+            ts = Dates.format(Dates.now(), dateformat"HH:MM:SS")
+            lvl = args.level == Logging.Error ? "ERROR" :
+                  args.level == Logging.Warn  ? "WARN"  :
+                  args.level == Logging.Info  ? "INFO"  : "DEBUG"
+            # one line only:
+            println(io, "[$ts] [$lvl] ", args.message)
+        end,
+        minlevel
+    )
+    global_logger(logger)
+    return nothing
+end
 
 """\
     check_required_files(config::Configuration)
@@ -101,7 +116,14 @@ function modules_setup(config::Configuration)
 end
 
 
+function __init__()
+    # Make logs GUI-friendly as soon as the module is loaded
+    set_plain_logger!(Logging.Info)
+end
 
+"""\
+    seed_next_run_from_latest!(; workspace=nothing)
+"""
 function seed_next_run_from_latest!(; workspace::Union{Nothing,AbstractString}=nothing)
 
     global config_1 = get_configuration(; workspace=workspace, create=false)

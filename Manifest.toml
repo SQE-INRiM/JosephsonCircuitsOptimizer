@@ -2,7 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "3abfa36f992ef34f188855f76fe8165ecbef43d8"
+project_hash = "fe9ac59109338b65452983f1ab0ccf44d06614d3"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "60665b326b75db6517939d0e1875850bc4a54368"
@@ -1329,9 +1329,9 @@ version = "1.11.0"
 
 [[deps.LoggingExtras]]
 deps = ["Dates", "Logging"]
-git-tree-sha1 = "f02b56007b064fbfddb4c9cd60161b6dd0f40df3"
+git-tree-sha1 = "f00544d95982ea270145636c181ceda21c4e2575"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
-version = "1.1.0"
+version = "1.2.0"
 
 [[deps.LoweredCodeUtils]]
 deps = ["CodeTracking", "Compiler", "JuliaInterpreter"]
@@ -2754,7 +2754,7 @@ uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
 version = "1.59.0+0"
 
 [[deps.oneTBB_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
+deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl"]
 git-tree-sha1 = "d5a767a3bb77135a99e433afe0eb14cd7f6914c3"
 uuid = "1317d2d5-d96f-522e-a858-c73665f53c3e"
 version = "2022.0.0+0"
