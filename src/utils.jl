@@ -587,3 +587,85 @@ function get_delta_correction_amplitudes()
     # Return amplitudes in order
     return [sim_vars[k] for k in sorted_keys]
 end
+
+
+#---------------------- STOP / STATUS HELPERS ----------------------
+
+"""
+    StopRequested
+
+Exception thrown when the GUI requests a graceful stop by creating WORKSPACE/STOP.
+"""
+struct StopRequested <: Exception end
+
+"""Return the path of the STOP request file inside a workspace."""
+stopfile_path(workspace::AbstractString) = joinpath(workspace, "STOP")
+
+"""True if a STOP request file exists in the workspace."""
+stop_requested(workspace::AbstractString) = isfile(stopfile_path(workspace))
+
+"""
+    check_stop(; workspace=config.WORKING_SPACE)
+
+Throw StopRequested() if a stop was requested.
+"""
+function check_stop(; workspace::AbstractString = (isdefined(@__MODULE__, :config) ? config.WORKING_SPACE : pwd()))
+    if stop_requested(workspace)
+        throw(StopRequested())
+    end
+    return nothing
+end
+
+"""Remove a stale STOP request file (best-effort)."""
+function clear_stopfile!(workspace::AbstractString)
+    p = stopfile_path(workspace)
+    if isfile(p)
+        try
+            rm(p; force=true)
+        catch
+        end
+    end
+    return nothing
+end
+
+"""
+    atomic_write_json(path, obj; indent=4)
+
+Write JSON safely by writing to a temporary file and then renaming.
+"""
+function atomic_write_json(path::AbstractString, obj; indent::Int=4)
+    tmp = path * ".tmp"
+    open(tmp, "w") do io
+        JSON.print(io, obj, indent)
+    end
+    mv(tmp, path; force=true)
+    return nothing
+end
+
+"""
+    write_status(output_path; status, stage=nothing, message=nothing, extra=Dict())
+
+Write / update a status.json file in the current output folder.
+"""
+function write_status(output_path::AbstractString; status::AbstractString, stage=nothing, message=nothing, extra=Dict{String,Any}())
+    status_path = joinpath(output_path, "status.json")
+    d = Dict{String,Any}(
+        "status" => status,
+        "timestamp_utc" => Dates.format(Dates.now(Dates.UTC), dateformat"yyyy-mm-ddTHH:MM:SSZ"),
+    )
+    if stage !== nothing
+        d["stage"] = stage
+    end
+    if message !== nothing
+        d["message"] = message
+    end
+    for (k,v) in extra
+        d[k] = v
+    end
+    try
+        atomic_write_json(status_path, d; indent=4)
+    catch
+        # best-effort
+    end
+    return status_path
+end

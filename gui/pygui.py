@@ -76,6 +76,45 @@ def open_path(path: str):
         # output_box might not exist yet; keep it silent and print to console
         print(f"Could not open path: {abs_path} ({e})")
 
+# --- Graceful stop support ---
+STOP_KILL_TIMEOUT_S = 10  # fallback hard-kill if Julia doesn't exit
+
+def _stop_file_path() -> str:
+    return os.path.join(workspace_var.get(), "STOP").replace("\\", "/")
+
+def request_stop():
+    """Ask Julia to stop cleanly by creating WORKSPACE/STOP (no hard kill)."""
+    try:
+        ensure_workspace_structure(workspace_var.get())
+        sp = _stop_file_path()
+        with open(sp, "w", encoding="utf-8") as f:
+            f.write("stop\n")
+        log_message(f"Stop requested (created {sp}).", "warning")
+        refresh_file_tree()
+    except Exception as e:
+        log_message(f"Could not request stop: {e}", "error")
+
+def open_latest_output():
+    """Open the latest output folder/file pointed by outputs/LATEST.txt."""
+    try:
+        ws = workspace_var.get()
+        latest_ptr = os.path.join(ws, "outputs", "LATEST.txt")
+        if not os.path.isfile(latest_ptr):
+            log_message("No LATEST.txt found in outputs. Run something first.", "info")
+            return
+        with open(latest_ptr, "r", encoding="utf-8") as f:
+            p = f.read().strip()
+        if not p:
+            log_message("LATEST.txt is empty.", "info")
+            return
+        if not os.path.exists(p):
+            log_message(f"Latest output path does not exist: {p}", "warning")
+            return
+        open_path(p)
+    except Exception as e:
+        log_message(f"Could not open latest output: {e}", "error")
+
+
 
 def refresh_file_tree():
     """Refresh the embedded file browser tree (requires the GUI widgets to exist)."""
@@ -509,6 +548,14 @@ def start_simulation():
     ensure_workspace_structure(workspace_var.get())
     update_workspace_paths()
 
+    # Remove stale STOP file from previous runs (best-effort)
+    try:
+        sp = _stop_file_path()
+        if os.path.exists(sp):
+            os.remove(sp)
+    except Exception:
+        pass
+
     #clear_plots()
     refresh_plot_list()
     #clear_corr()
@@ -555,17 +602,30 @@ def start_simulation():
 
     threading.Thread(target=run_in_thread, daemon=True).start()
 
+
 def stop_simulation():
     global process
-    if process is not None:
-        process.terminate()
-        process = None
-        log_message("✗ Simulation stopped by user.", 'warning')
-        simulation_finished()
-    else:
+    if process is None:
         log_message("No simulation running.", 'info')
+        return
+
+    # Ask for graceful stop first (WORKSPACE/STOP)
+    request_stop()
+
+    # Fallback hard kill if Julia doesn't exit
+    def _hard_kill():
+        global process
+        try:
+            if process is not None and process.poll() is None:
+                process.terminate()
+                log_message("✗ Julia did not stop in time — hard-killed.", 'warning')
+        except Exception as e:
+            log_message(f"Hard-kill failed: {e}", 'error')
+
+    threading.Timer(STOP_KILL_TIMEOUT_S, lambda: root.after(0, _hard_kill)).start()
 
 def simulation_finished():
+
     """Called when simulation completes or stops"""
     global process
     process = None
@@ -882,6 +942,20 @@ files_frame = tk.LabelFrame(left_panel, text="Experiment Files",
                             bg=COLORS['bg'],
                             padx=8, pady=8)
 files_frame.pack(fill='both', expand=False, pady=(10, 0))
+
+# File browser quick actions
+files_actions = tk.Frame(files_frame, bg=COLORS['bg'])
+files_actions.pack(fill='x', pady=(0, 6))
+
+refresh_files_btn = ttk.Button(files_actions, text="Refresh Files",
+                               command=refresh_file_tree,
+                               style="Primary.TButton")
+refresh_files_btn.pack(side='left', padx=(0, 6))
+
+open_latest_btn = ttk.Button(files_actions, text="Open Latest Output",
+                             command=open_latest_output,
+                             style="Primary.TButton")
+open_latest_btn.pack(side='left')
 
 tree = ttk.Treeview(files_frame, columns=("fullpath",), show="tree")
 tree.pack(side='left', fill='both', expand=True)

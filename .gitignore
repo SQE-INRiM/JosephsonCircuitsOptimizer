@@ -1,0 +1,16 @@
+# Python venv / cache
+JCOvenv/
+__pycache__/
+*.pyc
+
+# Working directories / outputs
+working_space/outputs/
+working_space/outputs/LATEST.txt
+working_space/plots/
+working_space/correlation_matrix/
+working_space/user_inputs/inputs_snapshot/
+working_space/STOP
+
+# Julia
+*.ji
+.DS_Store

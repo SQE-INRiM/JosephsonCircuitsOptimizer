@@ -215,6 +215,8 @@ function run_linear_simulations_sweep(device_parameters_space::Dict; filter_df::
     ctx = Progress.start!(; N=number_initial_points, stage="LIN")
     initial_values = Vector{Float64}(undef, number_initial_points)
     for (i, p) in enumerate(initial_points)
+        # Graceful stop (WORKSPACE/STOP)
+        check_stop()
         initial_values[i] = cost(p)
         Progress.tick!(ctx; i=i)
     end
@@ -340,6 +342,8 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
     results = []
 
     for amp_idx in amp_indices
+        # Graceful stop (WORKSPACE/STOP)
+        check_stop()
        global plot_index_nl += 1
 
         Progress.tick!(ctx; i=plot_index_nl)

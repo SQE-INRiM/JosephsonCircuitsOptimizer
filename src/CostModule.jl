@@ -107,6 +107,9 @@ function cost(vec)
 
     println("-----------------------------------------------------")
 
+    # Graceful stop (WORKSPACE/STOP)
+    check_stop()
+
     # If a BO progress context exists, emit parseable progress lines for GUI
     # (we count only evaluations performed after the initial dataset)
     if isdefined(@__MODULE__, :cost_progress_ctx) && plot_index > number_initial_points
