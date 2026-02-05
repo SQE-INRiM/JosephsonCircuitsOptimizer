@@ -12,7 +12,7 @@ import Plots: savefig
 import GLMakie as M
 using FileIO
 
-export plot, mplot, run, seed_next_run_from_latest!
+export plot, mplot, run, run_sweep_only, seed_next_run_from_latest!
 
 const plot = P.plot
 const mplot = M.plot
@@ -335,6 +335,100 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
 
     return nothing
 end
+
+
+
+"""    run_sweep_only(; workspace=nothing, create_workspace=true, filter_df=true)
+
+Run only the sweep stage (linear simulations + dataset + correlation figure).
+This is useful to inspect how simulations vary across the parameter space without
+running the Bayesian optimization or nonlinear HB stage.
+"""
+function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
+                        create_workspace::Bool=true,
+                        filter_df::Bool=true)
+
+    global config = get_configuration(; workspace=workspace, create=create_workspace)
+
+    clear_stopfile!(config.WORKING_SPACE)
+
+    modules_setup(config)
+    initialize_workspace(config)
+
+    user_input_path = config.user_inputs_dir
+    base_output_path = config.outputs_dir
+    global plot_path = config.plot_dir
+    global corr_path = config.corr_dir
+
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
+    output_path = joinpath(base_output_path, "output_" * timestamp)
+    mkpath(output_path)
+
+    @info "📂 Results will be saved in: $output_path"
+    @info "Running SWEEP-ONLY mode (no optimization, no nonlinear HB)."
+
+    device_parameters_space = nothing
+    df = nothing
+
+    write_status(output_path; status="running", stage="INIT")
+
+    try
+        device_params_file = joinpath(user_input_path, "device_parameters_space.json")
+        device_parameters_space = load_params(device_params_file)
+        global device_parameters_space = device_parameters_space
+        @info "Loaded device parameters space from: $device_params_file"
+
+        write_status(output_path; status="running", stage="LIN")
+        GC.gc()
+        global delta_correction = 0.0
+
+        df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=filter_df)
+        save_dataset(df, output_path)
+        @info "Saved sweep dataset from linear simulations."
+
+        create_corr_figure(df)
+
+        write_status(output_path; status="completed", stage="DONE")
+        @info "✅ Sweep-only run completed."
+
+    catch e
+        if e isa StopRequested
+            write_status(output_path; status="stopped", stage="STOPPED", message="Stop requested by user.")
+            try
+                open(joinpath(output_path, "STOPPED.txt"), "w") do io
+                    println(io, "Stopped by user at ", Dates.format(now(), dateformat"yyyy-mm-dd HH:MM:SS"))
+                end
+            catch
+            end
+            @warn "⏹️ Stop requested by user. Exiting cleanly."
+            return nothing
+        else
+            write_status(output_path; status="error", stage="ERROR", message=string(e))
+            rethrow()
+        end
+    finally
+        metric_history = (isdefined(@__MODULE__, :cost_history) ? cost_history : Dict())
+        ps = (device_parameters_space === nothing) ? Dict{Symbol,Any}() : device_parameters_space
+        try
+            write_run_bookkeeping(output_path;
+                config=config,
+                parameter_space=ps,
+                best_device_parameters=nothing,
+                best_metric=nothing,
+                metric_history=metric_history,
+                sim_settings=sim_vars,
+                optimizer_settings=optimizer_config
+            )
+        catch err
+            @warn "Bookkeeping step failed (run still OK): $err"
+        end
+
+        GC.gc()
+    end
+
+    return nothing
+end
+
 
 
 end  # End of module

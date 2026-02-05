@@ -5,7 +5,7 @@ import shutil
 
 # --- Configuration ---
 venv_dir = "JCOvenv"
-requirements_file = "requirements.txt"
+requirements_file = "gui\\requirements.txt"
 
 def run(cmd):
     """Run a system command and print it."""

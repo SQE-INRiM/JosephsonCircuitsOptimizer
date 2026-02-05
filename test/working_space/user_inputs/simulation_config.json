@@ -1,8 +1,0 @@
-{
-    "linear_strong_tone_harmonics": 8,
-    "linear_modulation_harmonics": 4,
-    "nonlinear_strong_tone_harmonics": 8,
-    "nonlinear_modulation_harmonics": 4,
-    "max_simulator_iterations": 500
-
-}

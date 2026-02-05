@@ -77,7 +77,7 @@ def open_path(path: str):
         print(f"Could not open path: {abs_path} ({e})")
 
 # --- Graceful stop support ---
-STOP_KILL_TIMEOUT_S = 10  # fallback hard-kill if Julia doesn't exit
+STOP_KILL_TIMEOUT_S = 5  # fallback hard-kill if Julia doesn't exit
 
 def _stop_file_path() -> str:
     return os.path.join(workspace_var.get(), "STOP").replace("\\", "/")
@@ -641,7 +641,8 @@ def clear_corr():
     update_corr_metadata(None)
 
 
-def start_simulation():
+def _start_run(entrypoint: str, start_label: str):
+    """Internal helper to start a Julia run entrypoint (e.g. run, run_sweep_only)."""
     global process, current_plot_index
     if process is not None:
         log_message("Simulation already running!", 'warning')
@@ -649,6 +650,11 @@ def start_simulation():
 
     # Update UI state
     main_button.config(text="Stop Simulation", style="Danger.TButton")
+    try:
+        sweep_button.config(state="disabled")
+    except Exception:
+        pass
+
     progress_bar.config(mode='indeterminate')
     progress_bar.start()
     current_plot_index = 0
@@ -665,53 +671,63 @@ def start_simulation():
     except Exception:
         pass
 
-    #clear_plots()
     refresh_plot_list()
-    #clear_corr()
     refresh_corr_list()
-    log_message("Starting Josephson simulation...", 'info')
+    log_message(start_label, 'info')
 
     julia_code = f'''
     using Pkg
     Pkg.activate("{project_path}")
     push!(LOAD_PATH, "{src_path}")
     using JosephsonCircuitsOptimizer
-    JosephsonCircuitsOptimizer.run(workspace=raw"{workspace_var.get()}", create_workspace=true)
+    JosephsonCircuitsOptimizer.{entrypoint}(workspace=raw"{workspace_var.get()}", create_workspace=true)
     '''
-
 
     def run_in_thread():
         global process
         try:
             process = subprocess.Popen(
                 [JULIA_EXE, '--project=' + project_path, '-e', julia_code],
-                cwd=project_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True
+                universal_newlines=True,
+                bufsize=1
             )
+
             for line in process.stdout:
-                if process is None:  # Check if stopped
-                    break
-                line = line.strip()
-                if line.startswith("STAGE"):
-                    root.after(0, _handle_stage_line, line)
+                # --- Structured progress protocol ---
+                if line.startswith("STAGE "):
+                    # Support both old and new formats:
+                    #   STAGE HB
+                    #   STAGE name=HB
+                    root.after(0, lambda l=line.strip(): _handle_stage_line(l))
+                elif line.startswith("PROGRESS "):
+                    # Support both formats:
+                    #   PROGRESS 3/10
+                    #   PROGRESS i=3 N=10 ETA=12.3s stage=LIN
+                    root.after(0, lambda l=line.strip(): _handle_progress_line(l))
                 elif line.startswith("PROGRESS_DONE"):
-                    root.after(0, _handle_progress_done, line)
-                elif line.startswith("PROGRESS"):
-                    root.after(0, _handle_progress_line, line)
+                    root.after(0, lambda l=line.strip(): _handle_progress_done(l))
                 else:
                     msg, typ = classify_log_line(line)
                     if msg:
                         root.after(0, lambda m=msg, t=typ: log_message(m, t))
 
-            rc = process.wait()
+            ret = process.wait()
             root.after(0, simulation_finished)
         except Exception as e:
             root.after(0, lambda: log_message(f"Error running simulation: {e}", 'error'))
             root.after(0, simulation_finished)
 
     threading.Thread(target=run_in_thread, daemon=True).start()
+
+
+def start_simulation():
+    _start_run("run", "Starting Josephson simulation...")
+
+
+def start_sweep_only():
+    _start_run("run_sweep_only", "Starting Josephson sweep-only run...")
 
 
 def stop_simulation():
@@ -741,6 +757,10 @@ def simulation_finished():
     global process
     process = None
     main_button.config(text="Start Simulation", style="Success.TButton")
+    try:
+        sweep_button.config(state="normal")
+    except Exception:
+        pass
     progress_bar.stop()
     progress_bar.config(mode='determinate', value=0)
     stage_value_label.config(text="Stage: —")
@@ -872,6 +892,12 @@ main_button = ttk.Button(button_frame, text="Start Simulation",
                         style="Success.TButton")
 main_button.pack(side='left', padx=(0, 10))
 
+
+sweep_button = ttk.Button(button_frame, text="Start Sweep Only",
+                        command=start_sweep_only,
+                        style="Primary.TButton")
+sweep_button.pack(side='left', padx=(0, 10))
+
 clear_plots_btn = ttk.Button(button_frame, text="Clear Plots", 
                              command=clear_plots,
                              style="Primary.TButton")
@@ -956,59 +982,97 @@ def _format_eta(seconds: float) -> str:
 
 
 def _handle_stage_line(line: str):
-    # STAGE name=HB
+    # Supported:
+    #   STAGE HB
+    #   STAGE name=HB
+    s = line.strip()
+    name = "—"
     try:
-        name = line.split("name=", 1)[1].strip()
+        if "name=" in s:
+            name = s.split("name=", 1)[1].strip()
+        else:
+            # "STAGE <name>"
+            parts = s.split(None, 1)
+            if len(parts) == 2:
+                name = parts[1].strip()
     except Exception:
         name = "—"
+
     stage_value_label.config(text=f"Stage: {name}")
     eta_value_label.config(text="ETA: —")
-    # Spinner during stage-only updates (INIT/LIN/PLOT)
+    # Indeterminate while we don't have numeric progress
     progress_bar.config(mode='indeterminate')
     progress_bar.start()
 
 
 def _handle_progress_line(line: str):
-    # PROGRESS i=12 N=40 ETA=183.5s stage=HB
-    parts = {}
-    for token in line.replace("PROGRESS", "").strip().split():
-        if "=" in token:
-            k, v = token.split("=", 1)
-            parts[k.strip()] = v.strip()
+    # Supported:
+    #   PROGRESS 3/10
+    #   PROGRESS i=12 N=40 ETA=183.5s stage=HB
+    s = line.strip()
 
+    # New key=value format
+    if "=" in s:
+        parts = {}
+        for token in s.replace("PROGRESS", "").strip().split():
+            if "=" in token:
+                k, v = token.split("=", 1)
+                parts[k.strip()] = v.strip()
+
+        try:
+            i = int(parts.get("i", "0"))
+            N = int(parts.get("N", "0"))
+        except Exception:
+            return
+
+        stage = parts.get("stage", "—")
+        stage_value_label.config(text=f"Stage: {stage}")
+
+        progress_bar.stop()
+        progress_bar.config(mode='determinate', maximum=max(N, 1), value=min(i, max(N, 1)))
+
+        if "ETA" in parts:
+            eta_s = parts["ETA"].replace("s", "")
+            try:
+                eta_value_label.config(text=f"ETA: {_format_eta(float(eta_s))}")
+            except Exception:
+                eta_value_label.config(text="ETA: —")
+        else:
+            eta_value_label.config(text="ETA: —")
+        return
+
+    # Old "3/10" format
     try:
-        i = int(parts.get("i", "0"))
-        N = int(parts.get("N", "0"))
+        payload = s.split(None, 1)[1].strip()  # after "PROGRESS"
+        i_str, n_str = payload.split("/", 1)
+        i = int(i_str)
+        N = int(n_str)
     except Exception:
         return
 
-    stage = parts.get("stage", "—")
-    stage_value_label.config(text=f"Stage: {stage}")
-
-    # determinate progress
     progress_bar.stop()
     progress_bar.config(mode='determinate', maximum=max(N, 1), value=min(i, max(N, 1)))
+    # Keep previous stage label; no ETA info available
+    eta_value_label.config(text="ETA: —")
 
-    # ETA may be absent
-    if "ETA" in parts:
-        eta_s = parts["ETA"].replace("s", "")
-        try:
-            eta_value_label.config(text=f"ETA: {_format_eta(float(eta_s))}")
-        except Exception:
-            eta_value_label.config(text="ETA: —")
-    else:
-        eta_value_label.config(text="ETA: —")
 
 
 def _handle_progress_done(line: str):
-    # PROGRESS_DONE stage=HB
+    # Supported:
+    #   PROGRESS_DONE stage=HB
+    #   PROGRESS_DONE
+    s = line.strip()
+    stage = "—"
     try:
-        stage = line.split("stage=", 1)[1].strip()
+        if "stage=" in s:
+            stage = s.split("stage=", 1)[1].strip()
     except Exception:
         stage = "—"
+
     stage_value_label.config(text=f"Stage: {stage}")
     eta_value_label.config(text="ETA: —")
     progress_bar.stop()
+
 
 
 def update_plot_metadata(image_path):
