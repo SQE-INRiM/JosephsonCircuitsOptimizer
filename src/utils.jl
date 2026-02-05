@@ -590,49 +590,35 @@ end
 
 
 #---------------------- STOP / STATUS HELPERS ----------------------
+# NOTE: StopRequested/stop_requested/stop_if_requested!/clear_stopfile! are defined at the top of this file.
 
-"""
-    StopRequested
-
-Exception thrown when the GUI requests a graceful stop by creating WORKSPACE/STOP.
-"""
 struct StopRequested <: Exception end
 
-"""Return the path of the STOP request file inside a workspace."""
-stopfile_path(workspace::AbstractString) = joinpath(workspace, "STOP")
+stop_requested(workspace::AbstractString) = isfile(joinpath(workspace, "STOP"))
 
-"""True if a STOP request file exists in the workspace."""
-stop_requested(workspace::AbstractString) = isfile(stopfile_path(workspace))
-
-"""
-    check_stop(; workspace=config.WORKING_SPACE)
-
-Throw StopRequested() if a stop was requested.
-"""
-function check_stop(; workspace::AbstractString = (isdefined(@__MODULE__, :config) ? config.WORKING_SPACE : pwd()))
+function stop_if_requested!(workspace::AbstractString)
     if stop_requested(workspace)
         throw(StopRequested())
     end
     return nothing
 end
 
-"""Remove a stale STOP request file (best-effort)."""
 function clear_stopfile!(workspace::AbstractString)
-    p = stopfile_path(workspace)
-    if isfile(p)
-        try
-            rm(p; force=true)
-        catch
-        end
+    stopfile = joinpath(workspace, "STOP")
+    if isfile(stopfile)
+        try rm(stopfile; force=true) catch end
     end
     return nothing
 end
 
-"""
-    atomic_write_json(path, obj; indent=4)
+"""Return the path of the STOP request file inside a workspace."""
+stopfile_path(workspace::AbstractString) = joinpath(workspace, "STOP")
 
-Write JSON safely by writing to a temporary file and then renaming.
-"""
+"""Backwards-compatible alias (older code calls `check_stop`)."""
+function check_stop(; workspace::AbstractString = (isdefined(@__MODULE__, :config) ? config.WORKING_SPACE : pwd()))
+    stop_if_requested!(workspace)
+end
+
 function atomic_write_json(path::AbstractString, obj; indent::Int=4)
     tmp = path * ".tmp"
     open(tmp, "w") do io

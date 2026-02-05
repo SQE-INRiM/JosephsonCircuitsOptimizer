@@ -447,3 +447,40 @@ function save_dataset(df::DataFrame, output_path)
         write(file, "df_column_names", names(df))
     end
 end
+
+
+"""
+    load_dataset(h5_path::AbstractString)
+
+Load a dataset previously saved by `save_dataset`.
+
+Returns `(df, filtered_df)` where `filtered_df` may be `nothing` if not present.
+"""
+function load_dataset(h5_path::AbstractString)
+    # Allow passing either a directory (run folder) or the .h5 file itself
+    if isdir(h5_path)
+        h5_path = joinpath(h5_path, "df_uniform_analysis.h5")
+    end
+
+    if !isfile(h5_path)
+        error("Dataset file not found: $(h5_path)")
+    end
+
+    df = nothing
+    filtered_df = nothing
+
+    h5open(h5_path, "r") do file
+        mat = read(file, "df_matrix")
+        colnames = read(file, "df_column_names")
+        # colnames may come back as Vector{String} or Vector{SubString{String}}
+        cols = Symbol.(String.(colnames))
+        df = DataFrame(mat, cols)
+
+        if haskey(file, "df_filtered_matrix")
+            fmat = read(file, "df_filtered_matrix")
+            filtered_df = DataFrame(fmat, cols)
+        end
+    end
+
+    return df, filtered_df
+end

@@ -12,7 +12,7 @@ import Plots: savefig
 import GLMakie as M
 using FileIO
 
-export plot, mplot, run, run_sweep_only, seed_next_run_from_latest!
+export plot, mplot, run, run_sweep_only, run_from_latest_dataset_only, seed_next_run_from_latest!
 
 const plot = P.plot
 const mplot = M.plot
@@ -337,19 +337,19 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
 end
 
 
-
-"""    run_sweep_only(; workspace=nothing, create_workspace=true, filter_df=true)
+"""\
+    run_sweep_only(; workspace=nothing, create_workspace=true, filter_df=true)
 
 Run only the sweep stage (linear simulations + dataset + correlation figure).
-This is useful to inspect how simulations vary across the parameter space without
-running the Bayesian optimization or nonlinear HB stage.
+
+This is meant for quickly inspecting simulator behaviour without running the optimizer
+or nonlinear (HB) simulations.
 """
 function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
                         create_workspace::Bool=true,
                         filter_df::Bool=true)
 
     global config = get_configuration(; workspace=workspace, create=create_workspace)
-
     clear_stopfile!(config.WORKING_SPACE)
 
     modules_setup(config)
@@ -365,7 +365,6 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
     mkpath(output_path)
 
     @info "📂 Results will be saved in: $output_path"
-    @info "Running SWEEP-ONLY mode (no optimization, no nonlinear HB)."
 
     device_parameters_space = nothing
     df = nothing
@@ -376,16 +375,15 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
         device_params_file = joinpath(user_input_path, "device_parameters_space.json")
         device_parameters_space = load_params(device_params_file)
         global device_parameters_space = device_parameters_space
-        @info "Loaded device parameters space from: $device_params_file"
 
         write_status(output_path; status="running", stage="LIN")
-        GC.gc()
+        @info "Running sweep-only (linear simulations)."
         global delta_correction = 0.0
 
-        df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=filter_df)
-        save_dataset(df, output_path)
-        @info "Saved sweep dataset from linear simulations."
+        stop_if_requested!(config.WORKING_SPACE)
 
+        df, _ = run_linear_simulations_sweep(device_parameters_space, filter_df=filter_df)
+        save_dataset(df, output_path)
         create_corr_figure(df)
 
         write_status(output_path; status="completed", stage="DONE")
@@ -394,13 +392,7 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
     catch e
         if e isa StopRequested
             write_status(output_path; status="stopped", stage="STOPPED", message="Stop requested by user.")
-            try
-                open(joinpath(output_path, "STOPPED.txt"), "w") do io
-                    println(io, "Stopped by user at ", Dates.format(now(), dateformat"yyyy-mm-dd HH:MM:SS"))
-                end
-            catch
-            end
-            @warn "⏹️ Stop requested by user. Exiting cleanly."
+            @warn "⏹️ Stop requested by user. Exiting sweep-only run cleanly."
             return nothing
         else
             write_status(output_path; status="error", stage="ERROR", message=string(e))
@@ -408,8 +400,8 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
         end
     finally
         metric_history = (isdefined(@__MODULE__, :cost_history) ? cost_history : Dict())
-        ps = (device_parameters_space === nothing) ? Dict{Symbol,Any}() : device_parameters_space
         try
+            ps = (device_parameters_space === nothing) ? Dict{Symbol,Any}() : device_parameters_space
             write_run_bookkeeping(output_path;
                 config=config,
                 parameter_space=ps,
@@ -422,13 +414,144 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
         catch err
             @warn "Bookkeeping step failed (run still OK): $err"
         end
-
         GC.gc()
     end
 
     return nothing
 end
 
+
+"""\
+    run_from_latest_dataset_only(; workspace=nothing, create_workspace=true, dataset_path=nothing)
+
+Run optimization + nonlinear simulations starting from a previously saved linear dataset.
+
+If `dataset_path` is `nothing`, JCO will use `outputs/LATEST.txt` in the workspace to locate
+the most recent run folder and read `df_uniform_analysis.h5` from it.
+
+You may pass either a run-folder path or the `.h5` file path.
+"""
+function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}=nothing,
+                                     create_workspace::Bool=true,
+                                     dataset_path::Union{Nothing,AbstractString}=nothing)
+
+    global config = get_configuration(; workspace=workspace, create=create_workspace)
+    clear_stopfile!(config.WORKING_SPACE)
+
+    modules_setup(config)
+    initialize_workspace(config)
+
+    base_output_path = config.outputs_dir
+    global plot_path = config.plot_dir
+    global corr_path = config.corr_dir
+
+    device_params_file = joinpath(config.user_inputs_dir, "device_parameters_space.json")
+    device_parameters_space = load_params(device_params_file)
+    global device_parameters_space = device_parameters_space
+    global delta_correction = 0.0
+
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
+    output_path = joinpath(base_output_path, "output_" * timestamp)
+    mkpath(output_path)
+
+    @info "📂 Results will be saved in: $output_path"
+
+    results = nothing
+    optimal_params = nothing
+    optimal_metric = nothing
+    df = nothing
+
+    write_status(output_path; status="running", stage="INIT")
+
+    # Resolve dataset path
+    dataset_file = dataset_path
+    if dataset_file === nothing
+        latest_ptr = joinpath(config.outputs_dir, "LATEST.txt")
+        if !isfile(latest_ptr)
+            error("No LATEST.txt found in outputs. Run a sweep (or full run) first.")
+        end
+        latest_run = strip(read(latest_ptr, String))
+        if isempty(latest_run)
+            error("LATEST.txt is empty. Run a sweep (or full run) first.")
+        end
+        dataset_file = joinpath(latest_run, "df_uniform_analysis.h5")
+    end
+
+    # If a directory was provided, load_dataset will look for df_uniform_analysis.h5 inside it.
+    try
+        open(joinpath(output_path, "SOURCE_DATASET.txt"), "w") do io
+            println(io, String(dataset_file))
+        end
+    catch
+    end
+
+    try
+        write_status(output_path; status="running", stage="LOAD_DF")
+        @info "Loading dataset from: $(dataset_file)"
+        df, _ = load_dataset(String(dataset_file))
+
+        stop_if_requested!(config.WORKING_SPACE)
+
+        write_status(output_path; status="running", stage="BO")
+        @info "Running optimization from saved dataset."
+        optimal_params, optimal_metric = run_optimization(df)
+
+        header = Dict(
+            "optimal_metric" => optimal_metric,
+            "description" => "Optimal parameters for the model (from saved dataset)"
+        )
+        optimal_params_file = joinpath(output_path, "optimal_device_parameters.json")
+        save_output_file(header, optimal_params, optimal_params_file)
+
+        stop_if_requested!(config.WORKING_SPACE)
+
+        write_status(output_path; status="running", stage="HB")
+        @info "Running nonlinear simulations with optimal parameters."
+        results = run_nonlinear_simulations_sweep(optimal_params)
+
+        let p = plot_delta_vs_amplitude(results)
+            if p !== nothing
+                plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="delta_vs_amplitude")
+            end
+        end
+        let p = plot_performance_vs_amplitude(results)
+            if p !== nothing
+                plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="performance_vs_amplitude")
+            end
+        end
+
+        write_status(output_path; status="completed", stage="DONE")
+        @info "✅ Dataset-only run completed."
+
+    catch e
+        if e isa StopRequested
+            write_status(output_path; status="stopped", stage="STOPPED", message="Stop requested by user.")
+            @warn "⏹️ Stop requested by user. Exiting dataset-only run cleanly."
+            return nothing
+        else
+            write_status(output_path; status="error", stage="ERROR", message=string(e))
+            rethrow()
+        end
+    finally
+        metric_history = (isdefined(@__MODULE__, :cost_history) ? cost_history : Dict())
+        try
+            write_run_bookkeeping(output_path;
+                config=config,
+                parameter_space=Dict{Symbol,Any}(),
+                best_device_parameters=optimal_params,
+                best_metric=optimal_metric,
+                metric_history=metric_history,
+                sim_settings=sim_vars,
+                optimizer_settings=optimizer_config
+            )
+        catch err
+            @warn "Bookkeeping step failed (run still OK): $err"
+        end
+        GC.gc()
+    end
+
+    return nothing
+end
 
 
 end  # End of module
