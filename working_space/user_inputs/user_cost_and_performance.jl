@@ -26,7 +26,7 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction::Float64
         legend=:bottomleft,
     )
     metric = -maximum(gain_db)
-    #plot_update(p, device_params_set, metric)
+    plot_update(p, device_params_set, metric)
     
     return metric
 end

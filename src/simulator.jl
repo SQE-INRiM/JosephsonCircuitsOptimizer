@@ -32,29 +32,20 @@ function setup_simulator()
         error("No strong tones found.")
     end
 
-    # Update fp1 and calculate wp1
-    fp1 = non_zero_frequencies[1] + 0.0001e9  # Add a small offset to avoid numerical instability
-    wp1 = 2 * π * fp1
+    # Build pump frequencies (fpᵢ) and angular frequencies (wpᵢ) for N strong tones
+    # Add a small offset to avoid numerical instability
+    offset = 0.0001e9
+    fps = [f + offset for f in non_zero_frequencies]
+    wps = [2 * π * fp for fp in fps]
 
-    # Store fp1 and wp1 in physical_quantities for future use
-    physical_quantities[:fp1] = fp1
-    physical_quantities[:wp1] = wp1
-
-    # If a second frequency is found, update fp2 and calculate wp2
-    if length(non_zero_frequencies) >= 2
-        fp2 = non_zero_frequencies[2] + 0.0001e9  # Add a small offset to avoid numerical instability
-        wp2 = 2 * π * fp2
-
-        # Store fp2 and wp2 in physical_quantities
-        physical_quantities[:fp2] = fp2
-        physical_quantities[:wp2] = wp2
-
-        # Combine wp1 and wp2 into a tuple for wp
-        physical_quantities[:wp] = (wp1, wp2)
-    else
-        # If only one frequency is found, store wp1 as a single-element tuple
-        physical_quantities[:wp] = (wp1,)
+    # Store fpᵢ and wpᵢ in physical_quantities (backward compatible keys :fp1, :wp1, ...)
+    for (i, (fp, wp)) in enumerate(zip(fps, wps))
+        physical_quantities[Symbol("fp$(i)")] = fp
+        physical_quantities[Symbol("wp$(i)")] = wp
     end
+
+    # Store all pump angular frequencies as a tuple (used downstream)
+    physical_quantities[:wp] = Tuple(wps)
 
     # Merge the physical quantities and simulation configuration into a single dictionary
     sim_vars = merge(physical_quantities, simulation_config)
@@ -75,7 +66,7 @@ function setup_sources()
 
 end
 
-entries_for_every_source = 5
+entries_for_every_source = 5 #OCIO AL NUMERO DI ENTRATE PER OGNI SORGENTE
 
 """
     extract_S_parameters(sol, n_ports)
