@@ -35,6 +35,22 @@ function setup_simulator()
     # Build pump frequencies (fpᵢ) and angular frequencies (wpᵢ) for N strong tones
     # Add a small offset to avoid numerical instability
     offset = 0.0001e9
+
+    n_sources = _num_sources_from_keys(physical_quantities)
+
+    # Collect non-zero frequencies in source-index order
+    non_zero_frequencies = Float64[]
+    for i in 1:n_sources
+        kfreq = Symbol("source_$(i)_frequency")
+        if haskey(physical_quantities, kfreq) && physical_quantities[kfreq] != 0
+            push!(non_zero_frequencies, float(physical_quantities[kfreq]))
+        end
+    end
+
+    if isempty(non_zero_frequencies)
+        error("No strong tones found.")
+    end
+
     fps = [f + offset for f in non_zero_frequencies]
     wps = [2 * π * fp for fp in fps]
 
@@ -66,7 +82,17 @@ function setup_sources()
 
 end
 
-entries_for_every_source = 5 #OCIO AL NUMERO DI ENTRATE PER OGNI SORGENTE
+# Infer number of sources from keys like :source_1_frequency, :source_2_linear_amplitude, ...
+function _num_sources_from_keys(d::AbstractDict)
+    idxs = Int[]
+    for k in keys(d)
+        m = match(r"^source_(\d+)_", String(k))
+        if m !== nothing
+            push!(idxs, parse(Int, m.captures[1]))
+        end
+    end
+    return isempty(idxs) ? 0 : maximum(idxs)
+end
 
 """
     extract_S_parameters(sol, n_ports)
@@ -124,7 +150,7 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
 
     omega = sim_vars[:w_range]
     #n_frequencies = length(omega)
-    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars))/entries_for_every_source) #OCIO AL NUMERO DI ENTRATE
+    n_sources = _num_sources_from_keys(sim_vars)
 
     println("   1. Linear simulation")
 
@@ -309,7 +335,7 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
     circuit = create_circuit(optimal_params)
     @debug "Circuit created once for nonlinear sweep"
 
-    n_sources = Int(count(key -> startswith(string(key), "source_"), keys(sim_vars)) ÷ entries_for_every_source)
+    n_sources = _num_sources_from_keys(sim_vars)
     amp_keys = [Symbol("source_$(i)_non_linear_amplitude") for i in 1:n_sources]
 
     resolved_functions = Dict{Int, Function}()
