@@ -90,11 +90,6 @@ The JCO workflow consists of three main stages:
 JCO operates within a **working space**, which contains all user-defined inputs, generated datasets, and simulation outputs.  
 The working space can be the default `working_space/` directory or any **external folder** selected by the user.
 
-The structure is designed to:
-- keep inputs and outputs clearly separated,
-- ensure full reproducibility of each run,
-- allow restarting the workflow from intermediate stages.
-
 ### User inputs
 
 All user-defined inputs are placed in:
@@ -275,7 +270,7 @@ Displays the current stage, progress bar, and estimated remaining time.
 
 ## Examples
 
-- **SNAIL-JTWPA use case**: see `examples/SNAIL-JTWPA.md`.
+- **SNAIL-based JTWPA**: see [examples/SNAIL_based_JTWPA](examples/SNAIL_based_JTWPA).
 
 ---
 
