@@ -1,0 +1,16 @@
+{
+    "header": {
+        "optimal_metric": 3.029489184853426e10,
+        "description": "Optimal parameters for the model (from saved dataset)"
+    },
+    "data": {
+        "CgloadingCell": 1.0,
+        "loadingpitch": 3.0,
+        "smallJunctionArea": 0.2,
+        "criticalCurrentDensity": 2.0,
+        "nMacrocells": 40.0,
+        "CgDielectricThichness": 11.0,
+        "LloadingCell": 1.5,
+        "alphaSNAIL": 0.23
+    }
+}

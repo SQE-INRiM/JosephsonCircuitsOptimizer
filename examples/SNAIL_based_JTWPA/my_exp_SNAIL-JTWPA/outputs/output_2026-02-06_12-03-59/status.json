@@ -1,0 +1,6 @@
+{
+    "timestamp_utc": "2026-02-06T11:04:58Z",
+    "status": "error",
+    "message": "UndefVarError(:S_to_dB, JosephsonCircuitsOptimizer)",
+    "stage": "ERROR"
+}

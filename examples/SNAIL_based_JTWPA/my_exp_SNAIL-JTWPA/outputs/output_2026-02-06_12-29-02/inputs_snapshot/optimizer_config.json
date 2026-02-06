@@ -1,0 +1,8 @@
+{
+    "max_optimizer_iterations": 3,
+    "new_samples_per_optimizer_iteration": 5,
+    
+    "surrogate_model": "Kriging",
+    "optimizer_strategy": "SRBF",
+    "sampling_strategy": "random"
+}

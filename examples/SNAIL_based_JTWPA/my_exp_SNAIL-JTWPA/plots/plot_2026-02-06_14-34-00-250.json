@@ -1,0 +1,19 @@
+{
+    "metric": 7.260027857182903e10,
+    "plot_type": "plot",
+    "params": {
+        "CgDielectricThichness": 10.324359981816425,
+        "CgAreaUNLoaded": 167.14260496659304,
+        "LloadingCell": 1.5,
+        "alphaSNAIL": 0.23333676578297582,
+        "criticalCurrentDensity": 1.6575392415964934,
+        "CgDensity": 8.232800885449726e-15,
+        "loadingpitch": 3.0,
+        "nMacrocells": 40.0,
+        "CgloadingCell": 1.0,
+        "N": 120.0,
+        "smallJunctionArea": 0.2
+    },
+    "timestamp": "2026-02-06T14:34:02.867",
+    "png": "plot_2026-02-06_14-34-00-250.png"
+}

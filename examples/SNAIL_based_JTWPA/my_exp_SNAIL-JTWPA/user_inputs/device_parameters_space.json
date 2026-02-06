@@ -1,0 +1,10 @@
+{
+    "loadingpitch": { "values": [3]},
+    "nMacrocells": { "values": [40] },
+    "smallJunctionArea":  [0.2],
+    "alphaSNAIL": { "values": [0.25, 0.23]},
+    "LloadingCell": [1.5],
+    "CgloadingCell": { "values": [1] },
+    "criticalCurrentDensity": { "start": 1, "step": 0.5, "stop": 2},
+    "CgDielectricThichness": { "start": 10, "step": 1, "stop": 11 }
+}

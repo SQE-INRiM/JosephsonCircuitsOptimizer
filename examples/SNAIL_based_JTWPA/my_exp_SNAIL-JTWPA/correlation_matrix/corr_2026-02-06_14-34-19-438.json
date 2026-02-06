@@ -1,0 +1,9 @@
+{
+    "extra": {
+        "n_columns": 9,
+        "n_points": 12
+    },
+    "plot_type": "correlation",
+    "timestamp": "2026-02-06T14:34:28.868",
+    "png": "corr_2026-02-06_14-34-19-438.png"
+}

@@ -1,0 +1,6 @@
+{
+    "timestamp_utc": "2026-02-06T11:12:30Z",
+    "status": "error",
+    "message": "KeyError(:n_iterations_nonlinear_correction)",
+    "stage": "ERROR"
+}
