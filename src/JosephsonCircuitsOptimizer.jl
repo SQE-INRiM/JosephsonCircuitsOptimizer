@@ -194,7 +194,14 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         write_status(output_path; status="running", stage="BO")
         @info "Running optimization process on the dataset."
         optimal_params, optimal_metric = run_optimization(df)
-
+        
+        # Re-generate correlation + 1D plots highlighting the chosen optimum
+        try
+            create_corr_figure(df; optimal_params=optimal_params)
+        catch e
+            @warn "Could not generate highlighted correlation/1D plot: $e"
+        end
+        
         header = Dict(
             "optimal_metric" => optimal_metric,
             "description" => "Optimal parameters for the model"
@@ -495,6 +502,13 @@ function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}
         write_status(output_path; status="running", stage="BO")
         @info "Running optimization from saved dataset."
         optimal_params, optimal_metric = run_optimization(df)
+
+        # Re-generate correlation + 1D plots highlighting the chosen optimum
+        try
+            create_corr_figure(df; optimal_params=optimal_params)
+        catch e
+            @warn "Could not generate highlighted correlation/1D plot: $e"
+        end
 
         header = Dict(
             "optimal_metric" => optimal_metric,

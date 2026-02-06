@@ -60,7 +60,7 @@ function visualize_correlation_matrix(fig, df)
 end
 
 
-function plot_1d_density_heatmap(fig, df)
+function plot_1d_density_heatmap(fig, df; optimal_params=nothing)
 
     if isempty(df)
         error("The input DataFrame is empty. Please provide a non-empty DataFrame.")
@@ -123,6 +123,20 @@ function plot_1d_density_heatmap(fig, df)
         hm = heatmap!(ax, xvals, unique_values, hm_matrix, colormap = colormap, colorrange = (0, 1))
         push!(heatmaps, hm)
 
+        # Overlay chosen optimal parameter as a horizontal line (if provided)
+        if optimal_params !== nothing
+            try
+                key = col isa Symbol ? col : Symbol(col)
+                if haskey(optimal_params, key)
+                    y = Float64(optimal_params[key])
+                    hlines!(ax, [y]; linewidth=3, color=:red)
+                end
+            catch err
+                @debug "Failed to draw optimal line for $col: $err"
+            end
+        end
+
+
         y_min = minimum(unique_values)
         @debug "Y Min: $y_min"
         y_max = maximum(unique_values)
@@ -149,7 +163,7 @@ function plot_1d_density_heatmap(fig, df)
 end
 
 
-function plot_1d_density_heatmap(fig, df, ref_df)
+function plot_1d_density_heatmap(fig, df, ref_df; optimal_params=nothing)
 
     metric = df.metric
     df = select(df, Not([:metric]))
@@ -206,6 +220,20 @@ function plot_1d_density_heatmap(fig, df, ref_df)
         hm = heatmap!(ax, xvals, unique_ref_values, hm_matrix, colormap = colormap, colorrange = (0, 1))
         push!(heatmaps, hm)
 
+        # Overlay chosen optimal parameter as a horizontal line (if provided)
+        if optimal_params !== nothing
+            try
+                key = col isa Symbol ? col : Symbol(col)
+                if haskey(optimal_params, key)
+                    y = Float64(optimal_params[key])
+                    hlines!(ax, [y]; linewidth=3, color=:red)
+                end
+            catch err
+                @debug "Failed to draw optimal line for $col: $err"
+            end
+        end
+
+
         y_min = minimum(unique_ref_values)
         y_max = maximum(unique_ref_values)
 
@@ -246,7 +274,7 @@ function create_gui(df)
     visualize_correlation_matrix(fig, df)
 
     # Add the 1D density heatmap to the second row
-    plot_1d_density_heatmap(fig, df)
+    plot_1d_density_heatmap(fig, df; optimal_params=optimal_params)
 
     # Adjust layout spacing
     colgap!(fig.layout, 10)  # Add gap between columns
@@ -275,7 +303,7 @@ function create_gui(df_ref, df)
     visualize_correlation_matrix(fig, df)
 
     # Add the 1D density heatmap to the second row
-    plot_1d_density_heatmap(fig, df, df_ref)
+    plot_1d_density_heatmap(fig, df, df_ref; optimal_params=optimal_params)
 
     # Adjust layout spacing
     colgap!(fig.layout, 10)  # Add gap between columns
@@ -288,7 +316,7 @@ function create_gui(df_ref, df)
 end
 """
 
-function create_corr_figure(df; df_ref=nothing)
+function create_corr_figure(df; df_ref=nothing, optimal_params=nothing)
 
     if isempty(df)
         error("The input DataFrame is empty. Please provide a non-empty DataFrame.")
@@ -307,9 +335,9 @@ function create_corr_figure(df; df_ref=nothing)
     # Right: 1D density heatmap
     ax2 = Axis(fig[1, 2])
     if isnothing(df_ref)
-        plot_1d_density_heatmap(fig, df)
+        plot_1d_density_heatmap(fig, df; optimal_params=optimal_params)
     else
-        plot_1d_density_heatmap(fig, df, df_ref)
+        plot_1d_density_heatmap(fig, df, df_ref; optimal_params=optimal_params)
     end
 
     # Adjust layout spacing
@@ -328,6 +356,6 @@ function create_corr_figure(df; df_ref=nothing)
 
     correlation_update(fig; plot_type="correlation", run_id=nothing, extra=extra)
 
-    @info "Saved correlation figure → $filepath"
+    @info "Saved correlation figure to $filepath"
     return filepath
 end
