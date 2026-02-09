@@ -6,7 +6,7 @@ To test the framework’s capabilities, we focus on optimizing Josephson Traveli
 A scheme of the circuit with the device parameters is presented below.
 
 <p align="center">
-    <img src="../images/SchemeSNAIL.png" alt="Scheme of the SNAIL-based JTWPA" width="800">
+    <img src="/images/SchemeSNAIL.png" alt="Scheme of the SNAIL-based JTWPA" width="800">
 </p>
 
 The SNAIL-based JTWPA consists of *N* macrocells. Each macrocell is composed of multiple single cells, collectively referred to as the *loading pitch*. Specifically, each macrocell contains *loading pitch*-1 identical cells, known as unloaded cells, and a single distinct cell, called the loaded cell. This structured design enables 3WM through dispersive engineering techniques.
