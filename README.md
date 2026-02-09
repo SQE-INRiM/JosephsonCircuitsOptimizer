@@ -1,8 +1,6 @@
 # JosephsonCircuitsOptimizer.jl
 
-[JosephsonCircuitsOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) is a Julia package that provides a simulation and optimization framework developed using the [JosephsonCircuits.jl](https://github.com/kpobrien/JosephsonCircuits.jl) library [1].  
-JosephsonCircuits.jl enables the modeling of superconducting circuits, including Josephson junctions and other nonlinear elements, within a lumped-element approach.  
-JCO leverages harmonic balance [2], a frequency-domain technique that offers a computationally efficient alternative to traditional time-domain simulations [3].
+[JosephsonCircuitsOptimizer.jl](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) is a Julia package that provides a simulation and optimization framework developed using the [JosephsonCircuits.jl](https://github.com/kpobrien/JosephsonCircuits.jl) library [1]. JosephsonCircuits.jl enables the modeling of superconducting circuits, including Josephson junctions and other nonlinear elements, within a lumped-element approach. The library leverages harmonic balance [2], a frequency-domain technique that offers a computationally efficient alternative to traditional time-domain simulations [3].
 
 Thanks to this approach, the response of a single circuit can be evaluated efficiently, enabling the exploration of a large design space defined by multiple device parameters.  
 The **Josephson Circuits Optimizer (JCO)** automates the search for optimal circuit designs by combining physically relevant metrics with Bayesian optimization based on Gaussian processes [4], ultimately identifying both the optimal circuit configuration and its optimal operating point.
