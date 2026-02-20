@@ -107,11 +107,11 @@ function modules_setup(config::Configuration; stages=(:sources,:circuit,:cost,:s
 
     @info "Initializing modules with configuration..."
     
-    (:sources   in stages) && setup_sources()
-    (:circuit   in stages) && setup_circuit()
-    (:cost      in stages) && setup_cost()
-    (:simulator in stages) && setup_simulator()
-    (:optimizer in stages) && setup_optimizer()
+    setup_sources()
+    setup_circuit()
+    setup_cost()
+    setup_simulator()
+    setup_optimizer()
 
     @info "All modules initialized successfully."
 end
@@ -238,7 +238,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
 
             for i in 1:sim_vars[:n_iterations_nonlinear_correction]
 
-                stop_if_requested!(config.WORKING_SPACE)  # <-- if you added this helper
+                stop_if_requested!(config.WORKING_SPACE) 
 
                 @info "Implementing nonlinear correction: iteration $i"
 
@@ -645,8 +645,6 @@ function run_optimization_only(; workspace::Union{Nothing,AbstractString}=nothin
         write_status(output_path; status="running", stage="BO")
         @info "Running optimization from saved dataset (BO only)."
         optimal_params, optimal_metric = run_optimization(df)
-        println("AAAAAAAAAAAAAAAAAAAAAAAA  ", optimal_params, optimal_metric)
-
 
         # Optional: correlation + 1D plot with optimum highlighted
         try
@@ -708,14 +706,15 @@ the most recent run folder and read `optimal_device_parameters.json` from it.
 You may pass either a run-folder path or the `.json` file path.
 """
 function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
-                           create_workspace::Bool=true,
-                           optimal_params_path::Union{Nothing,AbstractString}=nothing)
+                        create_workspace::Bool=true,
+                        optimal_params_path::Union{Nothing,AbstractString}=nothing,
+                        dataset_path::Union{Nothing,AbstractString}=nothing)
 
     global config = get_configuration(; workspace=workspace, create=create_workspace)
     clear_stopfile!(config.WORKING_SPACE)
 
     # HB does not need the optimizer module.
-    modules_setup(config; stages=(:sources, :circuit, :cost, :simulator))
+    modules_setup(config)
     initialize_workspace(config)
 
     base_output_path = config.outputs_dir
@@ -732,11 +731,14 @@ function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
 
     results = nothing
     optimal_params = nothing
+    optimal_metric = NaN
+    df = nothing
 
     write_status(output_path; status="running", stage="INIT")
 
     # Resolve optimal params path
     opt_file = optimal_params_path
+    dataset_file = dataset_path
     if opt_file === nothing
         latest_ptr = joinpath(config.outputs_dir, "LATEST.txt")
         if !isfile(latest_ptr)
@@ -748,6 +750,13 @@ function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
         end
         opt_file = joinpath(latest_run, "optimal_device_parameters.json")
     end
+    if dataset_file === nothing
+        latest_ptr = joinpath(config.outputs_dir, "LATEST.txt")
+        latest_run = strip(read(latest_ptr, String))
+        dataset_file = joinpath(latest_run, "df_uniform_analysis.h5")
+    end
+    
+    
 
     # If a directory was provided, assume optimal_device_parameters.json inside it.
     if isdir(String(opt_file))
@@ -760,6 +769,10 @@ function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
         end
     catch
     end
+    try
+        cp(String(opt_file), joinpath(output_path, "optimal_device_parameters.json"); force=true)
+    catch
+    end
 
     try
         write_status(output_path; status="running", stage="LOAD_OPT")
@@ -767,7 +780,8 @@ function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
         raw = JSON.parse(read(opt_file, String))
         data = raw["data"]
         optimal_params = Dict(Symbol(k)=>v for (k,v) in data)
-        print("AAAAAAAAAAAAAAAAAAAAA  ", optimal_params)
+        hdr = raw["header"]
+        optimal_metric = get(hdr, "optimal_metric", NaN)
 
         stop_if_requested!(config.WORKING_SPACE)
 
@@ -800,6 +814,7 @@ function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
         end
 
         write_status(output_path; status="completed", stage="DONE")
+        df, _ = load_dataset(String(dataset_file))
         save_dataset(df, output_path)
         @info "Nonlinear-only run completed."
 
@@ -813,6 +828,20 @@ function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
             rethrow()
         end
     finally
+        metric_history = (isdefined(@__MODULE__, :cost_history) ? cost_history : Dict())
+        try
+            write_run_bookkeeping(output_path;
+                config=config,
+                parameter_space=Dict{Symbol,Any}(),
+                best_device_parameters=optimal_params,
+                best_metric=optimal_metric,
+                metric_history=metric_history,
+                sim_settings=sim_vars,
+                optimizer_settings=optimizer_config
+            )
+        catch err
+            @warn "Bookkeeping step failed (run still OK): $err"
+        end
         GC.gc()
     end
 
