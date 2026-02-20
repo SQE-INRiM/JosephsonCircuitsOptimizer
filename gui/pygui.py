@@ -657,7 +657,9 @@ def _start_run(julia_code: str, label: str):
     # Disable other start buttons (if present)
     try:
         sweep_only_button.state(['disabled'])
-        dataset_only_button.state(['disabled'])
+        #dataset_only_button.state(['disabled'])
+        opt_only_button.state(['disabled'])
+        hb_only_button.state(['disabled'])
     except Exception:
         pass
 
@@ -744,6 +746,28 @@ def start_from_latest_dataset_only():
     _start_run(julia_code, "Starting optimization + nonlinear from latest dataset...")
 
 
+def start_optimization_only():
+    julia_code = f'''
+    using Pkg
+    Pkg.activate("{project_path}")
+    push!(LOAD_PATH, "{src_path}")
+    using JosephsonCircuitsOptimizer
+    JosephsonCircuitsOptimizer.run_optimization_only(workspace=raw"{workspace_var.get()}", create_workspace=true)
+    '''
+    _start_run(julia_code, "Starting optimization only (from latest dataset)...")
+
+
+def start_nonlinear_only():
+    julia_code = f'''
+    using Pkg
+    Pkg.activate("{project_path}")
+    push!(LOAD_PATH, "{src_path}")
+    using JosephsonCircuitsOptimizer
+    JosephsonCircuitsOptimizer.run_nonlinear_only(workspace=raw"{workspace_var.get()}", create_workspace=true)
+    '''
+    _start_run(julia_code, "Starting nonlinear (HB) only (from latest optimal params)...")
+
+
 def stop_simulation():
     global process
     if process is None:
@@ -780,7 +804,9 @@ def simulation_finished():
     # Re-enable other start buttons
     try:
         sweep_only_button.state(['!disabled'])
-        dataset_only_button.state(['!disabled'])
+        #dataset_only_button.state(['!disabled'])
+        opt_only_button.state(['!disabled'])
+        hb_only_button.state(['!disabled'])
     except Exception:
         pass
 
@@ -917,7 +943,7 @@ sweep_only_button = ttk.Button(
     style="Primary.TButton"
 )
 sweep_only_button.pack(side='left', padx=(0, 10))
-
+"""
 dataset_only_button = ttk.Button(
     button_frame,
     text="Opt+Nonlin from Latest",
@@ -925,6 +951,23 @@ dataset_only_button = ttk.Button(
     style="Primary.TButton"
 )
 dataset_only_button.pack(side='left', padx=(0, 10))
+"""
+
+opt_only_button = ttk.Button(
+    button_frame,
+    text="Optimization Only",
+    command=start_optimization_only,
+    style="Primary.TButton"
+)
+opt_only_button.pack(side='left', padx=(0, 10))
+
+hb_only_button = ttk.Button(
+    button_frame,
+    text="Nonlin (HB) Only",
+    command=start_nonlinear_only,
+    style="Primary.TButton"
+)
+hb_only_button.pack(side='left', padx=(0, 10))
 
 restore_btn = ttk.Button(button_frame,
                          text="Restore LATEST inputs",

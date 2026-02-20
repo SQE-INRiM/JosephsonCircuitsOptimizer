@@ -13,6 +13,7 @@ import GLMakie as M
 using FileIO
 
 export plot, mplot, run, run_sweep_only, run_from_latest_dataset_only, seed_next_run_from_latest!
+export run_optimization_only, run_nonlinear_only
 
 const plot = P.plot
 const mplot = M.plot
@@ -102,15 +103,15 @@ Initialize all dependent modules with the given configuration.
 Note: The individual setup_* functions currently rely on the global `config`.
 This function exists to make the initialization sequence explicit.
 """
-function modules_setup(config::Configuration)
+function modules_setup(config::Configuration; stages=(:sources,:circuit,:cost,:simulator,:optimizer))
 
     @info "Initializing modules with configuration..."
     
-    setup_sources()
-    setup_circuit()
-    setup_cost()
-    setup_simulator()
-    setup_optimizer()
+    (:sources   in stages) && setup_sources()
+    (:circuit   in stages) && setup_circuit()
+    (:cost      in stages) && setup_cost()
+    (:simulator in stages) && setup_simulator()
+    (:optimizer in stages) && setup_optimizer()
 
     @info "All modules initialized successfully."
 end
@@ -535,6 +536,7 @@ function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}
         end
 
         write_status(output_path; status="completed", stage="DONE")
+        save_dataset(df, output_path)
         @info "Dataset-only run completed."
 
     catch e
@@ -567,5 +569,254 @@ function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}
     return nothing
 end
 
+
+"""\
+    run_optimization_only(; workspace=nothing, create_workspace=true, dataset_path=nothing)
+
+Run *only* the optimization stage (BO), starting from a previously saved linear dataset.
+
+This produces an `optimal_device_parameters.json` in a new output folder, but **does not**
+run the nonlinear (HB) simulations.
+
+If `dataset_path` is `nothing`, JCO will use `outputs/LATEST.txt` in the workspace to locate
+the most recent run folder and read `df_uniform_analysis.h5` from it.
+"""
+function run_optimization_only(; workspace::Union{Nothing,AbstractString}=nothing,
+                              create_workspace::Bool=true,
+                              dataset_path::Union{Nothing,AbstractString}=nothing)
+
+    global config = get_configuration(; workspace=workspace, create=create_workspace)
+    clear_stopfile!(config.WORKING_SPACE)
+
+    # BO still evaluates the cost function, so we need the optimizer too.
+    modules_setup(config)
+    initialize_workspace(config)
+
+    base_output_path = config.outputs_dir
+    global plot_path = config.plot_dir
+    global corr_path = config.corr_dir
+
+    device_params_file = joinpath(config.user_inputs_dir, "device_parameters_space.json")
+    device_parameters_space = load_params(device_params_file)
+    global device_parameters_space = device_parameters_space
+
+    global delta_correction = 0.0
+
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
+    output_path = joinpath(base_output_path, "output_" * timestamp)
+    mkpath(output_path)
+
+    @info "Results will be saved in: $output_path"
+
+    optimal_params = nothing
+    optimal_metric = nothing
+    df = nothing
+
+    write_status(output_path; status="running", stage="INIT")
+
+    # Resolve dataset path
+    dataset_file = dataset_path
+    if dataset_file === nothing
+        latest_ptr = joinpath(config.outputs_dir, "LATEST.txt")
+        if !isfile(latest_ptr)
+            error("No LATEST.txt found in outputs. Run a sweep (or full run) first.")
+        end
+        latest_run = strip(read(latest_ptr, String))
+        if isempty(latest_run)
+            error("LATEST.txt is empty. Run a sweep (or full run) first.")
+        end
+        dataset_file = joinpath(latest_run, "df_uniform_analysis.h5")
+    end
+
+    try
+        open(joinpath(output_path, "SOURCE_DATASET.txt"), "w") do io
+            println(io, String(dataset_file))
+        end
+    catch
+    end
+
+    try
+        write_status(output_path; status="running", stage="LOAD_DF")
+        @info "Loading dataset from: $(dataset_file)"
+        df, _ = load_dataset(String(dataset_file))
+
+        stop_if_requested!(config.WORKING_SPACE)
+
+        write_status(output_path; status="running", stage="BO")
+        @info "Running optimization from saved dataset (BO only)."
+        optimal_params, optimal_metric = run_optimization(df)
+        println("AAAAAAAAAAAAAAAAAAAAAAAA  ", optimal_params, optimal_metric)
+
+
+        # Optional: correlation + 1D plot with optimum highlighted
+        try
+            create_corr_figure(df; optimal_params=optimal_params)
+        catch e
+            @warn "Could not generate highlighted correlation/1D plot: $e"
+        end
+
+        header = Dict(
+            "optimal_metric" => optimal_metric,
+            "description" => "Optimal parameters for the model (BO only, from saved dataset)"
+        )
+        optimal_params_file = joinpath(output_path, "optimal_device_parameters.json")
+        save_output_file(header, optimal_params, optimal_params_file)
+
+        write_status(output_path; status="completed", stage="DONE")
+        save_dataset(df, output_path)
+        @info "Optimization-only run completed."
+
+    catch e
+        if e isa StopRequested
+            write_status(output_path; status="stopped", stage="STOPPED", message="Stop requested by user.")
+            @warn "Stop requested by user. Exiting optimization-only run cleanly."
+            return nothing
+        else
+            write_status(output_path; status="error", stage="ERROR", message=string(e))
+            rethrow()
+        end
+    finally
+        metric_history = (isdefined(@__MODULE__, :cost_history) ? cost_history : Dict())
+        try
+            write_run_bookkeeping(output_path;
+                config=config,
+                parameter_space=Dict{Symbol,Any}(),
+                best_device_parameters=optimal_params,
+                best_metric=optimal_metric,
+                metric_history=metric_history,
+                sim_settings=sim_vars,
+                optimizer_settings=optimizer_config
+            )
+        catch err
+            @warn "Bookkeeping step failed (run still OK): $err"
+        end
+        GC.gc()
+    end
+
+    return nothing
+end
+
+
+"""\
+    run_nonlinear_only(; workspace=nothing, create_workspace=true, optimal_params_path=nothing)
+
+Run *only* the nonlinear (HB) sweep starting from a saved `optimal_device_parameters.json`.
+
+If `optimal_params_path` is `nothing`, JCO will use `outputs/LATEST.txt` in the workspace to locate
+the most recent run folder and read `optimal_device_parameters.json` from it.
+
+You may pass either a run-folder path or the `.json` file path.
+"""
+function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
+                           create_workspace::Bool=true,
+                           optimal_params_path::Union{Nothing,AbstractString}=nothing)
+
+    global config = get_configuration(; workspace=workspace, create=create_workspace)
+    clear_stopfile!(config.WORKING_SPACE)
+
+    # HB does not need the optimizer module.
+    modules_setup(config; stages=(:sources, :circuit, :cost, :simulator))
+    initialize_workspace(config)
+
+    base_output_path = config.outputs_dir
+    global plot_path = config.plot_dir
+    global corr_path = config.corr_dir
+
+    global delta_correction = 0.0
+
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
+    output_path = joinpath(base_output_path, "output_" * timestamp)
+    mkpath(output_path)
+
+    @info "Results will be saved in: $output_path"
+
+    results = nothing
+    optimal_params = nothing
+
+    write_status(output_path; status="running", stage="INIT")
+
+    # Resolve optimal params path
+    opt_file = optimal_params_path
+    if opt_file === nothing
+        latest_ptr = joinpath(config.outputs_dir, "LATEST.txt")
+        if !isfile(latest_ptr)
+            error("No LATEST.txt found in outputs. Run an optimization (or full run) first.")
+        end
+        latest_run = strip(read(latest_ptr, String))
+        if isempty(latest_run)
+            error("LATEST.txt is empty. Run an optimization (or full run) first.")
+        end
+        opt_file = joinpath(latest_run, "optimal_device_parameters.json")
+    end
+
+    # If a directory was provided, assume optimal_device_parameters.json inside it.
+    if isdir(String(opt_file))
+        opt_file = joinpath(String(opt_file), "optimal_device_parameters.json")
+    end
+
+    try
+        open(joinpath(output_path, "SOURCE_OPTIMAL_PARAMS.txt"), "w") do io
+            println(io, String(opt_file))
+        end
+    catch
+    end
+
+    try
+        write_status(output_path; status="running", stage="LOAD_OPT")
+        @info "Loading optimal parameters from: $(opt_file)"
+        raw = JSON.parse(read(opt_file, String))
+        data = raw["data"]
+        optimal_params = Dict(Symbol(k)=>v for (k,v) in data)
+        print("AAAAAAAAAAAAAAAAAAAAA  ", optimal_params)
+
+        stop_if_requested!(config.WORKING_SPACE)
+
+        write_status(output_path; status="running", stage="HB")
+        @info "Running nonlinear simulations (HB only)."
+        results = run_nonlinear_simulations_sweep(optimal_params)
+
+        let p = plot_delta_vs_amplitude(results)
+            if p !== nothing
+                plot_update(p; params=optimal_params, metric=NaN, plot_type="delta_vs_amplitude")
+            end
+        end
+
+        let p = plot_performance_vs_amplitude(results)
+            if p !== nothing
+                plot_update(p; params=optimal_params, metric=NaN, plot_type="performance_vs_amplitude")
+            end
+        end
+
+        # Save best physical quantities (same logic as in run)
+        try
+            best_idx = findmax(r -> r.performance, results)[2]
+            best_amplitudes = results[best_idx].amps
+            optimal_physical_quantities = update_physical_quantities(best_amplitudes)
+            save_output_file(Dict("description"=>"Optimal physical quantities (HB only)"),
+                             optimal_physical_quantities,
+                             joinpath(output_path, "optimal_physical_quantities.json"))
+        catch e
+            @warn "Could not save optimal physical quantities (HB only): $e"
+        end
+
+        write_status(output_path; status="completed", stage="DONE")
+        save_dataset(df, output_path)
+        @info "Nonlinear-only run completed."
+
+    catch e
+        if e isa StopRequested
+            write_status(output_path; status="stopped", stage="STOPPED", message="Stop requested by user.")
+            @warn "Stop requested by user. Exiting nonlinear-only run cleanly."
+            return nothing
+        else
+            write_status(output_path; status="error", stage="ERROR", message=string(e))
+            rethrow()
+        end
+    finally
+        GC.gc()
+    end
+
+    return nothing
+end
 
 end  # End of module
