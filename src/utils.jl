@@ -634,7 +634,10 @@ end
 Write / update a status.json file in the current output folder.
 """
 function write_status(output_path::AbstractString; status::AbstractString, stage=nothing, message=nothing, extra=Dict{String,Any}())
-    status_path = joinpath(output_path, "status.json")
+    # Write status inside `simulation_info/` unless the caller already passed that folder.
+    status_dir = (basename(normpath(output_path)) == "simulation_info") ? output_path : joinpath(output_path, "simulation_info")
+    mkpath(status_dir)
+    status_path = joinpath(status_dir, "status.json")
     d = Dict{String,Any}(
         "status" => status,
         "timestamp_utc" => Dates.format(Dates.now(Dates.UTC), dateformat"yyyy-mm-ddTHH:MM:SSZ"),

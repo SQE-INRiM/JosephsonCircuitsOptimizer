@@ -77,7 +77,10 @@ function _write_versions_txt(output_path::AbstractString; repo_root::AbstractStr
     println(io, "\n--- Pkg.status() ---\n")
     print(io, _pkg_status_string())
 
-    open(joinpath(output_path, "versions.txt"), "w") do f
+    siminfo_dir = (basename(normpath(output_path)) == "simulation_info") ? output_path : joinpath(output_path, "simulation_info")
+    mkpath(siminfo_dir)
+
+    open(joinpath(siminfo_dir, "versions.txt"), "w") do f
         write(f, String(take!(io)))
     end
     return nothing
@@ -148,7 +151,10 @@ function _write_run_config_json(
         ),
     )
 
-    open(joinpath(output_path, "run_config.json"), "w") do f
+    siminfo_dir = (basename(normpath(output_path)) == "simulation_info") ? output_path : joinpath(output_path, "simulation_info")
+    mkpath(siminfo_dir)
+
+    open(joinpath(siminfo_dir, "run_config.json"), "w") do f
         JSON.print(f, payload)
         println(f)
     end
@@ -184,15 +190,24 @@ function write_run_bookkeeping(
     sim_settings=Dict(),
     optimizer_settings=Dict()
 )
+    # `output_path` should normally be the run folder. If the caller passes
+    # `<run_folder>/simulation_info`, recover the run root to keep datasets in the run folder
+    # and ensure outputs/LATEST.txt points to the run folder (not the metadata folder).
+    output_root = (basename(normpath(output_path)) == "simulation_info") ? dirname(normpath(output_path)) : output_path
+
+    # Ensure metadata folder exists (writers below will place metadata inside this folder)
+    siminfo_dir = (basename(normpath(output_path)) == "simulation_info") ? output_path : joinpath(output_root, "simulation_info")
+    mkpath(siminfo_dir)
+
     # repo root = package root (src/..)
     repo_root = normpath(joinpath(@__DIR__, ".."))
 
     # 1) Snapshot user inputs used for the run
-    inputs_files = _snapshot_user_inputs(output_path; user_inputs_dir=config.user_inputs_dir)
+    inputs_files = _snapshot_user_inputs(output_root; user_inputs_dir=config.user_inputs_dir)
 
     # 2) Write run metadata + results
     _write_run_config_json(
-        output_path;
+        output_root;
         workspace=config.WORKING_SPACE,
         inputs_snapshot_rel="inputs_snapshot",
         inputs_files=inputs_files,
@@ -205,8 +220,8 @@ function write_run_bookkeeping(
     )
 
     # 3) Environment fingerprints + convenience pointer
-    _write_versions_txt(output_path; repo_root=repo_root)
-    _write_latest_pointer(config.outputs_dir, output_path)
+    _write_versions_txt(output_root; repo_root=repo_root)
+    _write_latest_pointer(config.outputs_dir, output_root)
     return nothing
 end
 

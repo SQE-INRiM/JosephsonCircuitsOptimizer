@@ -487,7 +487,9 @@ function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}
 
     # If a directory was provided, load_dataset will look for df_uniform_analysis.h5 inside it.
     try
-        open(joinpath(output_path, "SOURCE_DATASET.txt"), "w") do io
+        siminfo_dir = (basename(normpath(output_path)) == "simulation_info") ? output_path : joinpath(output_path, "simulation_info")
+        mkpath(siminfo_dir)
+        open(joinpath(siminfo_dir, "SOURCE_DATASET.txt"), "w") do io
             println(io, String(dataset_file))
         end
     catch
@@ -629,7 +631,9 @@ function run_optimization_only(; workspace::Union{Nothing,AbstractString}=nothin
     end
 
     try
-        open(joinpath(output_path, "SOURCE_DATASET.txt"), "w") do io
+        siminfo_dir = (basename(normpath(output_path)) == "simulation_info") ? output_path : joinpath(output_path, "simulation_info")
+        mkpath(siminfo_dir)
+        open(joinpath(siminfo_dir, "SOURCE_DATASET.txt"), "w") do io
             println(io, String(dataset_file))
         end
     catch
@@ -764,7 +768,9 @@ function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
     end
 
     try
-        open(joinpath(output_path, "SOURCE_OPTIMAL_PARAMS.txt"), "w") do io
+        siminfo_dir = (basename(normpath(output_path)) == "simulation_info") ? output_path : joinpath(output_path, "simulation_info")
+        mkpath(siminfo_dir)
+        open(joinpath(siminfo_dir, "SOURCE_OPTIMAL_PARAMS.txt"), "w") do io
             println(io, String(opt_file))
         end
     catch

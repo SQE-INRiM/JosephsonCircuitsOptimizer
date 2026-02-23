@@ -14,7 +14,7 @@ end
 const STATES = Dict{String,ProgressState}()
 
 const EMA_ALPHA = 0.2        # strong smoothing
-const MIN_SAMPLES_FOR_ETA = 3
+const MIN_SAMPLES_FOR_ETA = 1
 
 # ----------------------------
 # Utilities
