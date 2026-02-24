@@ -266,7 +266,27 @@ function load_params(filename; optimal::Union{Dict,Nothing}=nothing)
 
         if isa(v, Dict)
             # Determine values
-            if all(haskey(v, fld) for fld in ("start","step","stop"))
+            # Supported JSON formats for each parameter:
+            #   1) {"start":..., "step":..., "stop":...}
+            #   2) {"values":[...]}
+            #   3) {"segments":[{"start":...,"step":...,"stop":...}, ...]}
+            # The "segments" form is useful for non-uniform frequency grids.
+            if haskey(v, "segments")
+                segs = v["segments"]
+                if !(segs isa AbstractVector)
+                    error("'segments' for key '$k' must be an array of {start,step,stop} dicts")
+                end
+                acc = Float64[]
+                for (si, seg) in enumerate(segs)
+                    if !(seg isa Dict) || !all(haskey(seg, fld) for fld in ("start","step","stop"))
+                        error("Segment #$si for key '$k' must be a dict with start/step/stop")
+                    end
+                    append!(acc, collect(seg["start"]:seg["step"]:seg["stop"]))
+                end
+                sort!(acc)
+                unique!(acc)
+                values = acc
+            elseif all(haskey(v, fld) for fld in ("start","step","stop"))
                 values = collect(v["start"]:v["step"]:v["stop"])
             elseif haskey(v, "values")
                 values = v["values"]
