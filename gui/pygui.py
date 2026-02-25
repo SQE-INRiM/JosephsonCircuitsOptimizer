@@ -47,6 +47,28 @@ else:
 print(f"Using Julia executable: {JULIA_EXE}")
 
 
+# --- Thread control (repo-level) ---
+# Put an integer (e.g. 12) in <repo>/threads.txt to control how many Julia threads
+# are used for every Julia subprocess started by this GUI.
+def read_repo_threads(default: int = 1) -> int:
+    threads_file = os.path.join(project_path, "threads.txt")
+    if os.path.isfile(threads_file):
+        try:
+            with open(threads_file, "r", encoding="utf-8") as f:
+                n = int(f.read().strip())
+            if n >= 1:
+                return n
+        except Exception:
+            pass
+    return default
+
+def julia_env_with_threads() -> dict:
+    env = os.environ.copy()
+    nthreads = read_repo_threads(default=env.get("JULIA_NUM_THREADS", "1") if str(env.get("JULIA_NUM_THREADS","")).isdigit() else 1)
+    env["JULIA_NUM_THREADS"] = str(nthreads)
+    return env
+
+
 def update_workspace_paths():
     global plot_path, corr_path
     ws = workspace_var.get()
@@ -201,17 +223,29 @@ def restore_latest_inputs_snapshot():
     using JosephsonCircuitsOptimizer
     JosephsonCircuitsOptimizer.seed_next_run_from_latest!(workspace=raw"{workspace_var.get()}")
     '''
+
     def run_in_thread():
         try:
+            env = julia_env_with_threads()
+            try:
+                root.after(0, lambda: log_message(
+                    f"Launching Julia with JULIA_NUM_THREADS={env.get('JULIA_NUM_THREADS','?')}", "info"
+                ))
+            except Exception:
+                pass
+
             p = subprocess.Popen(
                 [JULIA_EXE, '--project=' + project_path, '-e', julia_code],
                 cwd=project_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True
+                text=True,
+                env=env
             )
+
             for line in p.stdout:
                 root.after(0, lambda l=line: log_message(l.strip(), "info"))
+
             p.wait()
             root.after(0, lambda: (refresh_file_tree(),
                                    log_message("✓ Latest inputs_snapshot restored.", "success")))
@@ -657,13 +691,11 @@ def _start_run(julia_code: str, label: str):
     # Disable other start buttons (if present)
     try:
         sweep_only_button.state(['disabled'])
-        #dataset_only_button.state(['disabled'])
         opt_only_button.state(['disabled'])
         hb_only_button.state(['disabled'])
     except Exception:
         pass
 
-    # Ensure workspace folders exist
     ensure_workspace_structure(workspace_var.get())
     update_workspace_paths()
 
@@ -682,13 +714,24 @@ def _start_run(julia_code: str, label: str):
     def run_in_thread():
         global process
         try:
+            env = julia_env_with_threads()
+            try:
+                root.after(0, lambda: log_message(
+                    f"Launching Julia with JULIA_NUM_THREADS={env.get('JULIA_NUM_THREADS','?')}",
+                    "info"
+                ))
+            except Exception:
+                pass
+
             process = subprocess.Popen(
                 [JULIA_EXE, '--project=' + project_path, '-e', julia_code],
                 cwd=project_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True
+                text=True,
+                env=env
             )
+
             for line in process.stdout:
                 if process is None:
                     break
@@ -706,6 +749,7 @@ def _start_run(julia_code: str, label: str):
 
             process.wait()
             root.after(0, simulation_finished)
+
         except Exception as e:
             root.after(0, lambda: log_message(f"Error running simulation: {e}", 'error'))
             root.after(0, simulation_finished)
@@ -829,21 +873,35 @@ def run_function(func_name="run"):
     def run_in_thread():
         global process
         try:
+            env = julia_env_with_threads()
+            try:
+                root.after(0, lambda: log_message(
+                    f"Launching Julia with JULIA_NUM_THREADS={env.get('JULIA_NUM_THREADS','?')}",
+                    "info"
+                ))
+            except Exception:
+                pass
+
             process = subprocess.Popen(
                 [JULIA_EXE, '--project=' + project_path, '-e', julia_code],
                 cwd=project_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True
+                text=True,
+                env=env
             )
+
             for line in process.stdout:
                 if process is None:
                     break
-                root.after(0, lambda: log_message(line.strip(), 'info'))
+                root.after(0, lambda l=line: log_message(l.strip(), 'info'))
+
             process.wait()
             process = None
+
         except Exception as e:
             root.after(0, lambda: log_message(f"Error: {e}", 'error'))
+            process = None
 
     threading.Thread(target=run_in_thread, daemon=True).start()
 

@@ -106,6 +106,7 @@ This function exists to make the initialization sequence explicit.
 function modules_setup(config::Configuration; stages=(:sources,:circuit,:cost,:simulator,:optimizer))
 
     @info "Initializing modules with configuration..."
+    @info "Running with $(Threads.nthreads()) threads"
     
     setup_sources()
     setup_circuit()

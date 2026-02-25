@@ -25,6 +25,7 @@ You can run JCO through the **GUI**:
 
 Once the GUI is open, select the working space folder for the experiment and start the process using **Start Simulation**, **Sweep Only**, or **Opt + Nonlin from Latest**.  
 *Note: the first run may take longer due to environment initialization.*
+Inside the JosephsonCircuitsOptimizer folder you can choose the number of treads for the simulation run by changing the number inside `threads.txt`.
 
 ### Running directly from Julia
 
@@ -46,6 +47,18 @@ To use a custom working space:
 
 ```julia
 JCO.run(workspace=raw"C:\...\my_experiment_01")
+```
+
+Before running in Julia, you can choose the number of threads for the simulation run by running on the terminal (powershell):
+
+```bash
+julia --threads 12
+```
+
+in the case of 12 threads. You can check this number typing inside the Julia terminal:
+
+```julia
+Threads.nthreads()
 ```
 
 ### Updating the package
@@ -285,6 +298,12 @@ This release focuses on reproducibility, usability, and workflow modularity.
 - Enhanced visualization of correlations and optimal parameters.
 - Improved optimization options
 - Extended simulator support for multiple pumps.
+
+---
+
+## Hardware features
+
+For reference, the reported simulations were obtained using 12 threads on an Intel Core i7-12700 (12 physical cores, 20 logical processors) running Windows.
 
 ---
 
