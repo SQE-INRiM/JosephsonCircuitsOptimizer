@@ -214,6 +214,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
 
         # --- Nonlinear sweep ---
         write_status(output_path; status="running", stage="HB")
+        println("-----------------------------------------------------")
         @info "Running nonlinear simulations with optimal parameters."
         results = run_nonlinear_simulations_sweep(optimal_params)
 
@@ -524,6 +525,7 @@ function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}
         stop_if_requested!(config.WORKING_SPACE)
 
         write_status(output_path; status="running", stage="HB")
+        println("-----------------------------------------------------")
         @info "Running nonlinear simulations with optimal parameters."
         results = run_nonlinear_simulations_sweep(optimal_params)
 

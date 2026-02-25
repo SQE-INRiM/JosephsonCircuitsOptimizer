@@ -121,7 +121,7 @@ function cost(vec)
     end
 
     if plot_index < number_initial_points+1
-        println("Point number ", plot_index, " of ", number_initial_points, ", that are the ", round(100*(plot_index/number_initial_points))," % of the total" )
+        println("Linear Simulation process. Point number ", plot_index, " of ", number_initial_points, ", that are the ", round(100*(plot_index/number_initial_points))," % of the total" )
     else
         iter = plot_index - number_initial_points
         println("Optimization process: iteration number ", iter)
@@ -148,6 +148,15 @@ end
 
 
 function performance(sol, optimal_params)
+
+    global plot_index_nl
+    global number_initial_points_nl
+
+    println("-----------------------------------------------------")
+
+    # Graceful stop (WORKSPACE/STOP)
+    check_stop()
+    println("Nonlinear Simulation process. Point number ", plot_index_nl, " of ", number_initial_points_nl, ", that are the ", round(100*(plot_index_nl/number_initial_points_nl))," % of the total" )
 
     return Base.invokelatest(user_performance, sol, optimal_params)
     
