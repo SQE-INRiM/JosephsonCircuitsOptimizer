@@ -319,6 +319,43 @@ end
 
 
 
+
+
+
+"""
+    is_single_point_parameter_space(ps::Dict{Symbol,Any}) -> Bool
+
+Return `true` if every parameter in `ps` has exactly one possible value (i.e. no sweep).
+Scalars count as single values; vectors/arrays must have length 1.
+"""
+function is_single_point_parameter_space(ps::Dict{Symbol,Any})
+    for (_, v) in ps
+        if v isa AbstractVector || v isa Tuple
+            if length(v) != 1
+                return false
+            end
+        end
+    end
+    return true
+end
+
+"""
+    single_point_params(ps::Dict{Symbol,Any}) -> Dict{Symbol,Any}
+
+Convert a single-point parameter space into a plain parameter dictionary (scalars).
+"""
+function single_point_params(ps::Dict{Symbol,Any})
+    out = Dict{Symbol,Any}()
+    for (k, v) in ps
+        if v isa AbstractVector || v isa Tuple
+            out[k] = v[1]
+        else
+            out[k] = v
+        end
+    end
+    return out
+end
+
 """
     load_dataset(path)
 

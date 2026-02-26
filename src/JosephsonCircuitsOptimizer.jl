@@ -181,6 +181,12 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         global device_parameters_space = device_parameters_space
         @info "Loaded device parameters space from: $device_params_file"
 
+        # If parameter space is a single point (no sweep), skip correlation + optimization and run HB directly.
+        single_point_mode = is_single_point_parameter_space(device_parameters_space)
+        if single_point_mode
+            @info "Single-point parameter space detected: skipping sweep correlation and optimization."
+        end
+
         # --- Linear sweep ---
         write_status(output_path; status="running", stage="LIN")
         @debug "Running linear simulations with device parameters space: $device_parameters_space"
@@ -190,27 +196,49 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
         save_dataset(df, output_path)
         @info "Saving uniform dataset from the linear simulation run."
-        create_corr_figure(df)
 
-        # --- Optimization ---
-        write_status(output_path; status="running", stage="BO")
-        @info "Running optimization process on the dataset."
-        optimal_params, optimal_metric = run_optimization(df)
+        if single_point_mode
+            # No sweep: use the single point directly, skip correlation + optimizer.
+            optimal_params = single_point_params(device_parameters_space)
+            optimal_metric = NaN
         
-        # Re-generate correlation + 1D plots highlighting the chosen optimum
-        try
-            create_corr_figure(df; optimal_params=optimal_params)
-        catch e
-            @warn "Could not generate highlighted correlation/1D plot: $e"
+            header = Dict(
+                "optimal_metric" => optimal_metric,
+                "description" => "Single-point run (no optimization). Parameters used for HB."
+            )
+            optimal_params_file = joinpath(output_path, "optimal_device_parameters.json")
+            @info "Saving single-point device parameters to: $optimal_params_file"
+            save_output_file(header, optimal_params, optimal_params_file)
+        
+        else
+
+            # Generate correlation + 1D plots highlighting the chosen optimum
+            try
+                create_corr_figure(df)
+            catch e
+                @warn "Could not generate correlation/1D plot: $e"
+            end
+
+            # --- Optimization ---
+            write_status(output_path; status="running", stage="BO")
+            @info "Running optimization process on the dataset."
+            optimal_params, optimal_metric = run_optimization(df)
+            
+            # Re-generate correlation + 1D plots highlighting the chosen optimum
+            try
+                create_corr_figure(df; optimal_params=optimal_params)
+            catch e
+                @warn "Could not generate highlighted correlation/1D plot: $e"
+            end
+            
+            header = Dict(
+                "optimal_metric" => optimal_metric,
+                "description" => "Optimal parameters for the model"
+            )
+            optimal_params_file = joinpath(output_path, "optimal_device_parameters.json")
+            @info "Saving optimal device parameters to: $optimal_params_file"
+            save_output_file(header, optimal_params, optimal_params_file)
         end
-        
-        header = Dict(
-            "optimal_metric" => optimal_metric,
-            "description" => "Optimal parameters for the model"
-        )
-        optimal_params_file = joinpath(output_path, "optimal_device_parameters.json")
-        @info "Saving optimal device parameters to: $optimal_params_file"
-        save_output_file(header, optimal_params, optimal_params_file)
 
         # --- Nonlinear sweep ---
         write_status(output_path; status="running", stage="HB")
@@ -232,7 +260,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         end
 
         # --- Nonlinear correction (optional) ---
-        if sim_vars[:n_iterations_nonlinear_correction] != 0
+        if sim_vars[:n_iterations_nonlinear_correction] != 0 && !single_point_mode
 
             lin_deltas = Float64[]
             nonlin_deltas = Float64[]
@@ -241,8 +269,9 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             for i in 1:sim_vars[:n_iterations_nonlinear_correction]
 
                 stop_if_requested!(config.WORKING_SPACE) 
-
+                println("-----------------------------------------------------")
                 @info "Implementing nonlinear correction: iteration $i"
+                println("-----------------------------------------------------")
 
                 deltas = delta_quantity(optimal_params, reference_amplitudes)
                 global delta_correction = deltas[1]
@@ -394,7 +423,13 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
 
         df, _ = run_linear_simulations_sweep(device_parameters_space, filter_df=filter_df)
         save_dataset(df, output_path)
-        create_corr_figure(df)
+                
+        # Generate correlation + 1D plots highlighting the chosen optimum
+        try
+            create_corr_figure(df)
+        catch e
+            @info "Could not generate correlation/1D plot: $e"
+        end
 
         write_status(output_path; status="completed", stage="DONE")
         @info "Sweep-only run completed."

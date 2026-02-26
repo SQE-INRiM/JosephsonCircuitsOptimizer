@@ -1168,8 +1168,16 @@ def _handle_progress_done(line: str):
 
 def update_plot_metadata(image_path):
     meta = load_sidecar_json(image_path)
-    plot_metadata_box.delete(1.0, tk.END)
-    plot_metadata_box.insert(tk.END, format_metadata(meta))
+    new_text = format_metadata(meta)
+
+    # Save scroll position
+    y = plot_metadata_box.yview()[0]
+
+    plot_metadata_box.delete("1.0", tk.END)
+    plot_metadata_box.insert("1.0", new_text)
+
+    # Restore scroll position
+    plot_metadata_box.yview_moveto(y)
 
 
 # Main content area
@@ -1287,12 +1295,24 @@ plot_meta_label = tk.Label(right_panel, text="Plot metadata",
                            bg=COLORS['bg'])
 plot_meta_label.pack(anchor='w', pady=(10, 0))
 
-plot_metadata_box = tk.Text(right_panel, height=10,
-                            font=('Consolas', 9),
-                            bg='#f5f5f5',
-                            fg=COLORS['text'],
-                            wrap=tk.WORD)
-plot_metadata_box.pack(fill='x', pady=(5, 0))
+# Plot metadata viewer (with scrollbar)
+plot_meta_frame = tk.Frame(right_panel, bg=COLORS['bg'])
+plot_meta_frame.pack(fill='both', pady=(5, 0), expand=False)
+
+plot_meta_scroll = ttk.Scrollbar(plot_meta_frame, orient='vertical')
+plot_meta_scroll.pack(side='right', fill='y')
+
+plot_metadata_box = tk.Text(
+    plot_meta_frame, height=10,
+    font=('Consolas', 9),
+    bg='#f5f5f5',
+    fg=COLORS['text'],
+    wrap=tk.WORD,
+    yscrollcommand=plot_meta_scroll.set
+)
+plot_metadata_box.pack(side='left', fill='both', expand=True)
+
+plot_meta_scroll.config(command=plot_metadata_box.yview)
 
 
 # Footer
@@ -1358,13 +1378,24 @@ corr_meta_label = tk.Label(corr_panel, text="Matrix metadata",
                            bg=COLORS['bg'])
 corr_meta_label.pack(anchor='w', pady=(10, 0))
 
-corr_metadata_box = tk.Text(corr_panel, height=10,
-                            font=('Consolas', 9),
-                            bg='#f5f5f5',
-                            fg=COLORS['text'],
-                            wrap=tk.WORD)
-corr_metadata_box.pack(fill='x', pady=(5, 0))
+# Correlation metadata viewer (with scrollbar)
+corr_meta_frame = tk.Frame(corr_panel, bg=COLORS['bg'])
+corr_meta_frame.pack(fill='both', pady=(5, 0), expand=False)
 
+corr_meta_scroll = ttk.Scrollbar(corr_meta_frame, orient='vertical')
+corr_meta_scroll.pack(side='right', fill='y')
+
+corr_metadata_box = tk.Text(
+    corr_meta_frame, height=10,
+    font=('Consolas', 9),
+    bg='#f5f5f5',
+    fg=COLORS['text'],
+    wrap=tk.WORD,
+    yscrollcommand=corr_meta_scroll.set
+)
+corr_metadata_box.pack(side='left', fill='both', expand=True)
+
+corr_meta_scroll.config(command=corr_metadata_box.yview)
 
 
 # Initialize

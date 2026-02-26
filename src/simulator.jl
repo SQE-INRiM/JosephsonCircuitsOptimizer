@@ -376,7 +376,7 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
         S_lin, Sphase_lin = linear_simulation(optimal_params, circuit)
 
         # Compute quantities
-        perf = performance(nonlin_sol, optimal_params)
+        perf = performance(nonlin_sol, optimal_params, amps)
         delta_quantity = calculate_delta_quantity(S_lin, Sphase_lin, S_nonlin, Sphase_nonlin, optimal_params)
 
         push!(results, (amps=amps, performance=perf, delta_quantity=delta_quantity))
