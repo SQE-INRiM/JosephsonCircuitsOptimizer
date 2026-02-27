@@ -905,6 +905,45 @@ def run_function(func_name="run"):
 
     threading.Thread(target=run_in_thread, daemon=True).start()
 
+def make_scrollable(parent, bg):
+    canvas = tk.Canvas(parent, bg=bg, highlightthickness=0)
+    vscroll = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+    canvas.configure(yscrollcommand=vscroll.set)
+
+    vscroll.pack(side="right", fill="y")
+    canvas.pack(side="left", fill="both", expand=True)
+
+    inner = tk.Frame(canvas, bg=bg)
+    window_id = canvas.create_window((0, 0), window=inner, anchor="nw")
+
+    def _on_configure(event):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+    def _on_canvas_configure(event):
+        # Make inner frame match canvas width
+        canvas.itemconfig(window_id, width=event.width)
+
+    inner.bind("<Configure>", _on_configure)
+    canvas.bind("<Configure>", _on_canvas_configure)
+
+    # Mousewheel scrolling (Windows/macOS/Linux)
+    def _on_mousewheel(event):
+        # Windows: event.delta is multiples of 120
+        if event.delta:
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        else:
+            # Linux (Button-4/5)
+            if event.num == 4:
+                canvas.yview_scroll(-3, "units")
+            elif event.num == 5:
+                canvas.yview_scroll(3, "units")
+
+    canvas.bind_all("<MouseWheel>", _on_mousewheel)
+    canvas.bind_all("<Button-4>", _on_mousewheel)
+    canvas.bind_all("<Button-5>", _on_mousewheel)
+
+    return inner
+
 # --- Enhanced GUI ---
 root = tk.Tk()
 

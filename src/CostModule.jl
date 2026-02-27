@@ -148,20 +148,9 @@ end
 
 
 function performance(sol, optimal_params, amps)
-
-    global plot_index_nl
-    global number_initial_points_nl
-
-    println("-----------------------------------------------------")
-
-    # Graceful stop (WORKSPACE/STOP)
     check_stop()
-    println("Nonlinear Simulation process. Point number ", plot_index_nl, " of ", number_initial_points_nl, ", that are the ", round(100*(plot_index_nl/number_initial_points_nl))," % of the total" )
-
     perf = Base.invokelatest(user_performance, sol, optimal_params, amps)
-
     return perf
-    
 end
 
 

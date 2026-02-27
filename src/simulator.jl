@@ -361,13 +361,17 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
     for amp_idx in amp_indices
         # Graceful stop (WORKSPACE/STOP)
         check_stop()
-       global plot_index_nl += 1
+        global plot_index_nl += 1
 
         Progress.tick!(ctx; i=plot_index_nl)
                
         amps = create_nonlinear_amplitudes(n_sources, amp_keys, amp_idx, optimal_params, resolved_functions)
-        @debug "Running nonlinear simulation for amplitudes: $amps"
-       
+
+        println("-----------------------------------------------------")
+        println("Nonlinear sweep point ", plot_index_nl, " of ", number_initial_points_nl,
+                " (", round(100 * plot_index_nl/number_initial_points_nl; digits=1), "%)")
+        println("Source amplitudes used: ", amps)
+
         # Nonlinear sim
         nonlin_sol = nonlinear_simulation(circuit, amps)
         S_nonlin, Sphase_nonlin = extract_S_parameters(nonlin_sol, circuit.PortNumber)
@@ -376,8 +380,9 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
         S_lin, Sphase_lin = linear_simulation(optimal_params, circuit)
 
         # Compute quantities
-        perf = performance(nonlin_sol, optimal_params, amps)
+        perf = performance(nonlin_sol, optimal_params, amps)   # keep it, but remove the counter print inside
         delta_quantity = calculate_delta_quantity(S_lin, Sphase_lin, S_nonlin, Sphase_nonlin, optimal_params)
+                
 
         push!(results, (amps=amps, performance=perf, delta_quantity=delta_quantity))
         
