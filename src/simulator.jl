@@ -97,37 +97,29 @@ end
 """
     extract_S_parameters(sol, n_ports)
 
-Extracts the S-parameters and their phases from the solution object. The solution object contains the results
-of the simulation, and this function retrieves the S-parameters for all port combinations.
+Extract the S-parameters from the solution object.
 
 # Arguments
 - `sol::Any`: The solution object from the simulation.
 - `n_ports::Int`: The number of ports in the circuit.
 
 # Returns
-- `S_magnitude::Dict`: A dictionary containing the magnitudes of the S-parameters.
-- `S_phase::Dict`: A dictionary containing the phases of the S-parameters.
+- `S::Dict{Tuple{Int,Int}, Vector{ComplexF64}}`: dictionary of complex S-parameter vectors.
 
 """
 
 function extract_S_parameters(sol, n_ports)
-    # Initialize dictionaries to store the S-parameters and their phases
-    S_magnitude = Dict{Tuple{Int,Int}, Vector{ComplexF64}}()
-    S_phase     = Dict{Tuple{Int,Int}, Vector{Float64}}()
+    # Dictionary of complex S-parameters, keyed by (i,j) port indices
+    S = Dict{Tuple{Int,Int}, Vector{ComplexF64}}()
 
-    # Loop over all port combinations
     for i in 1:n_ports
         for j in 1:n_ports
-            # Convert the KeyedArray slice to a plain Vector
             Sij = Array(sol.linearized.S((0,), i, (0,), j, :))
-
-            # Store directly as vector
-            S_magnitude[(i, j)] = Sij
-            S_phase[(i, j)]     = unwrap(angle.(Sij))
+            S[(i, j)] = Sij
         end
     end
 
-    return S_magnitude, S_phase
+    return S
 end
 
 """
@@ -142,8 +134,7 @@ S-parameters for the circuit.
 - `circuit::Circuit`: The circuit object that defines the structure of the device.
 
 # Returns
-- `S::Dict`: A dictionary containing the S-parameters.
-- `Sphase::Dict`: A dictionary containing the phases of the S-parameters.
+- `S::Dict{Tuple{Int,Int}, Vector{ComplexF64}}`: complex S-parameters keyed by (i,j).
 
 """
 function linear_simulation(device_params_set::Dict, circuit::Circuit)
@@ -203,11 +194,11 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
     @debug "Solution calculated"
 
     # Extract S-parameters from the solution
-    S, Sphase = extract_S_parameters(sol, circuit.PortNumber)
+    S = extract_S_parameters(sol, circuit.PortNumber)
 
     @debug "S parameters extracted"
 
-    return S, Sphase
+    return S
 end
 
 
@@ -291,17 +282,17 @@ function nonlinear_simulation(circuit, amps::Vector)
 end
 
 
-function calculate_delta_quantity(S_lin, Sphase_lin, S_nonlin, Sphase_nonlin, optimal_params)
-    lin_delta_quantity = Base.invokelatest(user_delta_quantity, S_lin, Sphase_lin, optimal_params)
+function calculate_delta_quantity(S_lin, S_nonlin, optimal_params)
+    lin_delta_quantity = Base.invokelatest(user_delta_quantity, S_lin, optimal_params)
     @debug "Linear delta quantity: $lin_delta_quantity"
-    
-    nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S_nonlin, Sphase_nonlin, optimal_params)
+
+    nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S_nonlin, optimal_params)
     @debug "Nonlinear delta quantity: $nonlin_delta_quantity"
 
-    delta_quantity = abs(nonlin_delta_quantity - lin_delta_quantity)
+    delta_quantity = nonlin_delta_quantity - lin_delta_quantity
     println("Delta quantity (nonlinear correction): ", delta_quantity)
 
-    return nonlin_delta_quantity
+    return delta_quantity, lin_delta_quantity, nonlin_delta_quantity
 end
 
 
@@ -374,17 +365,16 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
 
         # Nonlinear sim
         nonlin_sol = nonlinear_simulation(circuit, amps)
-        S_nonlin, Sphase_nonlin = extract_S_parameters(nonlin_sol, circuit.PortNumber)
+        S_nonlin = extract_S_parameters(nonlin_sol, circuit.PortNumber)
 
         # Linear sim (reused for delta calculation)
-        S_lin, Sphase_lin = linear_simulation(optimal_params, circuit)
+        S_lin = linear_simulation(optimal_params, circuit)
 
         # Compute quantities
-        perf = performance(nonlin_sol, optimal_params, amps)   # keep it, but remove the counter print inside
-        delta_quantity = calculate_delta_quantity(S_lin, Sphase_lin, S_nonlin, Sphase_nonlin, optimal_params)
-                
+        perf = performance(nonlin_sol, optimal_params, amps)
+        delta_quantity, lin_delta, nonlin_delta = calculate_delta_quantity(S_lin, S_nonlin, optimal_params)
 
-        push!(results, (amps=amps, performance=perf, delta_quantity=delta_quantity))
+        push!(results, (amps=amps, performance=perf, delta_quantity=delta_quantity, lin_delta=lin_delta, nonlin_delta=nonlin_delta))
         
        end
 

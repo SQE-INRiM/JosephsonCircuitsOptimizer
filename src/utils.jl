@@ -482,6 +482,7 @@ end
 function plot_update(p, params; metric=nothing, plot_type::AbstractString="plot", run_id=nothing, extra=Dict())
     return plot_update(p; params=params, metric=metric, plot_type=plot_type, run_id=run_id, extra=extra)
 end
+
 """
     correlation_update(fig::Figure; params=nothing, metric=nothing, plot_type="correlation", run_id=nothing, extra=Dict())
 

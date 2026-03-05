@@ -39,8 +39,7 @@ a circuit is created, and the simulation is run to get the scattering parameters
 - `vec::Vector`: A vector containing the device parameters.
 
 # Returns
-- `S`: Scattering parameter.
-- `Sphase`: Phase of the scattering parameter.
+- `S`: Scattering parameters (complex vectors in a Dict).
 - `device_params_temp`: The device parameters corresponding to the input vector.
 
 """
@@ -53,10 +52,10 @@ function sim_sys(vec)
     circuit = create_circuit(device_params_temp)
     @debug "Circuit created"
 
-    S, Sphase = linear_simulation(device_params_temp, circuit)
+    S = linear_simulation(device_params_temp, circuit)
     @debug "Linear simulation completed"
 
-    return S, Sphase, device_params_temp
+    return S, device_params_temp
 end
 
 """
@@ -128,11 +127,11 @@ function cost(vec)
     end
     
     # Get simulation results for the given parameters.
-    S, Sphase, device_params_temp = sim_sys(vec)
+    S, device_params_temp = sim_sys(vec)
 
     global delta_correction
     # Calculate the user-defined metric based on the simulation results.
-    metric = Base.invokelatest(user_cost, S, Sphase, device_params_temp, delta_correction)
+    metric = Base.invokelatest(user_cost, S, device_params_temp, delta_correction)
 
     # Save history (best-effort)
     try
@@ -159,18 +158,18 @@ function delta_quantity(optimal_params, best_amplitudes)
 
     circuit = create_circuit(optimal_params)
 
-    S, Sphase = linear_simulation(optimal_params, circuit)
-    lin_delta_quantity = Base.invokelatest(user_delta_quantity, S, Sphase, optimal_params)
+    S = linear_simulation(optimal_params, circuit)
+    lin_delta_quantity = Base.invokelatest(user_delta_quantity, S, optimal_params)
     @debug "Linear delta quantity: $lin_delta_quantity"
     
     sol = nonlinear_simulation(circuit, best_amplitudes)
-    S, Sphase = extract_S_parameters(sol, circuit.PortNumber)
-    nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S, Sphase, optimal_params)
+    S = extract_S_parameters(sol, circuit.PortNumber)
+    nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S, optimal_params)
     @debug "Nonlinear delta quantity: $nonlin_delta_quantity"
 
-    delta_quantity = nonlin_delta_quantity - lin_delta_quantity
-    println("Delta quantity (nonlinear correction): ", delta_quantity)
+    delta_quantity_val = nonlin_delta_quantity - lin_delta_quantity
+    println("Delta quantity (nonlinear correction): ", delta_quantity_val)
 
-    return delta_quantity, lin_delta_quantity, nonlin_delta_quantity
+    return delta_quantity_val, lin_delta_quantity, nonlin_delta_quantity
 
 end
