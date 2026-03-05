@@ -297,7 +297,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 @info "Implementing nonlinear correction: iteration $i"
                 println("-----------------------------------------------------")
 
-                term = delta_quantity(optimal_params, reference_amplitudes)
+                term = nonlinear_correction(optimal_params, reference_amplitudes)
                 global delta_correction = term
                 @info "Nonlinear correction term: $delta_correction"
 

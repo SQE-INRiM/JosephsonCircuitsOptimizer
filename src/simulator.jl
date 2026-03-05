@@ -357,7 +357,7 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
 
         # Compute quantities
         perf = performance(nonlin_sol, optimal_params, amps)
-        nonlin_correction_term = Base.invokelatest(user_delta_quantity, S_lin, nonlin_sol, optimal_params)
+        nonlin_correction_term = Base.invokelatest(user_nonlinear_correction, S_lin, nonlin_sol, optimal_params)
 
         push!(results, (amps=amps, performance=perf, delta_quantity=nonlin_correction_term))
         
