@@ -282,20 +282,6 @@ function nonlinear_simulation(circuit, amps::Vector)
 end
 
 
-function calculate_delta_quantity(S_lin, S_nonlin, optimal_params)
-    lin_delta_quantity = Base.invokelatest(user_delta_quantity, S_lin, optimal_params)
-    @debug "Linear delta quantity: $lin_delta_quantity"
-
-    nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S_nonlin, optimal_params)
-    @debug "Nonlinear delta quantity: $nonlin_delta_quantity"
-
-    delta_quantity = nonlin_delta_quantity - lin_delta_quantity
-    println("Delta quantity (nonlinear correction): ", delta_quantity)
-
-    return delta_quantity, lin_delta_quantity, nonlin_delta_quantity
-end
-
-
 function create_nonlinear_amplitudes(n_sources::Int, amp_keys::Vector{Symbol}, amp_idx::NTuple, device_params_set::Dict, resolved_functions::Dict{Int, Function})
     amps = Float64[]
 
@@ -365,16 +351,15 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
 
         # Nonlinear sim
         nonlin_sol = nonlinear_simulation(circuit, amps)
-        S_nonlin = extract_S_parameters(nonlin_sol, circuit.PortNumber)
 
         # Linear sim (reused for delta calculation)
         S_lin = linear_simulation(optimal_params, circuit)
 
         # Compute quantities
         perf = performance(nonlin_sol, optimal_params, amps)
-        delta_quantity, lin_delta, nonlin_delta = calculate_delta_quantity(S_lin, S_nonlin, optimal_params)
+        nonlin_correction_term = Base.invokelatest(user_delta_quantity, S_lin, nonlin_sol, optimal_params)
 
-        push!(results, (amps=amps, performance=perf, delta_quantity=delta_quantity, lin_delta=lin_delta, nonlin_delta=nonlin_delta))
+        push!(results, (amps=amps, performance=perf, delta_quantity=nonlin_correction_term))
         
        end
 

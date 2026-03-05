@@ -32,7 +32,7 @@ include("CircuitModule.jl")
 include("CostModule.jl")
 include("simulator.jl")
 include("optimizer.jl")
-include("gui.jl")
+include("Analysis_plots.jl")
 include("Resume.jl")
 using .Resume
 
@@ -287,8 +287,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         # --- Nonlinear correction (optional) ---
         if sim_vars[:n_iterations_nonlinear_correction] != 0 && !single_point_mode
 
-            lin_deltas = Float64[]
-            nonlin_deltas = Float64[]
+            correction_terms = Any[]
             reference_amplitudes = get_delta_correction_amplitudes()
 
             for i in 1:sim_vars[:n_iterations_nonlinear_correction]
@@ -298,12 +297,11 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 @info "Implementing nonlinear correction: iteration $i"
                 println("-----------------------------------------------------")
 
-                deltas = delta_quantity(optimal_params, reference_amplitudes)
-                global delta_correction = deltas[1]
-                @info "Delta k (nonlinear correction): $delta_correction"
+                term = delta_quantity(optimal_params, reference_amplitudes)
+                global delta_correction = term
+                @info "Nonlinear correction term: $delta_correction"
 
-                push!(lin_deltas, deltas[2])
-                push!(nonlin_deltas, deltas[3])
+                push!(correction_terms, delta_correction)
 
                 device_parameters_space = load_params(device_params_file; optimal=optimal_params)
                 df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
@@ -364,16 +362,16 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             end
 
             # Convergence plot
-            p = P.plot(collect(1:length(nonlin_deltas)), nonlin_deltas,
+            p = P.plot(collect(1:length(correction_terms)), correction_terms,
                 xlabel="Iteration",
-                ylabel="Nonlinear Delta Quantity",
+                ylabel="Nonlinear Correction Term",
                 title="Nonlinear Correction Convergence",
                 label="",
                 markershape=:circle,
                 markersize=2,
                 framestyle=:box,
                 size=(800, 600),
-                xticks=1:length(nonlin_deltas)
+                xticks=1:length(correction_terms)
             )
             plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="nonlinear_correction_convergence")
 

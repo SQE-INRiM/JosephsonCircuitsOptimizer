@@ -158,18 +158,17 @@ function delta_quantity(optimal_params, best_amplitudes)
 
     circuit = create_circuit(optimal_params)
 
-    S = linear_simulation(optimal_params, circuit)
-    lin_delta_quantity = Base.invokelatest(user_delta_quantity, S, optimal_params)
-    @debug "Linear delta quantity: $lin_delta_quantity"
-    
-    sol = nonlinear_simulation(circuit, best_amplitudes)
-    S = extract_S_parameters(sol, circuit.PortNumber)
-    nonlin_delta_quantity = Base.invokelatest(user_delta_quantity, S, optimal_params)
-    @debug "Nonlinear delta quantity: $nonlin_delta_quantity"
+    # Linear S-parameters (complex)
+    S_lin = linear_simulation(optimal_params, circuit)
 
-    delta_quantity_val = nonlin_delta_quantity - lin_delta_quantity
-    println("Delta quantity (nonlinear correction): ", delta_quantity_val)
+    # Nonlinear solution (HB)
+    sol_nonlin = nonlinear_simulation(circuit, best_amplitudes)
 
-    return delta_quantity_val, lin_delta_quantity, nonlin_delta_quantity
+    # User-defined nonlinear correction term (can be scalar or any object you want to feed into user_cost)
+    nonlin_correction_term = Base.invokelatest(user_delta_quantity, S_lin, sol_nonlin, optimal_params)
+
+    println("Nonlinear correction term: ", nonlin_correction_term)
+
+    return nonlin_correction_term
 
 end
