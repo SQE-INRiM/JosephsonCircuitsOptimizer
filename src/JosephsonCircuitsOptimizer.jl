@@ -245,6 +245,31 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         println("-----------------------------------------------------")
         @info "Running nonlinear simulations with optimal parameters."
         results = run_nonlinear_simulations_sweep(optimal_params)
+        
+        best_performance = NaN
+        best_amplitudes = nothing
+
+        if results !== nothing && !isempty(results)
+            best_idx = findmax(r -> r.performance, results)[2]
+            best_performance = results[best_idx].performance
+            best_amplitudes = results[best_idx].amps
+        end
+        
+        # Save optimal physical quantities from final results (current working point)
+        if best_amplitudes !== nothing
+            optimal_physical_quantities = update_physical_quantities(best_amplitudes)
+
+            header = Dict(
+                "description" => "Optimal physical quantities (working point) of the circuit",
+                "optimal_metric" => optimal_metric,
+                "optimal_performance" => best_performance
+            )
+            optimal_quantities_file = joinpath(output_path, "optimal_physical_quantities.json")
+            save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
+        end
+        
+        optimal_params_dir = joinpath(output_path, "optimal_device_parameters")
+        mkpath(optimal_params_dir)
 
         # Plots
         let p = plot_delta_vs_amplitude(results)
@@ -286,6 +311,45 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
 
                 results = run_nonlinear_simulations_sweep(optimal_params)
 
+                cycle_best_performance = NaN
+                if results !== nothing && !isempty(results)
+                    cycle_best_idx = findmax(r -> r.performance, results)[2]
+                    cycle_best_performance = results[cycle_best_idx].performance
+                    cycle_best_amplitudes = results[best_idx].amps
+                end
+
+                # Save corrected optimal params (cycle i)
+                header = Dict(
+                    "description" => "Optimal parameters after nonlinear correction (cycle $i)",
+                    "optimal_metric" => optimal_metric,
+                    "optimal_performance" => cycle_best_performance,
+                    "nonlinear correction value" => delta_correction
+                )
+
+                optimal_params_file = joinpath(
+                    optimal_params_dir,
+                    "optimal_device_parameters_corrected_cycle_$(i).json"
+                )
+                save_output_file(header, optimal_params, optimal_params_file)
+
+                # Save optimal physical quantities from final results (current working point)
+                if best_amplitudes !== nothing
+                    optimal_physical_quantities = update_physical_quantities(best_amplitudes)
+        
+                    header = Dict(
+                        "description" => "Optimal physical quantities (working point) of the circuit",
+                        "optimal_metric" => optimal_metric,
+                        "optimal_performance" => cycle_best_performance,
+                        "optimal amplitude" => cycle_best_amplitudes
+                    )
+                    
+                    optimal_quantities_file = joinpath(
+                        optimal_params_dir, 
+                        "optimal_physical_quantities_corrected_cycle_$(i).json"
+                        )
+                        save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
+                end
+
                 let p = plot_delta_vs_amplitude(results)
                     if p !== nothing
                         plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="delta_vs_amplitude")
@@ -313,24 +377,6 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             )
             plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="nonlinear_correction_convergence")
 
-            # Save corrected optimal params
-            header = Dict(
-                "optimal_metric" => optimal_metric,
-                "description" => "Optimal parameters after nonlinear correction"
-            )
-            optimal_params_file = joinpath(output_path, "optimal_device_parameters_corrected.json")
-            save_output_file(header, optimal_params, optimal_params_file)
-        end
-
-        # Save optimal physical quantities from final results
-        if results !== nothing
-            best_idx = findmax(r -> r.performance, results)[2]
-            best_amplitudes = results[best_idx].amps
-            optimal_physical_quantities = update_physical_quantities(best_amplitudes)
-
-            header = Dict("description" => "Optimal physical quantities (working point) of the circuit")
-            optimal_quantities_file = joinpath(output_path, "optimal_physical_quantities.json")
-            save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
         end
 
         write_status(output_path; status="completed", stage="DONE")

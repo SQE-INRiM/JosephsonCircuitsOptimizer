@@ -32,7 +32,7 @@ function user_cost(S, Sphase, device_params_set::Dict, delta_correction::Float64
 end
 
 # Optional hooks (used by the optimizer/nonlinear pipeline). Keep them defined for completeness.
-function user_performance(sol, optimal_params)
+function user_performance(sol, optimal_params, device_parameters_set)
     # frequency axis is available through global sim_vars in the current JCO setup
     # (compat layer). It contains w_range in rad/s.
 

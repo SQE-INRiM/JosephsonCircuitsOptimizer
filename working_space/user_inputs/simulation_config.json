@@ -4,6 +4,6 @@
     "nonlinear_strong_tone_harmonics": 16,
     "nonlinear_modulation_harmonics": 8,
     "max_simulator_iterations": 300,
-    "n_iterations_nonlinear_correction": 0
+    "n_iterations_nonlinear_correction": 5
   }
   
