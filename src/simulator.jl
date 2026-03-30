@@ -253,6 +253,12 @@ multiple source configurations and amplitudes, and runs the harmonic balance sol
 
 """
 
+struct NonlinearHBStatus
+    converged::Bool
+    message::String
+    sol
+end
+
 function nonlinear_simulation(circuit, amps::Vector)
     @debug "Circuit received for nonlinear simulation"
 
@@ -268,17 +274,48 @@ function nonlinear_simulation(circuit, amps::Vector)
 
     println("   2. Non-linear simulation")
 
-    @time sol = hbsolve(
-        sim_vars[:w_range], sim_vars[:wp], sources,
-        (sim_vars[:nonlinear_modulation_harmonics],),
-        (sim_vars[:nonlinear_strong_tone_harmonics],),
-        circuit.CircuitStruct, circuit.CircuitDefs;
-        dc=dc, threewavemixing=true, fourwavemixing=true,
-        iterations=sim_vars[:max_simulator_iterations]
-    )
+    warnings = String[]
+    sol = nothing
+    converged = true
+    message = ""
 
-    @debug "Nonlinear simulation completed"
-    return sol
+    logger = TransformerLogger(current_logger()) do log
+        if log.level == Logging.Warn
+            msg = sprint(show, log.message)
+            push!(warnings, msg)
+        end
+        return log
+    end
+
+    try
+        with_logger(logger) do
+            @time sol = hbsolve(
+                sim_vars[:w_range], sim_vars[:wp], sources,
+                (sim_vars[:nonlinear_modulation_harmonics],),
+                (sim_vars[:nonlinear_strong_tone_harmonics],),
+                circuit.CircuitStruct, circuit.CircuitDefs;
+                dc=dc, threewavemixing=true, fourwavemixing=true,
+                iterations=sim_vars[:max_simulator_iterations]
+            )
+        end
+    catch e
+        converged = false
+        message = sprint(showerror, e)
+        @debug "Nonlinear simulation threw exception: $message"
+        return NonlinearHBStatus(converged, message, sol)
+    end
+
+    # Detect the specific non-convergence warning
+    for w in warnings
+        if occursin("Solver did not converge", w)
+            converged = false
+            message = w
+            break
+        end
+    end
+
+    @debug "Nonlinear simulation completed with converged = $converged"
+    return NonlinearHBStatus(converged, message, sol)
 end
 
 
@@ -308,7 +345,6 @@ end
 
 
 function run_nonlinear_simulations_sweep(optimal_params::Dict)
-    # Create circuit once
     circuit = create_circuit(optimal_params)
     @debug "Circuit created once for nonlinear sweep"
 
@@ -330,41 +366,66 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
     global plot_index_nl = 0
 
     ctx = Progress.start!(; N=number_initial_points_nl, stage="HB")
-
     @debug "Running nonlinear simulations for all combinations ($number_initial_points_nl total)"
 
     results = []
 
+    # first failing index of source 1
+    source1_first_failed_idx = nothing
+    failed_idx_by_source2 = Dict{Int, Int}()
+
     for amp_idx in amp_indices
-        # Graceful stop (WORKSPACE/STOP)
         check_stop()
         global plot_index_nl += 1
-
         Progress.tick!(ctx; i=plot_index_nl)
-               
+    
+        source2_idx = amp_idx[2]
+    
+        # local threshold: only for this value of source 2
+        if haskey(failed_idx_by_source2, source2_idx) &&
+           amp_idx[1] >= failed_idx_by_source2[source2_idx]
+            @info "Skipping point due to previous non-convergence of source 1 for this source-2 value" amp_idx=amp_idx
+            continue
+        end
+    
         amps = create_nonlinear_amplitudes(n_sources, amp_keys, amp_idx, optimal_params, resolved_functions)
-
+    
         println("-----------------------------------------------------")
         println("Nonlinear sweep point ", plot_index_nl, " of ", number_initial_points_nl,
-                " (", round(100 * plot_index_nl/number_initial_points_nl; digits=1), "%)")
+                " (", round(100 * plot_index_nl / number_initial_points_nl; digits=1), "%)")
         println("Source amplitudes used: ", amps)
-
-        # Nonlinear sim
-        nonlin_sol = nonlinear_simulation(circuit, amps)
-
-        # Linear sim (reused for delta calculation)
+    
+        nl = nonlinear_simulation(circuit, amps)
+    
+        if !nl.converged
+            @info "Nonlinear solver did not converge" amp_idx=amp_idx amps=amps
+    
+            # store first failed source-1 index for this source-2 slice
+            if !haskey(failed_idx_by_source2, source2_idx)
+                failed_idx_by_source2[source2_idx] = amp_idx[1]
+            end
+    
+            continue
+        end
+    
+        # only if nonlinear converged
         S_lin = linear_simulation(optimal_params, circuit)
-
-        # Compute quantities
-        perf = performance(nonlin_sol, optimal_params, amps)
-        nonlin_correction_term = Base.invokelatest(user_nonlinear_correction, S_lin, nonlin_sol, optimal_params)
-
-        push!(results, (amps=amps, performance=perf, delta_quantity=nonlin_correction_term))
-        
-       end
+    
+        perf = performance(nl.sol, optimal_params, amps)
+        nonlin_correction_term = Base.invokelatest(
+            user_nonlinear_correction, S_lin, nl.sol, optimal_params
+        )
+    
+        push!(results, (
+            amps = amps,
+            performance = perf,
+            delta_quantity = nonlin_correction_term,
+            converged = true,
+            message = ""
+        ))
+    end
 
     Progress.finish!(ctx)
-
     return results
 end
 
