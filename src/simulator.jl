@@ -159,6 +159,9 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
                 amplitude = Base.invokelatest(eval(Symbol(amplitude_value)), device_params_set)
                 @debug "Called function '$function_name' and got amplitude: $amplitude"  # Debug print
             catch e
+                if e isa InterruptException
+                    rethrow()
+                end
                 error("Failed to call function '$function_name': $e")
             end
         else
@@ -299,6 +302,9 @@ function nonlinear_simulation(circuit, amps::Vector)
             )
         end
     catch e
+        if e isa InterruptException
+            rethrow()
+        end
         converged = false
         message = sprint(showerror, e)
         @debug "Nonlinear simulation threw exception: $message"
@@ -370,8 +376,6 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
 
     results = []
 
-    # first failing index of source 1
-    source1_first_failed_idx = nothing
     failed_idx_by_source2 = Dict{Int, Int}()
 
     for amp_idx in amp_indices
