@@ -71,7 +71,8 @@ function setup_simulator()
     sim_vars[:fourwavemixing] = get(sim_vars, :fourwavemixing, true)
     sim_vars[:switchofflinesearchtol] = get(sim_vars, :switchofflinesearchtol, 1e-5)
     sim_vars[:alphamin] = get(sim_vars, :alphamin, 1e-4)
-    sim_vars[:max_simulator_iterations] = get(sim_vars, :max_simulator_iterations, 1000)    
+    sim_vars[:max_simulator_iterations] = get(sim_vars, :max_simulator_iterations, 1000)
+    sim_vars[:skip_higher_pump_on_nonconvergence] = get(sim_vars, :skip_higher_pump_on_nonconvergence, false)
 
 end
 
@@ -398,6 +399,7 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
     @debug "Running nonlinear simulations for all combinations ($number_initial_points_nl total)"
 
     results = []
+    skip_on_nonconvergence = sim_vars[:skip_higher_pump_on_nonconvergence]
 
     failed_idx_by_source2 = Dict{Int, Int}()
 
@@ -405,44 +407,42 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
         check_stop()
         global plot_index_nl += 1
         Progress.tick!(ctx; i=plot_index_nl)
-    
+
         source2_idx = amp_idx[2]
-    
-        # local threshold: only for this value of source 2
-        if haskey(failed_idx_by_source2, source2_idx) &&
+
+        if skip_on_nonconvergence &&
+           haskey(failed_idx_by_source2, source2_idx) &&
            amp_idx[1] >= failed_idx_by_source2[source2_idx]
             @info "Skipping point due to previous non-convergence of source 1 for this source-2 value" amp_idx=amp_idx
             continue
         end
-    
+
         amps = create_nonlinear_amplitudes(n_sources, amp_keys, amp_idx, optimal_params, resolved_functions)
-    
+
         println("-----------------------------------------------------")
         println("Nonlinear sweep point ", plot_index_nl, " of ", number_initial_points_nl,
                 " (", round(100 * plot_index_nl / number_initial_points_nl; digits=1), "%)")
         println("Source amplitudes used: ", amps)
-    
+
         nl = nonlinear_simulation(circuit, amps)
-    
-        if !nl.converged
+
+        if skip_on_nonconvergence && !nl.converged
             @info "Nonlinear solver did not converge" amp_idx=amp_idx amps=amps
-    
-            # store first failed source-1 index for this source-2 slice
+
             if !haskey(failed_idx_by_source2, source2_idx)
                 failed_idx_by_source2[source2_idx] = amp_idx[1]
             end
-    
+
             continue
         end
-    
-        # only if nonlinear converged
+
         S_lin = linear_simulation(optimal_params, circuit)
-    
+
         perf = performance(nl.sol, optimal_params, amps)
         nonlin_correction_term = Base.invokelatest(
             user_nonlinear_correction, S_lin, nl.sol, optimal_params
         )
-    
+
         push!(results, (
             amps = amps,
             performance = perf,
@@ -455,8 +455,6 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
     Progress.finish!(ctx)
     return results
 end
-
-
 
 """
     update_physical_quantities(best_amplitudes::Vector)
