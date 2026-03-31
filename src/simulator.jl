@@ -66,6 +66,12 @@ function setup_simulator()
     # Merge the physical quantities and simulation configuration into a single dictionary
     sim_vars = merge(physical_quantities, simulation_config)
 
+    # Harmonic-balance / nonlinear-solver defaults
+    sim_vars[:threewavemixing] = get(sim_vars, :threewavemixing, false)
+    sim_vars[:fourwavemixing] = get(sim_vars, :fourwavemixing, true)
+    sim_vars[:switchofflinesearchtol] = get(sim_vars, :switchofflinesearchtol, 1e-5)
+    sim_vars[:alphamin] = get(sim_vars, :alphamin, 1e-4)
+    sim_vars[:max_simulator_iterations] = get(sim_vars, :max_simulator_iterations, 1000)    
 
 end
 
@@ -188,9 +194,19 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
 
     # Perform the harmonic balance simulation and obtain solution
     @time sol = hbsolve(
-        omega, sim_vars[:wp], sources, (sim_vars[:linear_modulation_harmonics],), (sim_vars[:linear_strong_tone_harmonics],),
-        circuit.CircuitStruct, circuit.CircuitDefs;
-        dc=dc, threewavemixing=true, fourwavemixing=true, iterations=sim_vars[:max_simulator_iterations]
+        omega,
+        sim_vars[:wp],
+        sources,
+        (sim_vars[:linear_modulation_harmonics],),
+        (sim_vars[:linear_strong_tone_harmonics],),
+        circuit.CircuitStruct,
+        circuit.CircuitDefs;
+        dc = dc,
+        threewavemixing = sim_vars[:threewavemixing],
+        fourwavemixing = sim_vars[:fourwavemixing],
+        iterations = sim_vars[:max_simulator_iterations],
+        switchofflinesearchtol = sim_vars[:switchofflinesearchtol],
+        alphamin = sim_vars[:alphamin]
     )
 
 
@@ -293,12 +309,19 @@ function nonlinear_simulation(circuit, amps::Vector)
     try
         with_logger(logger) do
             @time sol = hbsolve(
-                sim_vars[:w_range], sim_vars[:wp], sources,
+                sim_vars[:w_range],
+                sim_vars[:wp],
+                sources,
                 (sim_vars[:nonlinear_modulation_harmonics],),
                 (sim_vars[:nonlinear_strong_tone_harmonics],),
-                circuit.CircuitStruct, circuit.CircuitDefs;
-                dc=dc, threewavemixing=true, fourwavemixing=true,
-                iterations=sim_vars[:max_simulator_iterations]
+                circuit.CircuitStruct,
+                circuit.CircuitDefs;
+                dc = dc,
+                threewavemixing = sim_vars[:threewavemixing],
+                fourwavemixing = sim_vars[:fourwavemixing],
+                iterations = sim_vars[:max_simulator_iterations],
+                switchofflinesearchtol = sim_vars[:switchofflinesearchtol],
+                alphamin = sim_vars[:alphamin]
             )
         end
     catch e
