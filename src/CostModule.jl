@@ -158,17 +158,18 @@ function nonlinear_correction(optimal_params, best_amplitudes)
 
     circuit = create_circuit(optimal_params)
 
-    # Linear S-parameters (complex)
-    S_lin = linear_simulation(optimal_params, circuit)
+    S_lin = linear_simulation(optimal_params, circuit, sim_vars)
 
-    # Nonlinear solution (HB)
-    sol_nonlin = nonlinear_simulation(circuit, best_amplitudes)
+    sol_nonlin = nonlinear_simulation(circuit, best_amplitudes, sim_vars)
 
-    # User-defined nonlinear correction term (can be scalar or any object you want to feed into user_cost)
-    nonlin_correction_term = Base.invokelatest(user_nonlinear_correction, S_lin, sol_nonlin, optimal_params)
+    nonlin_correction_term = Base.invokelatest(
+        user_nonlinear_correction,
+        S_lin,
+        sol_nonlin.sol,
+        optimal_params
+    )
 
     println("Nonlinear correction term: ", nonlin_correction_term)
 
     return nonlin_correction_term
-
 end

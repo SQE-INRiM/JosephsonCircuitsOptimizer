@@ -10,47 +10,57 @@ function setup_simulator()
     global physical_quantities_init = nothing
     global sim_vars = nothing
 
-    # Load physical quantities from a JSON file containing relevant parameters for the simulation
     physical_quantities = load_params(joinpath(config.user_inputs_dir, "drive_physical_quantities.json"))
-    physical_quantities_init = load_params(joinpath(config.user_inputs_dir,"drive_physical_quantities.json"))
+    physical_quantities_init = load_params(joinpath(config.user_inputs_dir, "drive_physical_quantities.json"))
     simulation_config = load_params(joinpath(config.user_inputs_dir, "simulation_config.json"))
 
-        
-    # Update frequency range based on the provided values
     physical_quantities[:w_range] = 2 * pi * physical_quantities[:frequency_range]
 
-    # Build pump frequencies (fpᵢ) and angular frequencies (wpᵢ) for all non-zero-frequency sources
-    offset = 0.0001e9
     n_sources = _num_sources_from_keys(physical_quantities)
 
-    non_zero_frequencies = Float64[]
+    # Store full frequency sweeps separately, but keep scalar working frequencies in sim_vars
+    source_frequency_specs = Dict{Int, Vector{Float64}}()
+    default_source_frequencies = Float64[]
+
     for i in 1:n_sources
         kfreq = Symbol("source_$(i)_frequency")
-        if haskey(physical_quantities, kfreq) && physical_quantities[kfreq] != 0
-            push!(non_zero_frequencies, float(physical_quantities[kfreq]))
-        end
+        haskey(physical_quantities, kfreq) || error("Missing key $kfreq")
+
+        vals = normalize_sweep_values(physical_quantities[kfreq]; name=String(kfreq))
+
+        # Forbid mixing DC and AC in the same source sweep
+        is_dc = all(v -> v == 0.0, vals)
+        is_ac = all(v -> v != 0.0, vals)
+        (is_dc || is_ac) || error("$(kfreq) cannot mix 0 and non-zero values in the same sweep.")
+
+        source_frequency_specs[i] = vals
+        push!(default_source_frequencies, vals[1])
+
+        # overwrite working value with first scalar value
+        physical_quantities[kfreq] = vals[1]
+        physical_quantities_init[kfreq] = vals[1]
     end
 
-    if isempty(non_zero_frequencies)
-        error("No strong tones found.")
-    end
+    offset = 0.0001e9
+    non_zero_frequencies = [f for f in default_source_frequencies if f != 0.0]
+
+    isempty(non_zero_frequencies) && error("No strong tones found.")
 
     fps = [f + offset for f in non_zero_frequencies]
     wps = [2 * π * fp for fp in fps]
 
-    # Store fpᵢ and wpᵢ in physical_quantities
     for (i, (fp, wp)) in enumerate(zip(fps, wps))
         physical_quantities[Symbol("fp$(i)")] = fp
         physical_quantities[Symbol("wp$(i)")] = wp
     end
 
-    # Store all pump angular frequencies as a tuple
     physical_quantities[:wp] = Tuple(wps)
 
-    # Merge the physical quantities and simulation configuration into a single dictionary
     sim_vars = merge(physical_quantities, simulation_config)
 
-    # Harmonic-balance / nonlinear-solver defaults
+    # save the full source frequency sweeps here
+    sim_vars[:source_frequency_specs] = source_frequency_specs
+
     sim_vars[:threewavemixing] = get(sim_vars, :threewavemixing, true)
     sim_vars[:fourwavemixing] = get(sim_vars, :fourwavemixing, true)
     sim_vars[:switchofflinesearchtol] = get(sim_vars, :switchofflinesearchtol, 1e-5)
@@ -58,7 +68,6 @@ function setup_simulator()
     sim_vars[:max_simulator_iterations] = get(sim_vars, :max_simulator_iterations, 1000)
     sim_vars[:skip_higher_pump_on_nonconvergence] = get(sim_vars, :skip_higher_pump_on_nonconvergence, false)
 
-    # Normalize harmonic specifications according to the number of pumps
     n_pumps = length(sim_vars[:wp])
 
     sim_vars[:linear_strong_tone_harmonics] =
@@ -190,6 +199,52 @@ function source_mode(sim_vars::AbstractDict, source_idx::Int)
     error("Failed to assign pump mode for source $source_idx")
 end
 
+
+# Normalize already-loaded values from load_params().
+# load_params() already expands:
+# - {"start","step","stop"} -> Vector
+# - {"values":[...]}        -> Vector
+# - {"segments":[...]}      -> Vector
+#
+# So here we only need to handle scalar or vector.
+function normalize_sweep_values(x; name::String="parameter")
+    if isa(x, Number)
+        return [float(x)]
+    elseif isa(x, AbstractVector)
+        vals = Float64.(x)
+        isempty(vals) && error("Empty sweep for $name")
+        return vals
+    else
+        error("Unsupported $name specification: $x")
+    end
+end
+
+# Build wp from the scalar source frequencies of the current sweep point.
+# Only non-zero frequencies are pumps.
+function build_wp_from_source_freqs(source_freqs::Vector{Float64}; offset=0.0001e9)
+    pump_freqs = [f + offset for f in source_freqs if f != 0.0]
+    isempty(pump_freqs) && error("No strong tones found for this sweep point.")
+    return Tuple(2π .* pump_freqs)
+end
+
+# Build a temporary simulation dictionary for one frequency point.
+function sim_vars_with_frequencies(base_sim_vars::AbstractDict, source_freqs::Vector{Float64})
+    d = deepcopy(base_sim_vars)
+
+    n_sources = _num_sources_from_keys(d)
+    length(source_freqs) == n_sources || error(
+        "Expected $n_sources source frequencies, got $(length(source_freqs))"
+    )
+
+    for i in 1:n_sources
+        d[Symbol("source_$(i)_frequency")] = source_freqs[i]
+    end
+
+    d[:wp] = build_wp_from_source_freqs(source_freqs)
+    return d
+end
+
+
 """
     extract_S_parameters(sol, n_ports)
 
@@ -233,24 +288,22 @@ S-parameters for the circuit.
 - `S::Dict{Tuple{Int,Int}, Vector{ComplexF64}}`: complex S-parameters keyed by (i,j).
 
 """
-function linear_simulation(device_params_set::Dict, circuit::Circuit)
+function linear_simulation(device_params_set::Dict, circuit::Circuit, local_sim_vars::AbstractDict=sim_vars)
 
-    omega = sim_vars[:w_range]
-    n_sources = _num_sources_from_keys(sim_vars)
+    omega = local_sim_vars[:w_range]
+    n_sources = _num_sources_from_keys(local_sim_vars)
 
     println("   1. Linear simulation")
 
     sources = []
     for i in 1:n_sources
         amplitude_key = Symbol("source_$(i)_linear_amplitude")
-        amplitude_value = sim_vars[amplitude_key]
-        @debug "Processing source $i with amplitude value: $amplitude_value"
+        amplitude_value = local_sim_vars[amplitude_key]
 
         if isa(amplitude_value, String)
             function_name = amplitude_value
             try
                 amplitude = Base.invokelatest(eval(Symbol(amplitude_value)), device_params_set)
-                @debug "Called function '$function_name' and got amplitude: $amplitude"
             catch e
                 if e isa InterruptException
                     rethrow()
@@ -259,46 +312,35 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
             end
         else
             amplitude = amplitude_value
-            @debug "Using direct amplitude value: $amplitude"
         end
 
-        mode = source_mode(sim_vars, i)
-
         source = (
-            mode = mode,
-            port = sim_vars[Symbol("source_$(i)_on_port")],
+            mode = source_mode(local_sim_vars, i),
+            port = local_sim_vars[Symbol("source_$(i)_on_port")],
             current = amplitude
         )
         push!(sources, source)
     end
 
-    dc = any(sim_vars[Symbol("source_$(i)_frequency")] == 0 for i in 1:n_sources)
-
-    @debug "Sources created: $sources"
+    dc = any(local_sim_vars[Symbol("source_$(i)_frequency")] == 0 for i in 1:n_sources)
 
     @time sol = hbsolve(
         omega,
-        sim_vars[:wp],
+        local_sim_vars[:wp],
         sources,
-        sim_vars[:linear_modulation_harmonics],
-        sim_vars[:linear_strong_tone_harmonics],
+        local_sim_vars[:linear_modulation_harmonics],
+        local_sim_vars[:linear_strong_tone_harmonics],
         circuit.CircuitStruct,
         circuit.CircuitDefs;
         dc = dc,
-        threewavemixing = sim_vars[:threewavemixing],
-        fourwavemixing = sim_vars[:fourwavemixing],
-        iterations = sim_vars[:max_simulator_iterations],
-        switchofflinesearchtol = sim_vars[:switchofflinesearchtol],
-        alphamin = sim_vars[:alphamin]
+        threewavemixing = local_sim_vars[:threewavemixing],
+        fourwavemixing = local_sim_vars[:fourwavemixing],
+        iterations = local_sim_vars[:max_simulator_iterations],
+        switchofflinesearchtol = local_sim_vars[:switchofflinesearchtol],
+        alphamin = local_sim_vars[:alphamin]
     )
 
-    @debug "Solution calculated"
-
-    S = extract_S_parameters(sol, circuit.PortNumber)
-
-    @debug "S parameters extracted"
-
-    return S
+    return extract_S_parameters(sol, circuit.PortNumber)
 end
 
 
@@ -358,21 +400,18 @@ struct NonlinearHBStatus
     sol
 end
 
-function nonlinear_simulation(circuit, amps::Vector)
-    @debug "Circuit received for nonlinear simulation"
-
+function nonlinear_simulation(circuit, amps::Vector, local_sim_vars::AbstractDict)
     n_sources = length(amps)
-    dc = any(sim_vars[Symbol("source_$(i)_frequency")] == 0 for i in 1:n_sources)
+    dc = any(local_sim_vars[Symbol("source_$(i)_frequency")] == 0 for i in 1:n_sources)
 
     sources = [
         (
-            mode = source_mode(sim_vars, i),
-            port = sim_vars[Symbol("source_$(i)_on_port")],
+            mode = source_mode(local_sim_vars, i),
+            port = local_sim_vars[Symbol("source_$(i)_on_port")],
             current = amps[i]
         )
         for i in 1:n_sources
     ]
-    @debug "Sources created for nonlinear simulation: $sources"
 
     println("   2. Non-linear simulation")
 
@@ -392,19 +431,19 @@ function nonlinear_simulation(circuit, amps::Vector)
     try
         with_logger(logger) do
             @time sol = hbsolve(
-                sim_vars[:w_range],
-                sim_vars[:wp],
+                local_sim_vars[:w_range],
+                local_sim_vars[:wp],
                 sources,
-                sim_vars[:nonlinear_modulation_harmonics],
-                sim_vars[:nonlinear_strong_tone_harmonics],
+                local_sim_vars[:nonlinear_modulation_harmonics],
+                local_sim_vars[:nonlinear_strong_tone_harmonics],
                 circuit.CircuitStruct,
                 circuit.CircuitDefs;
                 dc = dc,
-                threewavemixing = sim_vars[:threewavemixing],
-                fourwavemixing = sim_vars[:fourwavemixing],
-                iterations = sim_vars[:max_simulator_iterations],
-                switchofflinesearchtol = sim_vars[:switchofflinesearchtol],
-                alphamin = sim_vars[:alphamin]
+                threewavemixing = local_sim_vars[:threewavemixing],
+                fourwavemixing = local_sim_vars[:fourwavemixing],
+                iterations = local_sim_vars[:max_simulator_iterations],
+                switchofflinesearchtol = local_sim_vars[:switchofflinesearchtol],
+                alphamin = local_sim_vars[:alphamin]
             )
         end
     catch e
@@ -413,7 +452,6 @@ function nonlinear_simulation(circuit, amps::Vector)
         end
         converged = false
         message = sprint(showerror, e)
-        @debug "Nonlinear simulation threw exception: $message"
         return NonlinearHBStatus(converged, message, sol)
     end
 
@@ -425,12 +463,17 @@ function nonlinear_simulation(circuit, amps::Vector)
         end
     end
 
-    @debug "Nonlinear simulation completed with converged = $converged"
     return NonlinearHBStatus(converged, message, sol)
 end
 
 
-function create_nonlinear_amplitudes(n_sources::Int, amp_keys::Vector{Symbol}, amp_idx::NTuple, device_params_set::Dict, resolved_functions::Dict{Int, Function})
+function create_nonlinear_amplitudes(
+    n_sources::Int,
+    amp_keys::Vector{Symbol},
+    amp_idx::NTuple,
+    device_params_set::Dict,
+    resolved_functions::Dict{Int, Function}
+)
     amps = Float64[]
 
     for i in 1:n_sources
@@ -439,16 +482,15 @@ function create_nonlinear_amplitudes(n_sources::Int, amp_keys::Vector{Symbol}, a
         if isa(amplitude_value, String)
             f = resolved_functions[i]
             amplitude = Base.invokelatest(f, device_params_set)
-            @debug "Called pre-resolved function for source $i, got amplitude: $amplitude"
+
         elseif isa(amplitude_value, AbstractVector)
             amplitude = amplitude_value[amp_idx[i]]
-            @debug "Using array amplitude for source $i, index $(amp_idx[i]): $amplitude"
+
         else
             amplitude = amplitude_value
-            @debug "Using scalar amplitude for source $i: $amplitude"
         end
 
-        push!(amps, amplitude)
+        push!(amps, float(amplitude))
     end
 
     return amps
@@ -457,9 +499,9 @@ end
 
 function run_nonlinear_simulations_sweep(optimal_params::Dict)
     circuit = create_circuit(optimal_params)
-    @debug "Circuit created once for nonlinear sweep"
 
     n_sources = _num_sources_from_keys(sim_vars)
+
     amp_keys = [Symbol("source_$(i)_non_linear_amplitude") for i in 1:n_sources]
 
     resolved_functions = Dict{Int, Function}()
@@ -470,67 +512,94 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
         end
     end
 
-    amp_lengths = [isa(sim_vars[key], String) ? 1 : length(sim_vars[key]) for key in amp_keys]
-    amp_indices = Iterators.product((1:amp_lengths[i] for i in 1:n_sources)...)
+    # Frequency sweeps are stored separately here
+    freq_values_by_source = [sim_vars[:source_frequency_specs][i] for i in 1:n_sources]
+    freq_lengths = [length(v) for v in freq_values_by_source]
+    freq_indices = Iterators.product((1:freq_lengths[i] for i in 1:n_sources)...)
 
-    global number_initial_points_nl = prod(amp_lengths)
+    amp_lengths = [isa(sim_vars[key], String) ? 1 : length(normalize_sweep_values(sim_vars[key]; name=String(key))) for key in amp_keys]
+    amp_indices = collect(Iterators.product((1:amp_lengths[i] for i in 1:n_sources)...))
+
+    n_freq_points = prod(freq_lengths)
+    n_amp_points = prod(amp_lengths)
+
+    global number_initial_points_nl = n_freq_points * n_amp_points
     global plot_index_nl = 0
 
     ctx = Progress.start!(; N=number_initial_points_nl, stage="HB")
-    @debug "Running nonlinear simulations for all combinations ($number_initial_points_nl total)"
 
     results = []
     skip_on_nonconvergence = sim_vars[:skip_higher_pump_on_nonconvergence]
 
-    failed_idx_by_source2 = Dict{Int, Int}()
-
-    for amp_idx in amp_indices
+    for freq_idx in freq_indices
         check_stop()
-        global plot_index_nl += 1
-        Progress.tick!(ctx; i=plot_index_nl)
 
-        source2_idx = amp_idx[2]
+        current_source_freqs = Float64[
+            freq_values_by_source[i][freq_idx[i]] for i in 1:n_sources
+        ]
 
-        if skip_on_nonconvergence &&
-           haskey(failed_idx_by_source2, source2_idx) &&
-           amp_idx[1] >= failed_idx_by_source2[source2_idx]
-            @info "Skipping point due to previous non-convergence of source 1 for this source-2 value" amp_idx=amp_idx
-            continue
-        end
+        local_sim_vars = sim_vars_with_frequencies(sim_vars, current_source_freqs)
 
-        amps = create_nonlinear_amplitudes(n_sources, amp_keys, amp_idx, optimal_params, resolved_functions)
+        println("=====================================================")
+        println("Frequency sweep point:")
+        println("Source frequencies used: ", current_source_freqs)
 
-        println("-----------------------------------------------------")
-        println("Nonlinear sweep point ", plot_index_nl, " of ", number_initial_points_nl,
-                " (", round(100 * plot_index_nl / number_initial_points_nl; digits=1), "%)")
-        println("Source amplitudes used: ", amps)
+        # keep old skip logic, but reset it at each frequency point
+        failed_idx_by_source2 = Dict{Int, Int}()
 
-        nl = nonlinear_simulation(circuit, amps)
+        for amp_idx in amp_indices
+            check_stop()
+            global plot_index_nl += 1
+            Progress.tick!(ctx; i=plot_index_nl)
 
-        if skip_on_nonconvergence && !nl.converged
-            @info "Nonlinear solver did not converge" amp_idx=amp_idx amps=amps
+            source2_idx = n_sources >= 2 ? amp_idx[2] : 1
 
-            if !haskey(failed_idx_by_source2, source2_idx)
-                failed_idx_by_source2[source2_idx] = amp_idx[1]
+            if skip_on_nonconvergence &&
+               n_sources >= 2 &&
+               haskey(failed_idx_by_source2, source2_idx) &&
+               amp_idx[1] >= failed_idx_by_source2[source2_idx]
+                @info "Skipping point due to previous non-convergence of source 1 for this source-2 value at current frequency point" amp_idx=amp_idx freq_idx=freq_idx
+                continue
             end
 
-            continue
+            amps = create_nonlinear_amplitudes(
+                n_sources, amp_keys, amp_idx, optimal_params, resolved_functions
+            )
+
+            println("-----------------------------------------------------")
+            println("Nonlinear sweep point ", plot_index_nl, " of ", number_initial_points_nl,
+                    " (", round(100 * plot_index_nl / number_initial_points_nl; digits=1), "%)")
+            println("Source frequencies used: ", current_source_freqs)
+            println("Source amplitudes used: ", amps)
+
+            nl = nonlinear_simulation(circuit, amps, local_sim_vars)
+
+            if skip_on_nonconvergence && !nl.converged
+                @info "Nonlinear solver did not converge" amp_idx=amp_idx amps=amps freq_idx=freq_idx freqs=current_source_freqs
+
+                if n_sources >= 2 && !haskey(failed_idx_by_source2, source2_idx)
+                    failed_idx_by_source2[source2_idx] = amp_idx[1]
+                end
+
+                continue
+            end
+
+            S_lin = linear_simulation(optimal_params, circuit, local_sim_vars)
+
+            perf = performance(nl.sol, optimal_params, amps)
+            nonlin_correction_term = Base.invokelatest(
+                user_nonlinear_correction, S_lin, nl.sol, optimal_params
+            )
+
+            push!(results, (
+                freqs = current_source_freqs,
+                amps = amps,
+                performance = perf,
+                delta_quantity = nonlin_correction_term,
+                converged = nl.converged,
+                message = nl.message
+            ))
         end
-
-        S_lin = linear_simulation(optimal_params, circuit)
-
-        perf = performance(nl.sol, optimal_params, amps)
-        nonlin_correction_term = Base.invokelatest(
-            user_nonlinear_correction, S_lin, nl.sol, optimal_params
-        )
-
-        push!(results, (
-            amps = amps,
-            performance = perf,
-            delta_quantity = nonlin_correction_term,
-            converged = nl.converged,
-            message = ""
-        ))
     end
 
     Progress.finish!(ctx)
