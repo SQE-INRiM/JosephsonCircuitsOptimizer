@@ -245,6 +245,10 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         println("-----------------------------------------------------")
         @info "Running nonlinear simulations with optimal parameters."
         results = run_nonlinear_simulations_sweep(optimal_params)
+
+        nl_df = nonlinear_results_to_dataframe(results)
+        save_nonlinear_dataset(nl_df, output_path)
+        @info "Saved nonlinear sweep dataset."
         
         best_performance = NaN
         best_amplitudes = nothing
@@ -308,6 +312,13 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 optimal_params, optimal_metric = run_optimization(df)
 
                 results = run_nonlinear_simulations_sweep(optimal_params)
+                
+                nl_df = nonlinear_results_to_dataframe(results)
+                save_nonlinear_dataset(
+                    nl_df,
+                    optimal_params_dir;
+                    filename="df_nonlinear_analysis_corrected_cycle_$(i).h5"
+                )
 
                 cycle_best_performance = NaN
                 if results !== nothing && !isempty(results)
@@ -607,6 +618,9 @@ function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}
         println("-----------------------------------------------------")
         @info "Running nonlinear simulations with optimal parameters."
         results = run_nonlinear_simulations_sweep(optimal_params)
+        nl_df = nonlinear_results_to_dataframe(results)
+        save_nonlinear_dataset(nl_df, output_path)
+        @info "Saved nonlinear sweep dataset."
 
         let p = plot_delta_vs_amplitude(results)
             if p !== nothing
@@ -876,6 +890,10 @@ function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
         write_status(output_path; status="running", stage="HB")
         @info "Running nonlinear simulations (HB only)."
         results = run_nonlinear_simulations_sweep(optimal_params)
+
+        nl_df = nonlinear_results_to_dataframe(results)
+        save_nonlinear_dataset(nl_df, output_path)
+        @info "Saved nonlinear sweep dataset."
 
         let p = plot_delta_vs_amplitude(results)
             if p !== nothing

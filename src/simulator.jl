@@ -716,3 +716,87 @@ function load_dataset(h5_path::AbstractString)
 
     return df, filtered_df
 end
+
+"""
+    nonlinear_results_to_dataframe(results)
+
+Convert nonlinear sweep results into a numeric DataFrame.
+
+Included columns:
+- source_i_frequency
+- source_i_amplitude
+- performance
+- converged   (saved as 0/1)
+
+Optional column:
+- delta_quantity   (included only if numeric for all rows)
+"""
+function nonlinear_results_to_dataframe(results)
+    if results === nothing || isempty(results)
+        return DataFrame()
+    end
+
+    n_sources = length(results[1].amps)
+
+    cols = Dict{Symbol, Vector{Float64}}()
+
+    for i in 1:n_sources
+        cols[Symbol("source_$(i)_frequency")] = Float64[]
+        cols[Symbol("source_$(i)_amplitude")] = Float64[]
+    end
+
+    cols[:performance] = Float64[]
+    cols[:converged] = Float64[]
+
+    # Include delta_quantity only if it is numeric for all rows
+    save_delta_quantity = all(r -> r.delta_quantity isa Number, results)
+    if save_delta_quantity
+        cols[:delta_quantity] = Float64[]
+    end
+
+    for r in results
+        for i in 1:n_sources
+            push!(cols[Symbol("source_$(i)_frequency")], float(r.freqs[i]))
+            push!(cols[Symbol("source_$(i)_amplitude")], float(r.amps[i]))
+        end
+
+        push!(cols[:performance], float(r.performance))
+        push!(cols[:converged], r.converged ? 1.0 : 0.0)
+
+        if save_delta_quantity
+            push!(cols[:delta_quantity], float(r.delta_quantity))
+        end
+    end
+
+    return DataFrame(cols)
+end
+
+"""
+    save_nonlinear_dataset(df::DataFrame, output_path; filename="df_nonlinear_analysis.h5")
+
+Save nonlinear sweep DataFrame in matrix form, similarly to `save_dataset`.
+
+Saved datasets:
+- df_nonlinear_matrix
+- df_nonlinear_filtered_matrix   (only converged rows)
+- df_nonlinear_column_names
+"""
+function save_nonlinear_dataset(df::DataFrame, output_path; filename="df_nonlinear_analysis.h5")
+    output_file = joinpath(output_path, filename)
+
+    # keep only converged rows in filtered_df
+    filtered_df = filter(row -> row.converged == 1.0, df)
+
+    h5open(output_file, "w") do file
+        mat = Matrix(df)
+        filtered_mat = Matrix(filtered_df)
+
+        write(file, "df_nonlinear_matrix", mat)
+
+        if !isempty(filtered_df)
+            write(file, "df_nonlinear_conveging_results_matrix", filtered_mat)
+        end
+
+        write(file, "df_nonlinear_column_names", names(df))
+    end
+end
