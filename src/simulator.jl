@@ -19,26 +19,10 @@ function setup_simulator()
     # Update frequency range based on the provided values
     physical_quantities[:w_range] = 2 * pi * physical_quantities[:frequency_range]
 
-    # Find all non-zero source frequencies
-    non_zero_frequencies = []
-    for key in keys(physical_quantities)
-        if startswith(string(key), "source_") && endswith(string(key), "_frequency") && physical_quantities[key] != 0
-            push!(non_zero_frequencies, physical_quantities[key])
-        end
-    end
-
-    # Check if at least one non-zero frequency is found
-    if isempty(non_zero_frequencies)
-        error("No strong tones found.")
-    end
-
-    # Build pump frequencies (fpᵢ) and angular frequencies (wpᵢ) for N strong tones
-    # Add a small offset to avoid numerical instability
+    # Build pump frequencies (fpᵢ) and angular frequencies (wpᵢ) for all non-zero-frequency sources
     offset = 0.0001e9
-
     n_sources = _num_sources_from_keys(physical_quantities)
 
-    # Collect non-zero frequencies in source-index order
     non_zero_frequencies = Float64[]
     for i in 1:n_sources
         kfreq = Symbol("source_$(i)_frequency")
@@ -54,25 +38,40 @@ function setup_simulator()
     fps = [f + offset for f in non_zero_frequencies]
     wps = [2 * π * fp for fp in fps]
 
-    # Store fpᵢ and wpᵢ in physical_quantities (backward compatible keys :fp1, :wp1, ...)
+    # Store fpᵢ and wpᵢ in physical_quantities
     for (i, (fp, wp)) in enumerate(zip(fps, wps))
         physical_quantities[Symbol("fp$(i)")] = fp
         physical_quantities[Symbol("wp$(i)")] = wp
     end
 
-    # Store all pump angular frequencies as a tuple (used downstream)
+    # Store all pump angular frequencies as a tuple
     physical_quantities[:wp] = Tuple(wps)
 
     # Merge the physical quantities and simulation configuration into a single dictionary
     sim_vars = merge(physical_quantities, simulation_config)
 
     # Harmonic-balance / nonlinear-solver defaults
-    sim_vars[:threewavemixing] = get(sim_vars, :threewavemixing, false)
+    sim_vars[:threewavemixing] = get(sim_vars, :threewavemixing, true)
     sim_vars[:fourwavemixing] = get(sim_vars, :fourwavemixing, true)
     sim_vars[:switchofflinesearchtol] = get(sim_vars, :switchofflinesearchtol, 1e-5)
     sim_vars[:alphamin] = get(sim_vars, :alphamin, 1e-4)
     sim_vars[:max_simulator_iterations] = get(sim_vars, :max_simulator_iterations, 1000)
     sim_vars[:skip_higher_pump_on_nonconvergence] = get(sim_vars, :skip_higher_pump_on_nonconvergence, false)
+
+    # Normalize harmonic specifications according to the number of pumps
+    n_pumps = length(sim_vars[:wp])
+
+    sim_vars[:linear_strong_tone_harmonics] =
+        normalize_harmonics(sim_vars[:linear_strong_tone_harmonics], n_pumps)
+
+    sim_vars[:linear_modulation_harmonics] =
+        normalize_harmonics(sim_vars[:linear_modulation_harmonics], n_pumps)
+
+    sim_vars[:nonlinear_strong_tone_harmonics] =
+        normalize_harmonics(sim_vars[:nonlinear_strong_tone_harmonics], n_pumps)
+
+    sim_vars[:nonlinear_modulation_harmonics] =
+        normalize_harmonics(sim_vars[:nonlinear_modulation_harmonics], n_pumps)
 
 end
 
@@ -99,6 +98,96 @@ function _num_sources_from_keys(d::AbstractDict)
         end
     end
     return isempty(idxs) ? 0 : maximum(idxs)
+end
+
+# Count only non-zero-frequency sources, i.e. actual pumps
+function _num_pumps_from_sources(d::AbstractDict)
+    n_sources = _num_sources_from_keys(d)
+    n_pumps = 0
+    for i in 1:n_sources
+        kfreq = Symbol("source_$(i)_frequency")
+        if haskey(d, kfreq) && d[kfreq] != 0
+            n_pumps += 1
+        end
+    end
+    return n_pumps
+end
+
+# Normalize harmonics so the user can write:
+# 1      -> (1,) for one pump, (1,1) for two pumps, ...
+# [1]    -> (1,)
+# [1,1]  -> (1,1)
+# (1,1)  -> (1,1)
+function normalize_harmonics(x, n_pumps::Int)
+    n_pumps > 0 || error("normalize_harmonics: n_pumps must be > 0")
+
+    if isa(x, Integer)
+        return ntuple(_ -> Int(x), n_pumps)
+
+    elseif isa(x, AbstractVector)
+        vals = Tuple(Int.(x))
+        length(vals) == n_pumps || error(
+            "Expected $n_pumps harmonic values, got $(length(vals)). " *
+            "Use either a scalar (e.g. 8) or a vector with one value per pump (e.g. [8,8])."
+        )
+        return vals
+
+    elseif isa(x, Tuple)
+        vals = Tuple(Int.(collect(x)))
+        length(vals) == n_pumps || error(
+            "Expected $n_pumps harmonic values, got $(length(vals)). " *
+            "Use either a scalar (e.g. 8) or a tuple/vector with one value per pump."
+        )
+        return vals
+
+    else
+        error(
+            "Unsupported harmonic specification: $x. " *
+            "Use an integer like 8, or an array like [8,8]."
+        )
+    end
+end
+
+# Unit vector in pump space:
+# pump_mode(1,2) -> (1,0)
+# pump_mode(2,2) -> (0,1)
+# pump_mode(3,3) -> (0,0,1)
+function pump_mode(pump_index::Int, n_pumps::Int)
+    return ntuple(j -> (j == pump_index ? 1 : 0), n_pumps)
+end
+
+# Zero mode for DC sources in an n-pump simulation
+function zero_mode(n_pumps::Int)
+    return ntuple(_ -> 0, n_pumps)
+end
+
+# Build the source mode associated with source i.
+# Convention:
+# - source with frequency 0  -> zero mode
+# - non-zero sources are assigned pump axes in source order
+function source_mode(sim_vars::AbstractDict, source_idx::Int)
+    n_sources = _num_sources_from_keys(sim_vars)
+    n_pumps = length(sim_vars[:wp])
+
+    freq_key = Symbol("source_$(source_idx)_frequency")
+    freq = sim_vars[freq_key]
+
+    if freq == 0
+        return zero_mode(n_pumps)
+    end
+
+    pump_counter = 0
+    for j in 1:n_sources
+        kfreq = Symbol("source_$(j)_frequency")
+        if haskey(sim_vars, kfreq) && sim_vars[kfreq] != 0
+            pump_counter += 1
+            if j == source_idx
+                return pump_mode(pump_counter, n_pumps)
+            end
+        end
+    end
+
+    error("Failed to assign pump mode for source $source_idx")
 end
 
 """
@@ -147,24 +236,21 @@ S-parameters for the circuit.
 function linear_simulation(device_params_set::Dict, circuit::Circuit)
 
     omega = sim_vars[:w_range]
-    #n_frequencies = length(omega)
     n_sources = _num_sources_from_keys(sim_vars)
 
     println("   1. Linear simulation")
 
-    # Define sources based on parameters
     sources = []
     for i in 1:n_sources
         amplitude_key = Symbol("source_$(i)_linear_amplitude")
         amplitude_value = sim_vars[amplitude_key]
-        @debug "Processing source $i with amplitude value: $amplitude_value"  # Debug print
+        @debug "Processing source $i with amplitude value: $amplitude_value"
 
         if isa(amplitude_value, String)
-            # Dynamically call function if amplitude is a string (function name)
             function_name = amplitude_value
             try
                 amplitude = Base.invokelatest(eval(Symbol(amplitude_value)), device_params_set)
-                @debug "Called function '$function_name' and got amplitude: $amplitude"  # Debug print
+                @debug "Called function '$function_name' and got amplitude: $amplitude"
             catch e
                 if e isa InterruptException
                     rethrow()
@@ -172,15 +258,12 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
                 error("Failed to call function '$function_name': $e")
             end
         else
-            # Use direct value if amplitude is a number
             amplitude = amplitude_value
-            @debug "Using direct amplitude value: $amplitude"  # Debug print
+            @debug "Using direct amplitude value: $amplitude"
         end
 
-        # Set source mode based on frequency
-        mode = sim_vars[Symbol("source_$(i)_frequency")] == 0 ? (0,) : (1,)
+        mode = source_mode(sim_vars, i)
 
-        # Create source entry for the simulation
         source = (
             mode = mode,
             port = sim_vars[Symbol("source_$(i)_on_port")],
@@ -193,13 +276,12 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
 
     @debug "Sources created: $sources"
 
-    # Perform the harmonic balance simulation and obtain solution
     @time sol = hbsolve(
         omega,
         sim_vars[:wp],
         sources,
-        (sim_vars[:linear_modulation_harmonics],),
-        (sim_vars[:linear_strong_tone_harmonics],),
+        sim_vars[:linear_modulation_harmonics],
+        sim_vars[:linear_strong_tone_harmonics],
         circuit.CircuitStruct,
         circuit.CircuitDefs;
         dc = dc,
@@ -210,17 +292,14 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit)
         alphamin = sim_vars[:alphamin]
     )
 
-
     @debug "Solution calculated"
 
-    # Extract S-parameters from the solution
     S = extract_S_parameters(sol, circuit.PortNumber)
 
     @debug "S parameters extracted"
 
     return S
 end
-
 
 
 """
@@ -283,11 +362,14 @@ function nonlinear_simulation(circuit, amps::Vector)
     @debug "Circuit received for nonlinear simulation"
 
     n_sources = length(amps)
-    modes = [sim_vars[Symbol("source_$(i)_frequency")] == 0 ? (0,) : (1,) for i in 1:n_sources]
     dc = any(sim_vars[Symbol("source_$(i)_frequency")] == 0 for i in 1:n_sources)
 
     sources = [
-        (mode=modes[i], port=sim_vars[Symbol("source_$(i)_on_port")], current=amps[i])
+        (
+            mode = source_mode(sim_vars, i),
+            port = sim_vars[Symbol("source_$(i)_on_port")],
+            current = amps[i]
+        )
         for i in 1:n_sources
     ]
     @debug "Sources created for nonlinear simulation: $sources"
@@ -313,8 +395,8 @@ function nonlinear_simulation(circuit, amps::Vector)
                 sim_vars[:w_range],
                 sim_vars[:wp],
                 sources,
-                (sim_vars[:nonlinear_modulation_harmonics],),
-                (sim_vars[:nonlinear_strong_tone_harmonics],),
+                sim_vars[:nonlinear_modulation_harmonics],
+                sim_vars[:nonlinear_strong_tone_harmonics],
                 circuit.CircuitStruct,
                 circuit.CircuitDefs;
                 dc = dc,
@@ -335,7 +417,6 @@ function nonlinear_simulation(circuit, amps::Vector)
         return NonlinearHBStatus(converged, message, sol)
     end
 
-    # Detect the specific non-convergence warning
     for w in warnings
         if occursin("Solver did not converge", w)
             converged = false
@@ -447,7 +528,7 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
             amps = amps,
             performance = perf,
             delta_quantity = nonlin_correction_term,
-            converged = true,
+            converged = nl.converged,
             message = ""
         ))
     end
