@@ -586,7 +586,7 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
 
             S_lin = linear_simulation(optimal_params, circuit, local_sim_vars)
 
-            perf = performance(nl.sol, optimal_params, amps)
+            perf = performance(nl.sol, optimal_params, amps, current_source_freqs)
             nonlin_correction_term = Base.invokelatest(
                 user_nonlinear_correction, S_lin, nl.sol, optimal_params
             )

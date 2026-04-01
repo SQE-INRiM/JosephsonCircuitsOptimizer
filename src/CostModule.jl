@@ -146,10 +146,15 @@ function cost(vec)
 end
 
 
-function performance(sol, optimal_params, amps)
+function performance(sol, device_params_set, source_amps, source_freqs)
     check_stop()
-    perf = Base.invokelatest(user_performance, sol, optimal_params, amps)
-    return perf
+    return Base.invokelatest(
+        user_performance,
+        sol,
+        device_params_set,
+        source_amps,
+        source_freqs
+    )
 end
 
 
