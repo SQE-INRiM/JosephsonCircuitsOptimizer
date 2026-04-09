@@ -483,6 +483,39 @@ function plot_update(p, params; metric=nothing, plot_type::AbstractString="plot"
     return plot_update(p; params=params, metric=metric, plot_type=plot_type, run_id=run_id, extra=extra)
 end
 
+function save_datas(vectors;
+    category::AbstractString="custom",
+    filename::AbstractString="saved_datas",
+    prefix::AbstractString="vec")
+
+    current_output_path = CURRENT_OUTPUT_PATH[]
+    current_output_path === nothing && error("No active output folder found. Run a simulation first.")
+
+    valid_categories = ("linear", "nonlinear", "custom")
+    category ∈ valid_categories || error("category must be one of: $(valid_categories)")
+
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
+
+    data_dir = joinpath(current_output_path, "data_saved_by_user", category)
+    mkpath(data_dir)
+
+    filepath = joinpath(data_dir, "$(filename)_$(timestamp).h5")
+
+    h5open(filepath, "w") do file
+        if vectors isa AbstractVector{<:Number}
+            write(file, prefix, collect(vectors))
+        else
+            for (i, v) in enumerate(vectors)
+                write(file, "$(prefix)_$i", collect(v))
+            end
+        end
+    end
+
+    @info "Saved datas to $filepath"
+    return filepath
+end
+
+
 """
     correlation_update(fig::Figure; params=nothing, metric=nothing, plot_type="correlation", run_id=nothing, extra=Dict())
 

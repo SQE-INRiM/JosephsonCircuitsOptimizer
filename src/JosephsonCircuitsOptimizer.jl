@@ -38,6 +38,8 @@ using .Resume
 
 export restore_latest_inputs_snapshot_config
 
+const CURRENT_OUTPUT_PATH = Ref{Union{Nothing,String}}(nothing)
+
 # using Logging
 # global_logger(ConsoleLogger(stderr, Logging.Debug)) # Info
 
@@ -163,6 +165,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
     output_path = joinpath(base_output_path, "output_" * timestamp)
     mkpath(output_path)
+    CURRENT_OUTPUT_PATH[] = output_path
 
     @info "Results will be saved in: $output_path"
 
