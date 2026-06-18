@@ -363,10 +363,20 @@ function run_linear_simulations_sweep(device_parameters_space::Dict; filter_df::
     # Emit parseable progress for the GUI
     ctx = Progress.start!(; N=number_initial_points, stage="LIN")
     initial_values = Vector{Float64}(undef, number_initial_points)
+    extra_metrics = Dict{Symbol, Vector{Float64}}()
+    
     for (i, p) in enumerate(initial_points)
-        # Graceful stop (WORKSPACE/STOP)
         check_stop()
+    
         initial_values[i] = cost(p)
+    
+        for (name, value) in last_cost_metrics
+            if !haskey(extra_metrics, name)
+                extra_metrics[name] = Float64[]
+            end
+            push!(extra_metrics[name], Float64(value))
+        end
+    
         Progress.tick!(ctx; i=i)
     end
     Progress.finish!(ctx)
@@ -375,6 +385,11 @@ function run_linear_simulations_sweep(device_parameters_space::Dict; filter_df::
     df = DataFrame(initial_points)
     rename!(df, Symbol.(string.(column_names)))
     df.metric = initial_values
+    for (name, values) in extra_metrics
+        if name != :metric
+            df[!, name] = values
+        end
+    end
 
     if filter_df
         filtered_df = filter(row -> row.metric < 9e7, df)
@@ -595,6 +610,7 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
                 freqs = current_source_freqs,
                 amps = amps,
                 performance = perf,
+                performance_metrics = copy(last_performance_metrics),
                 delta_quantity = nonlin_correction_term,
                 converged = nl.converged,
                 message = nl.message
@@ -747,6 +763,18 @@ function nonlinear_results_to_dataframe(results)
 
     cols[:performance] = Float64[]
     cols[:converged] = Float64[]
+    extra_perf_names = Symbol[]
+
+    for r in results
+        if hasproperty(r, :performance_metrics)
+            for name in keys(r.performance_metrics)
+                if name != :performance && !(name in extra_perf_names)
+                    push!(extra_perf_names, name)
+                    cols[name] = Float64[]
+                end
+            end
+        end
+    end
 
     # Include delta_quantity only if it is numeric for all rows
     save_delta_quantity = all(r -> r.delta_quantity isa Number, results)
@@ -761,6 +789,10 @@ function nonlinear_results_to_dataframe(results)
         end
 
         push!(cols[:performance], float(r.performance))
+        for name in extra_perf_names
+            value = get(r.performance_metrics, name, NaN)
+            push!(cols[name], Float64(value))
+        end
         push!(cols[:converged], r.converged ? 1.0 : 0.0)
 
         if save_delta_quantity

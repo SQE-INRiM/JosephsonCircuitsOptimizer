@@ -10,6 +10,25 @@ global cost_history = Dict{String,Any}(
     "timestamps_utc" => String[]
 )
 
+global last_cost_metrics = Dict{Symbol, Float64}()
+global last_performance_metrics = Dict{Symbol, Float64}()
+
+function unpack_user_metrics(out; default_name::Symbol)
+    if out isa NamedTuple
+        names_out = keys(out)
+        objective = Float64(out[first(names_out)])
+        metrics = Dict(Symbol(k) => Float64(out[k]) for k in names_out)
+        return objective, metrics
+    elseif out isa Tuple
+        objective = Float64(out[1])
+        metrics = Dict(Symbol("$(default_name)_$i") => Float64(v) for (i, v) in enumerate(out))
+        return objective, metrics
+    else
+        objective = Float64(out)
+        metrics = Dict(default_name => objective)
+        return objective, metrics
+    end
+end
 
 function setup_cost()
 
@@ -131,7 +150,13 @@ function cost(vec)
 
     global delta_correction
     # Calculate the user-defined metric based on the simulation results.
-    metric = Base.invokelatest(user_cost, S, device_params_temp, delta_correction)
+    out = Base.invokelatest(user_cost, S, device_params_temp, delta_correction)
+
+    metric, metrics_dict = unpack_user_metrics(out; default_name=:metric)
+    
+    global last_cost_metrics
+    last_cost_metrics = metrics_dict
+
 
     # Save history (best-effort)
     try
@@ -147,14 +172,23 @@ end
 
 
 function performance(sol, device_params_set, source_amps, source_freqs)
+    
     check_stop()
-    return Base.invokelatest(
+    out = Base.invokelatest(
         user_performance,
         sol,
         device_params_set,
         source_amps,
         source_freqs
     )
+    
+    perf, metrics_dict = unpack_user_metrics(out; default_name=:performance)
+    
+    global last_performance_metrics
+    last_performance_metrics = metrics_dict
+    
+    return perf
+
 end
 
 
