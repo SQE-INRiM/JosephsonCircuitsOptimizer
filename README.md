@@ -315,7 +315,7 @@ This project is licensed under the [MIT License](LICENSE.md).
 
 ## References
 
-E. Palumbo *et al.*, “Simulation Framework for the Automated Search of Optimal Parameters Using Physically Relevant Metrics in Nonlinear Superconducting Quantum Circuits,” arXiv:2510.26479 [quant-ph].
+E. Palumbo *et al.*, “JCO: Optimization Framework for Nonlinear Superconducting Circuits Using a Lumped-Element Approach and Harmonic Balance,” (https://ieeexplore.ieee.org/document/11458753.)
 
 1. K. P. O’Brien and contributors, *JosephsonCircuits.jl*, GitHub, 2024.
 2. S. A. Maas, *Nonlinear Microwave and RF Circuits*, 2nd ed., Artech House, 1997.
