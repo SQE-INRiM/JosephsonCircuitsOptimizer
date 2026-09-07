@@ -150,7 +150,10 @@ test('uses one path-safe run id for the GUI and Julia output folder', () => {
 })
 
 test('linear-only Julia runner reuses the GUI run id and does not create plots', () => {
-  const source = fs.readFileSync(path.join(__dirname, '..', 'runtime', 'jco', 'src', 'JosephsonCircuitsOptimizer.jl'), 'utf8')
+  const source = fs.readFileSync(
+  path.join(__dirname, '..', '..', 'src', 'JosephsonCircuitsOptimizer.jl'),
+  'utf8',
+)
   const start = source.indexOf('function run_sweep_only')
   const finish = source.indexOf('function run_from_latest_dataset_only', start)
   const linearRunner = source.slice(start, finish)

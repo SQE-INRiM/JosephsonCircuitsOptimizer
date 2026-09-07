@@ -37,7 +37,7 @@ describe('Run screen controls', () => {
     useAppStore.setState({ stages, running: true })
     render(<RunScreen desktop cancelling={false} onRunRemaining={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
 
-    expect(screen.getAllByText('Starting…').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Starting…/).length).toBeGreaterThan(0)
     expect(screen.queryByText('0 / 1')).toBeNull()
   })
 
