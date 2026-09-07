@@ -3,37 +3,48 @@ name: PR build check
 on:
   pull_request:
     paths:
-      - 'src/**'
-      - 'desktop/**'
-      - 'runtime/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'vite.config.ts'
-      - 'tsconfig*.json'
+      - 'gui/src/**'
+      - 'gui/desktop/**'
+      - 'gui/runtime/**'
+      - 'gui/package.json'
+      - 'gui/package-lock.json'
+      - 'gui/vite.config.ts'
+      - 'gui/tsconfig*.json'
       - '.github/workflows/pr-build-check.yml'
 
 permissions:
   contents: read
 
+defaults:
+  run:
+    working-directory: gui
+
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
+          cache-dependency-path: gui/package-lock.json
+
       - name: Install dependencies
         run: npm ci
+
       - name: Run tests
         run: npm test
+
       - name: Check Electron desktop syntax
         run: |
           node --check desktop/main.cjs
           node --check desktop/run-delete-worker.cjs
+
       - name: Build renderer
         run: npm run build

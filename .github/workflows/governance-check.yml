@@ -5,17 +5,20 @@ on:
   push:
     branches:
       - main
-      - governance/integration
+      - migration/unified-jco-gui
 
 jobs:
   governance:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
       - name: Check governance structure
-        run: python scripts/governance_check.py
+        run: python gui/scripts/governance_check.py
