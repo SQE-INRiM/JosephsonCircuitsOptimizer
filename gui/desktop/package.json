@@ -1,0 +1,12 @@
+{
+  "name": "jco-gui",
+  "version": "0.2.0",
+  "description": "Josephson Circuits Optimizer desktop GUI",
+  "main": "desktop/main.cjs",
+  "author": "JCO contributors",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "0.5.16"
+  }
+}
+

@@ -49,16 +49,85 @@ end
 
 
 """
+    linear_solution(device_params_set::Dict, circuit::Circuit, local_sim_vars::AbstractDict=sim_vars)
+
+Run the same linear harmonic-balance solve used by `linear_simulation`, but return the
+full JosephsonCircuits solution object. `linear_simulation(...)` is intentionally kept
+unchanged as the legacy convenience API that extracts the zero-mode S-parameter Dict.
+
+This helper exists so `user_cost` can access the same JC solution surface already exposed
+to `user_performance`, without performing a second simulation.
+"""
+function linear_solution(device_params_set::Dict, circuit::Circuit, local_sim_vars::AbstractDict=sim_vars)
+    omega = local_sim_vars[:w_range]
+    n_sources = _num_sources_from_keys(local_sim_vars)
+
+    println("   1. Linear simulation")
+
+    sources = []
+    for i in 1:n_sources
+        amplitude_key = Symbol("source_$(i)_linear_amplitude")
+        amplitude_value = local_sim_vars[amplitude_key]
+
+        if isa(amplitude_value, String)
+            function_name = amplitude_value
+            try
+                amplitude = Base.invokelatest(eval(Symbol(amplitude_value)), device_params_set)
+            catch e
+                if e isa InterruptException
+                    rethrow()
+                end
+                error("Failed to call function '$function_name': $e")
+            end
+        else
+            amplitude = amplitude_value
+        end
+
+        source = (
+            mode = source_mode(local_sim_vars, i),
+            port = local_sim_vars[Symbol("source_$(i)_on_port")],
+            current = amplitude
+        )
+        push!(sources, source)
+    end
+
+    dc = any(local_sim_vars[Symbol("source_$(i)_frequency")] == 0 for i in 1:n_sources)
+
+    @time sol = hbsolve(
+        omega,
+        local_sim_vars[:wp],
+        sources,
+        local_sim_vars[:linear_modulation_harmonics],
+        local_sim_vars[:linear_strong_tone_harmonics],
+        circuit.CircuitStruct,
+        circuit.CircuitDefs;
+        dc = dc,
+        threewavemixing = local_sim_vars[:threewavemixing],
+        fourwavemixing = local_sim_vars[:fourwavemixing],
+        maxintermodorder = local_sim_vars[:maxintermodorder],
+        iterations = local_sim_vars[:max_simulator_iterations],
+        ftol = local_sim_vars[:ftol],
+        switchofflinesearchtol = local_sim_vars[:switchofflinesearchtol],
+        alphamin = local_sim_vars[:alphamin],
+        nbatches = local_sim_vars[:nbatches],
+        sorting = local_sim_vars[:sorting]
+    )
+
+    return sol
+end
+
+
+"""
     sim_sys(vec)
 
-Simulates the system given a vector of parameters. The vector is converted into a set of device parameters, 
-a circuit is created, and the simulation is run to get the scattering parameters.
+Simulates the system given a vector of parameters. The vector is converted into a set of device parameters,
+a circuit is created, and the linear harmonic-balance simulation is run.
 
 # Arguments
 - `vec::Vector`: A vector containing the device parameters.
 
 # Returns
-- `S`: Scattering parameters (complex vectors in a Dict).
+- `sol`: Full JosephsonCircuits solution object from the linear HB solve.
 - `device_params_temp`: The device parameters corresponding to the input vector.
 
 """
@@ -71,17 +140,17 @@ function sim_sys(vec)
     circuit = create_circuit(device_params_temp)
     @debug "Circuit created"
 
-    S = linear_simulation(device_params_temp, circuit)
+    sol = linear_solution(device_params_temp, circuit)
     @debug "Linear simulation completed"
 
-    return S, device_params_temp
+    return sol, device_params_temp
 end
 
 """
     mask(input_mask, conditions_mask)
 
 Applies a mask based on user-defined conditions. If the conditions are met, the mask returns `false` (indicating no exclusion). 
-If the conditions are not met, it increments the exclusion counter and returns `true`, indicating that the point is excluded.
+If the conditions are not met, it increments the exclusion counter and returns `true`.
 
 # Arguments
 - `input_mask::Any`: The input data to be masked.
@@ -107,14 +176,14 @@ end
 """
     cost(vec)
 
-Computes the cost based on the system simulation and user-defined metric. The function simulates the system, 
-calculates the scattering parameters, and evaluates the cost based on the user-defined `user_cost` function.
+Computes the cost based on the system simulation and user-defined metric. The function simulates the system,
+passes the full JosephsonCircuits solution to the user-defined `user_cost` function, and evaluates the cost.
 
 # Arguments
 - `vec::Vector`: A vector of parameters for the device.
 
 # Returns
-- `metric`: The user-defined metric computed using the scattering parameters.
+- `metric`: The user-defined metric computed from the simulation solution.
 
 """
 function cost(vec)
@@ -145,12 +214,12 @@ function cost(vec)
         println("Optimization process: iteration number ", iter)
     end
     
-    # Get simulation results for the given parameters.
-    S, device_params_temp = sim_sys(vec)
+    # Get the full linear solution for the given parameters.
+    sol, device_params_temp = sim_sys(vec)
 
     global delta_correction
-    # Calculate the user-defined metric based on the simulation results.
-    out = Base.invokelatest(user_cost, S, device_params_temp, delta_correction)
+    # Calculate the user-defined metric from the same JC solution object used by the solver.
+    out = Base.invokelatest(user_cost, sol, device_params_temp, delta_correction)
 
     metric, metrics_dict = unpack_user_metrics(out; default_name=:metric)
     

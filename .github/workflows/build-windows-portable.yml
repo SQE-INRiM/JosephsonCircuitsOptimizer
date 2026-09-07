@@ -1,0 +1,60 @@
+name: Build Windows portable GUI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'desktop/**'
+      - 'runtime/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tsconfig*.json'
+      - 'electron-builder.yml'
+      - '.github/workflows/build-windows-portable.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-portable:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build renderer
+        run: npm run build
+
+      - name: Build portable Windows executable
+        shell: pwsh
+        run: >-
+          npm exec --yes
+          --package=electron@43.4.1
+          --package=electron-builder@26.15.3
+          -- electron-builder --win portable --x64
+
+      - name: Upload portable executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: JCO-GUI-Windows-portable
+          path: dist-electron/*.exe
+          if-no-files-found: error
+          retention-days: 14

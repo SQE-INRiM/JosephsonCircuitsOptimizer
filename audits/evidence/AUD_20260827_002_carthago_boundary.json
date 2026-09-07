@@ -1,0 +1,39 @@
+{
+  "audit_id": "AUD_20260827_002",
+  "date": "2026-08-27",
+  "reference_archive": {
+    "name": "my_exp_JTWPA_CARTHAGO_withLOSSandSPREAD(2).zip",
+    "sha256": "f7da84341bcd6043b3ae9d5ad80f07fc5b4ceb3dce5c06c3759cee6c966a2603"
+  },
+  "reference_configuration": {
+    "device_configurations": 1,
+    "frequency_start_hz": 1000000,
+    "frequency_stop_hz": 10000000000,
+    "frequency_step_hz": 1000000,
+    "pump_frequency_hz": 7000000000,
+    "dc_bias_current_a": 0.001894
+  },
+  "gui_round_trip": {
+    "device_parameters_preserved": true,
+    "drive_values_preserved": true,
+    "original_simulation_values_preserved": true,
+    "julia_sources_preserved_byte_for_byte": true,
+    "injected_current_engine_defaults": {
+      "ftol": 1e-8,
+      "maxintermodorder": "Inf",
+      "nbatches": 0,
+      "sorting": "number"
+    },
+    "removed_legacy_key": "skip_higher_pump_on_nonconvergence",
+    "note": "The current simulator supplies the same defaults and forces skip_higher_pump_on_nonconvergence=false. No numerical run was performed in this environment."
+  },
+  "automated_checks": {
+    "npm_test": "pass: 4 Vitest files/18 tests and 9 Node tests",
+    "npm_run_build": "pass with existing Vite chunk-size warning",
+    "governance_check": "pass: 9 required files"
+  },
+  "system_check": {
+    "status": "blocked",
+    "reason": "Julia executable is not installed in the current Linux workspace"
+  }
+}
