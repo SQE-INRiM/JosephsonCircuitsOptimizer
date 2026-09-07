@@ -1,0 +1,17 @@
+{
+  "linear_strong_tone_harmonics": 1,
+  "linear_modulation_harmonics": 1,
+  "nonlinear_strong_tone_harmonics": 16,
+  "nonlinear_modulation_harmonics": 8,
+  "max_simulator_iterations": 300,
+  "ftol": 1e-8,
+  "switchofflinesearchtol": 1e-5,
+  "alphamin": 1e-4,
+  "maxintermodorder": "Inf",
+  "nbatches": 0,
+  "sorting": "number",
+  "trace_storage_mode": "selected",
+  "threewavemixing": false,
+  "fourwavemixing": true,
+  "n_iterations_nonlinear_correction": 5
+}

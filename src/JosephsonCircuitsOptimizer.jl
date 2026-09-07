@@ -40,6 +40,18 @@ export restore_latest_inputs_snapshot_config
 
 const CURRENT_OUTPUT_PATH = Ref{Union{Nothing,String}}(nothing)
 
+function create_output_path(base_output_path::AbstractString)
+    requested_run_id = strip(get(ENV, "JCO_RUN_ID", ""))
+    if !isempty(requested_run_id) && !occursin(r"^output_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}Z$", requested_run_id)
+        error("Invalid JCO_RUN_ID: $requested_run_id")
+    end
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
+    output_id = isempty(requested_run_id) ? "output_" * timestamp : requested_run_id
+    output_path = joinpath(base_output_path, output_id)
+    mkpath(output_path)
+    return output_path
+end
+
 # using Logging
 # global_logger(ConsoleLogger(stderr, Logging.Debug)) # Info
 
@@ -162,9 +174,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
     global plot_path = config.plot_dir
     global corr_path = config.corr_dir
 
-    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
-    output_path = joinpath(base_output_path, "output_" * timestamp)
-    mkpath(output_path)
+    output_path = create_output_path(base_output_path)
     CURRENT_OUTPUT_PATH[] = output_path
 
     @info "Results will be saved in: $output_path"
@@ -437,10 +447,10 @@ end
 """\
     run_sweep_only(; workspace=nothing, create_workspace=true, filter_df=true)
 
-Run only the sweep stage (linear simulations + dataset + correlation figure).
+Run only the sweep stage (linear simulations + HDF5 dataset and metadata).
 
 This is meant for quickly inspecting simulator behaviour without running the optimizer
-or nonlinear (HB) simulations.
+or nonlinear (HB) simulations. Plot images are derived later from the stored dataset.
 """
 function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
                         create_workspace::Bool=true,
@@ -457,9 +467,8 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
     global plot_path = config.plot_dir
     global corr_path = config.corr_dir
 
-    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
-    output_path = joinpath(base_output_path, "output_" * timestamp)
-    mkpath(output_path)
+    output_path = create_output_path(base_output_path)
+    CURRENT_OUTPUT_PATH[] = output_path
 
     @info "Results will be saved in: $output_path"
 
@@ -481,13 +490,6 @@ function run_sweep_only(; workspace::Union{Nothing,AbstractString}=nothing,
 
         df, _ = run_linear_simulations_sweep(device_parameters_space, filter_df=filter_df)
         save_dataset(df, output_path)
-                
-        # Generate correlation + 1D plots highlighting the chosen optimum
-        try
-            create_corr_figure(df)
-        catch e
-            @info "Could not generate correlation/1D plot: $e"
-        end
 
         write_status(output_path; status="completed", stage="DONE")
         @info "Sweep-only run completed."
@@ -553,9 +555,7 @@ function run_from_latest_dataset_only(; workspace::Union{Nothing,AbstractString}
     global device_parameters_space = device_parameters_space
     global delta_correction = 0.0
 
-    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
-    output_path = joinpath(base_output_path, "output_" * timestamp)
-    mkpath(output_path)
+    output_path = create_output_path(base_output_path)
 
     @info "Results will be saved in: $output_path"
 
@@ -703,9 +703,7 @@ function run_optimization_only(; workspace::Union{Nothing,AbstractString}=nothin
 
     global delta_correction = 0.0
 
-    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
-    output_path = joinpath(base_output_path, "output_" * timestamp)
-    mkpath(output_path)
+    output_path = create_output_path(base_output_path)
 
     @info "Results will be saved in: $output_path"
 
@@ -826,9 +824,7 @@ function run_nonlinear_only(; workspace::Union{Nothing,AbstractString}=nothing,
 
     global delta_correction = 0.0
 
-    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
-    output_path = joinpath(base_output_path, "output_" * timestamp)
-    mkpath(output_path)
+    output_path = create_output_path(base_output_path)
 
     @info "Results will be saved in: $output_path"
 

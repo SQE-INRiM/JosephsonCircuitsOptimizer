@@ -1,0 +1,44 @@
+{
+  "audit_id": "AUD_20260827_002",
+  "date": "2026-08-27",
+  "scope": "linear run controls, cancellation policy, durable saving, and derived-plot policy",
+  "workspace_state": {
+    "remote_change_commit_previously_recorded": "4c713d765836fec6566fdfeea1965783f687295c",
+    "local_git_state": "reconstructed working tree with an unborn master branch; new follow-up changes are not committed",
+    "remote_verification": "unavailable because GitHub credentials are not present in this environment"
+  },
+  "maintainer_reported_windows_observations": [
+    "A real linear sweep starts from the floating run control in the tested build.",
+    "Run selected stage did nothing in the tested build.",
+    "Stop did not cancel the real linear sweep in the tested build.",
+    "Current Run and output saving were unclear."
+  ],
+  "checks_run_in_linux_workspace": [
+    {
+      "command": "vitest run",
+      "result": "pass",
+      "details": "20 tests across 5 files"
+    },
+    {
+      "command": "node --test desktop/archive.node-test.cjs",
+      "result": "pass",
+      "details": "14 desktop/archive/process tests"
+    },
+    {
+      "command": "tsc -b && vite build",
+      "result": "pass_with_existing_warning",
+      "details": "production build succeeded; existing bundle-size warning remains"
+    },
+    {
+      "command": "python scripts/governance_check.py",
+      "result": "pass",
+      "details": "9 required governance files verified"
+    }
+  ],
+  "not_verified": [
+    "Real Julia process launch in this Linux workspace",
+    "Graceful or forced cancellation of hbsolve on Windows",
+    "HDF5 numerical contents or equivalence",
+    "Automatic repacking of a completed/cancelled real run on Windows"
+  ]
+}

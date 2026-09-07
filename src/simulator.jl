@@ -65,8 +65,16 @@ function setup_simulator()
     sim_vars[:fourwavemixing] = get(sim_vars, :fourwavemixing, true)
     sim_vars[:switchofflinesearchtol] = get(sim_vars, :switchofflinesearchtol, 1e-5)
     sim_vars[:alphamin] = get(sim_vars, :alphamin, 1e-4)
+    sim_vars[:ftol] = get(sim_vars, :ftol, 1e-8)
+    maxintermodorder = get(sim_vars, :maxintermodorder, Inf)
+    sim_vars[:maxintermodorder] = maxintermodorder isa AbstractString && lowercase(strip(maxintermodorder)) in ("inf", "infinity", "unlimited") ? Inf : Float64(maxintermodorder)
+    configured_batches = Int(get(sim_vars, :nbatches, 0))
+    sim_vars[:nbatches] = configured_batches > 0 ? configured_batches : Base.Threads.nthreads()
+    sorting = Symbol(lowercase(string(get(sim_vars, :sorting, "number"))))
+    sorting in (:number, :name, :none) || error("sorting must be number, name, or none")
+    sim_vars[:sorting] = sorting
     sim_vars[:max_simulator_iterations] = get(sim_vars, :max_simulator_iterations, 1000)
-    sim_vars[:skip_higher_pump_on_nonconvergence] = get(sim_vars, :skip_higher_pump_on_nonconvergence, false)
+    sim_vars[:skip_higher_pump_on_nonconvergence] = false
 
     n_pumps = length(sim_vars[:wp])
 
@@ -335,9 +343,13 @@ function linear_simulation(device_params_set::Dict, circuit::Circuit, local_sim_
         dc = dc,
         threewavemixing = local_sim_vars[:threewavemixing],
         fourwavemixing = local_sim_vars[:fourwavemixing],
+        maxintermodorder = local_sim_vars[:maxintermodorder],
         iterations = local_sim_vars[:max_simulator_iterations],
+        ftol = local_sim_vars[:ftol],
         switchofflinesearchtol = local_sim_vars[:switchofflinesearchtol],
-        alphamin = local_sim_vars[:alphamin]
+        alphamin = local_sim_vars[:alphamin],
+        nbatches = local_sim_vars[:nbatches],
+        sorting = local_sim_vars[:sorting]
     )
 
     return extract_S_parameters(sol, circuit.PortNumber)
@@ -456,9 +468,13 @@ function nonlinear_simulation(circuit, amps::Vector, local_sim_vars::AbstractDic
                 dc = dc,
                 threewavemixing = local_sim_vars[:threewavemixing],
                 fourwavemixing = local_sim_vars[:fourwavemixing],
+                maxintermodorder = local_sim_vars[:maxintermodorder],
                 iterations = local_sim_vars[:max_simulator_iterations],
+                ftol = local_sim_vars[:ftol],
                 switchofflinesearchtol = local_sim_vars[:switchofflinesearchtol],
-                alphamin = local_sim_vars[:alphamin]
+                alphamin = local_sim_vars[:alphamin],
+                nbatches = local_sim_vars[:nbatches],
+                sorting = local_sim_vars[:sorting]
             )
         end
     catch e

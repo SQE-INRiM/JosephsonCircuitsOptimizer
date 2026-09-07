@@ -1,0 +1,27 @@
+appId: it.inrim.jco.gui
+productName: JCO GUI
+electronVersion: 43.4.1
+asar: true
+directories:
+  output: dist-electron
+files:
+  - dist/**
+  - desktop/**
+  - package.json
+extraResources:
+  - from: runtime/jco
+    to: jco
+  - from: runtime/bridge
+    to: bridge
+  - from: runtime/templates
+    to: templates
+  - from: runtime/examples
+    to: examples
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: JCO-GUI-${version}-portable.${ext}
+portable:
+  requestExecutionLevel: user

@@ -1,0 +1,53 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-width: 1180px; min-height: 100%; }
+body { background: #f4f6f8; }
+button, input, textarea { font: inherit; }
+
+.code-editor textarea {
+  font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace !important;
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+  tab-size: 4;
+}
+
+.log-scroll::-webkit-scrollbar,
+.content-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.log-scroll::-webkit-scrollbar-thumb,
+.content-scroll::-webkit-scrollbar-thumb { background: #aebac5; border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+
+.heatmap-grid { display: grid; align-items: stretch; gap: 3px; min-width: 420px; }
+.heatmap-cell { min-height: 30px; border-radius: 4px; transition: transform 120ms ease, outline 120ms ease; cursor: crosshair; }
+.heatmap-cell:hover { transform: scale(1.07); outline: 2px solid #172231; z-index: 2; }
+
+/* On wide desktop windows, keep the interactive design-space overview and its
+   selected-point drill-down visible together. This applies to both Linear and
+   Harmonic Balance landscapes; smaller windows retain the stacked layout. */
+@media (min-width: 1550px) {
+  .MuiStack-root:has(> .MuiPaper-root .jco-interactive-landscape-heatmap) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.75fr) minmax(360px, 1fr);
+    column-gap: 12px;
+    row-gap: 12px;
+    align-items: start;
+  }
+
+  .MuiStack-root:has(> .MuiPaper-root .jco-interactive-landscape-heatmap) > * {
+    margin-top: 0 !important;
+  }
+
+  .MuiStack-root:has(> .MuiPaper-root .jco-interactive-landscape-heatmap) > .MuiPaper-root:has(.jco-interactive-landscape-heatmap) {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .MuiStack-root:has(> .MuiPaper-root .jco-interactive-landscape-heatmap) > .MuiPaper-root:has(.jco-interactive-landscape-heatmap) ~ .MuiPaper-root {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .MuiStack-root:has(> .MuiPaper-root .jco-interactive-landscape-heatmap) > .MuiBox-root {
+    grid-column: 1 / -1;
+  }
+}
