@@ -8,9 +8,43 @@ JCO combines three levels of analysis:
 2. a **surrogate-based optimization** that refines the most promising device parameters;
 3. a **nonlinear harmonic-balance analysis** of the selected design over its physical working points.
 
-The project includes a desktop GUI for defining `.jco` experiments, running the simulation stages, and exploring stored results.
+<p align="center">
+  <img src="docs/images/jco_workflow.pdf" alt="JCO workflow" width="760">
+</p>
 
-> **Version 0.3.0** introduces the integrated desktop architecture, project-based `.jco` workflow, stage-aware execution and reuse, structured Results views, retained-array persistence, and preliminary Linux launcher support.
+<p align="center"><em>JCO workflow: linear exploration and optimization of device parameters followed by nonlinear working-point analysis.</em></p>
+
+The project includes a desktop GUI and stores complete experiments in portable `.jco` project files.
+
+> **Version 0.3.0** introduces the integrated desktop architecture, `.jco` project workflow, stage-aware execution and reuse, structured Results views, retained-array persistence, and preliminary Linux launcher support.
+
+## Desktop GUI
+
+The desktop application follows the same scientific workflow through three main areas.
+
+### Setup
+
+<p align="center">
+  <img src="docs/images/jco_gui_setup.png" alt="JCO Setup screen" width="1000">
+</p>
+
+<p align="center"><em>Define the circuit, device parameters, sources, and computation settings, and inspect the resolved lumped-element circuit preview.</em></p>
+
+### Run
+
+<p align="center">
+  <img src="docs/images/jco_gui_run.png" alt="JCO Run screen" width="1000">
+</p>
+
+<p align="center"><em>Execute the Linear, Optimization, and Harmonic Balance stages, with stage status, reuse, cancellation, and simulation logs managed from one view.</em></p>
+
+### Results
+
+<p align="center">
+  <img src="docs/images/jco_gui_results.png" alt="JCO Results screen" width="1000">
+</p>
+
+<p align="center"><em>Explore the sampled design space, selected configurations, scalar metrics, and retained frequency-resolved data.</em></p>
 
 ## Documentation
 
@@ -18,23 +52,15 @@ The complete user documentation is available here:
 
 **[JCO User Manual (PDF)](docs/JCO_Documentation.pdf)**
 
-The manual covers:
+The manual covers project structure, GUI usage, experiment syntax, circuit and source definition, solver and optimizer settings, `user_cost`, `user_performance`, masks, nonlinear feedback, parametric sources, and retained data.
 
-- the JCO workflow and its relationship with JosephsonCircuits.jl;
-- Windows and Linux startup;
-- `.jco` project structure and stored results;
-- the **Setup**, **Run**, and **Results** GUI sections;
-- circuit, device-parameter, source, solver, and optimizer configuration;
-- `user_cost`, `user_performance`, masks, nonlinear feedback, and `save_data`;
-- parametric sources and project-contained calibration files.
-
-Developer and contributor documentation is kept separately in the repository (`AGENTS.md`, `adr/`, `audits/`, `docs/`, and `governance/`).
+Developer and contributor documentation is kept separately in `AGENTS.md`, `adr/`, `audits/`, `docs/`, and `governance/`.
 
 ## Quick start
 
 ### Requirements
 
-- **Julia** must be installed to preview circuits or run simulations.
+- **Julia** is required for circuit previews and simulations.
 - Node.js/npm do **not** need to be installed globally when using the desktop launchers; the GUI runtime is prepared locally on first launch.
 - An internet connection may be required on first use to prepare the GUI runtime and instantiate Julia dependencies.
 
@@ -46,13 +72,13 @@ From the repository root, double-click:
 START_JCO_GUI.bat
 ```
 
-or run it from PowerShell:
+or run:
 
 ```powershell
 .\START_JCO_GUI.bat
 ```
 
-In the GUI, open **Settings** to select the Julia executable and the desired number of Julia threads. Use the runtime-setup action on first use if the Julia environment still needs to be instantiated/precompiled.
+Use **Settings** in the GUI to select the Julia executable and the desired number of Julia threads.
 
 ### Linux
 
@@ -63,63 +89,50 @@ chmod +x START_JCO_GUI.sh
 ./START_JCO_GUI.sh
 ```
 
-> **Linux support is preliminary.** The Linux launcher is provided for x86-64 and ARM64/aarch64 systems, but Linux has been less extensively validated than Windows and may require distribution-specific Electron/system libraries.
+> **Linux support is preliminary.** The launcher supports x86-64 and ARM64/aarch64, but Linux has been less extensively validated than Windows and may require distribution-specific Electron/system libraries.
 
 ## Running directly from Julia
 
-Activate the local environment:
+JCO can also be run without the desktop GUI:
 
 ```julia
 using Pkg
 Pkg.activate(".")
-```
 
-Run the complete workflow:
-
-```julia
 import JosephsonCircuitsOptimizer as JCO
 JCO.run()
 ```
 
-To use a custom workspace:
+Optionally specify another workspace with:
 
 ```julia
 JCO.run(workspace=raw"C:\...\my_experiment_01")
 ```
 
-When Julia is started manually, the number of threads can be selected from the terminal, for example:
-
-```bash
-julia --threads 12
-```
-
-and checked inside Julia with:
-
-```julia
-Threads.nthreads()
-```
-
 ## The `.jco` project
 
-A JCO experiment can be stored as a single `.jco` file. The file is a versioned ZIP container that keeps the editable experiment definition together with its retained simulation runs and numerical results.
+A `.jco` file is a versioned ZIP container that keeps the editable experiment definition together with retained simulation runs and numerical results.
 
-A project contains the circuit definition, device-parameter space, sources, simulation/optimizer settings, cost and performance functions, optional helper/calibration files, and the outputs produced by each run.
+It can include:
 
-The GUI is organized around three main areas:
+- circuit and device-parameter definitions;
+- source configuration;
+- simulation and optimizer settings;
+- user-defined cost, performance, helper, and parametric-source code;
+- optional calibration/text files;
+- stored outputs from multiple runs.
 
-- **Setup** — define the circuit, parameters, sources, computation settings, metrics, and constraints;
-- **Run** — execute Linear, Optimization, and Harmonic Balance stages using **Run all**, **Run remaining**, or a selected stage;
-- **Results** — inspect stored Linear, Optimization, and Harmonic Balance results, saved arrays, run snapshots, and run history.
+The project can therefore be moved or archived as a single file while remaining transparent and compatible with the underlying Julia/JSON/HDF5 representation.
 
 See the [User Manual](docs/JCO_Documentation.pdf) for the full project format and experiment syntax.
 
 ## Scientific workflow
 
-The Linear stage explores the device-parameter space using a user-defined metric \(\mathcal{M}\). The Optimization stage refines the most promising region using a surrogate-based search. The selected device is then evaluated in the nonlinear regime over its physical working points through a user-defined performance function \(\mathcal{F}\).
+The Linear stage explores the device-parameter space through a user-defined metric \(\mathcal{M}\). The Optimization stage refines the most promising region, and the selected device is then evaluated in the nonlinear regime through a user-defined performance function \(\mathcal{F}\).
 
-Optional nonlinear feedback can use information obtained from the nonlinear solution to modify the following linear optimization cycle.
+Optional nonlinear feedback can use information from the nonlinear solution in a subsequent optimization cycle.
 
-The circuit simulations themselves are performed by [JosephsonCircuits.jl](https://josephsoncircuits.org/).
+The circuit simulations are performed by [JosephsonCircuits.jl](https://josephsoncircuits.org/).
 
 ## Tests
 
