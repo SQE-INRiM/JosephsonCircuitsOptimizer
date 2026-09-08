@@ -1,7 +1,7 @@
 name = "JosephsonCircuitsOptimizer"
 uuid = "f0ccd376-68f0-4c3f-ac14-a7083ed4f996"
 authors = ["emanuele-palumbo <emanuele.palumbo@polito.it>"]
-version = "0.2.0"
+version = "0.3.0"
 
 [deps]
 ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
