@@ -9,7 +9,7 @@ JCO combines three levels of analysis:
 3. a **nonlinear harmonic-balance analysis** of the selected design over its physical working points.
 
 <p align="center">
-  <img src="docs/images/jco_workflow.png" alt="JCO workflow" width="760">
+  <img src="docs/images/jco_workflow.png" alt="JCO workflow" width="500">
 </p>
 
 <p align="center"><em>JCO workflow: linear exploration and optimization of device parameters followed by nonlinear working-point analysis.</em></p>
