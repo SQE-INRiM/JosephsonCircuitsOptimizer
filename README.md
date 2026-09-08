@@ -25,7 +25,7 @@ The desktop application follows the same scientific workflow through three main 
 ### Setup
 
 <p align="center">
-  <img src="docs/images/jco_gui_setup.png" alt="JCO Setup screen" width="1000">
+  <img src="docs/images/jco_gui_setup.png" alt="JCO Setup screen" width="800">
 </p>
 
 <p align="center"><em>Define the circuit, device parameters, sources, and computation settings, and inspect the resolved lumped-element circuit preview.</em></p>
@@ -33,7 +33,7 @@ The desktop application follows the same scientific workflow through three main 
 ### Run
 
 <p align="center">
-  <img src="docs/images/jco_gui_run.png" alt="JCO Run screen" width="1000">
+  <img src="docs/images/jco_gui_run.png" alt="JCO Run screen" width="800">
 </p>
 
 <p align="center"><em>Execute the Linear, Optimization, and Harmonic Balance stages, with stage status, reuse, cancellation, and simulation logs managed from one view.</em></p>
@@ -41,7 +41,7 @@ The desktop application follows the same scientific workflow through three main 
 ### Results
 
 <p align="center">
-  <img src="docs/images/jco_gui_results.png" alt="JCO Results screen" width="1000">
+  <img src="docs/images/jco_gui_results.png" alt="JCO Results screen" width="800">
 </p>
 
 <p align="center"><em>Explore the sampled design space, selected configurations, scalar metrics, and retained frequency-resolved data.</em></p>
@@ -91,7 +91,7 @@ chmod +x START_JCO_GUI.sh
 
 > **Linux support is preliminary.** The launcher supports x86-64 and ARM64/aarch64, but Linux has been less extensively validated than Windows and may require distribution-specific Electron/system libraries.
 
-## Running directly from Julia
+### Running directly from Julia
 
 JCO can also be run without the desktop GUI:
 
