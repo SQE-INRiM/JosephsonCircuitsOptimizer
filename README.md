@@ -9,7 +9,7 @@ JCO combines three levels of analysis:
 3. a **nonlinear harmonic-balance analysis** of the selected design over its physical working points.
 
 <p align="center">
-  <img src="docs/images/jco_workflow.pdf" alt="JCO workflow" width="760">
+  <img src="docs/images/jco_workflow.png" alt="JCO workflow" width="760">
 </p>
 
 <p align="center"><em>JCO workflow: linear exploration and optimization of device parameters followed by nonlinear working-point analysis.</em></p>
@@ -128,7 +128,7 @@ See the [User Manual](docs/JCO_Documentation.pdf) for the full project format an
 
 ## Scientific workflow
 
-The Linear stage explores the device-parameter space through a user-defined metric \(\mathcal{M}\). The Optimization stage refines the most promising region, and the selected device is then evaluated in the nonlinear regime through a user-defined performance function \(\mathcal{F}\).
+The Linear stage explores the device-parameter space through a user-defined cost function. The Optimization stage refines the most promising region, and the selected device is then evaluated in the nonlinear regime through a user-defined performance function.
 
 Optional nonlinear feedback can use information from the nonlinear solution in a subsequent optimization cycle.
 
@@ -148,7 +148,7 @@ npm run build
 
 If you use JCO in scientific work, please cite:
 
-> E. Palumbo *et al.*, **“JosephsonCircuitsOptimizer.jl (JCO)”**, *IEEE Transactions on Applied Superconductivity* (2026).  
+> E. Palumbo *et al.*, **“JCO: Optimization Framework for Nonlinear Superconducting Circuits Using a Lumped-Element Approach and Harmonic Balance”**, *IEEE Transactions on Applied Superconductivity* (2026).  
 > DOI: [10.1109/TASC.2026.3679488](https://doi.org/10.1109/TASC.2026.3679488)
 
 Repository:
