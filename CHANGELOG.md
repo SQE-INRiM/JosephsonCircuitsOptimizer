@@ -4,6 +4,10 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+_No unreleased changes._
+
+## 0.3.0 - 2026-09-08
+
 ### Governance
 - Introduced a lightweight repository-native agent operating contract through `AGENTS.md`.
 - Added risk-tiered audit rules and scientific-integrity checks tailored to JCO-GUI.
