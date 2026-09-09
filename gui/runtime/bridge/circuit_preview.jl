@@ -1,5 +1,8 @@
 using Pkg
 Pkg.activate(dirname(Base.active_project()))
+# Circuit preview can be the first Julia action after a fresh JCO checkout.
+# Ensure the active environment is materialized before loading JCO.
+Pkg.instantiate()
 push!(LOAD_PATH, joinpath(dirname(Base.active_project()), "src"))
 using JosephsonCircuitsOptimizer
 using JSON
