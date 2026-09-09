@@ -82,6 +82,36 @@ function getSettings() {
   catch { return { juliaPath: 'julia', threads: 1 } }
 }
 
+function runtimeStatePath() {
+  return path.join(app.getPath('userData'), 'runtime-state.json')
+}
+
+function runtimeFingerprint(settings = getSettings()) {
+  const hash = crypto.createHash('sha256')
+  hash.update(String(settings.juliaPath || 'julia'))
+  for (const fileName of ['Project.toml', 'Manifest.toml']) {
+    const filePath = path.join(jcoRoot(), fileName)
+    hash.update(fileName)
+    if (fs.existsSync(filePath)) hash.update(fs.readFileSync(filePath))
+  }
+  return hash.digest('hex')
+}
+
+function runtimeIsPrepared(settings = getSettings()) {
+  try {
+    const state = JSON.parse(fs.readFileSync(runtimeStatePath(), 'utf8'))
+    return state.fingerprint === runtimeFingerprint(settings)
+  } catch {
+    return false
+  }
+}
+
+function markRuntimePrepared(settings = getSettings()) {
+  const target = runtimeStatePath()
+  fs.mkdirSync(path.dirname(target), { recursive: true })
+  fs.writeFileSync(target, `${JSON.stringify({ fingerprint: runtimeFingerprint(settings) }, null, 2)}\n`)
+}
+
 function setSettings(patch) {
   const settings = { ...getSettings(), ...patch }
   fs.mkdirSync(path.dirname(settingsPath()), { recursive: true })
@@ -284,6 +314,7 @@ async function previewCircuit(project) {
   saveProjectModel(session.workspace, project)
   const validation = validateWorkspace(session.workspace)
   if (!validation.valid) throw new Error(`Missing inputs: ${validation.missing.join(', ')}`)
+  if (!runtimeIsPrepared()) await setupRuntime()
   return runJuliaJson('circuit_preview.jl')
 }
 
@@ -308,8 +339,14 @@ function setupRuntime() {
     child.on('error', reject)
     child.on('close', (code) => {
       juliaProcess = null
-      if (code === 0 && ready) resolve({ ok: true, message: 'Julia and the JCO environment are ready.' })
-      else reject(new Error(`Julia environment setup failed (exit code ${code ?? 'unknown'}). Check the runtime log and Julia path.`))
+      if (code === 0 && ready) {
+        try { markRuntimePrepared(settings) } catch (error) {
+          parseOutputLine(`Runtime setup succeeded, but readiness state could not be saved: ${error.message}`, runId)
+        }
+        resolve({ ok: true, message: 'Julia and the JCO environment are ready.' })
+      } else {
+        reject(new Error(`Julia environment setup failed (exit code ${code ?? 'unknown'}). Check the runtime log and Julia path.`))
+      }
     })
   })
 }
