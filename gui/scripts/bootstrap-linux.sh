@@ -32,6 +32,9 @@ NODE_BIN="$NODE_DIR/bin/node"
 NPM_BIN="$NODE_DIR/bin/npm"
 NODE_ARCHIVE="$RUNTIME_DIR/${NODE_DIR_NAME}.tar.xz"
 NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_DIR_NAME}.tar.xz"
+LOCK_FILE="$ROOT/package-lock.json"
+DEPENDENCY_STAMP="$RUNTIME_DIR/package-lock.sha256"
+ELECTRON_BIN="$ROOT/node_modules/.bin/electron"
 
 cd "$ROOT" || fail "Could not enter the GUI directory."
 mkdir -p "$RUNTIME_DIR" || fail "Could not create .jco-runtime."
@@ -57,11 +60,37 @@ if [ ! -x "$NPM_BIN" ]; then
   fail "The local Node.js runtime is incomplete. Delete .jco-runtime and launch again."
 fi
 
+if [ ! -f "$LOCK_FILE" ]; then
+  fail "package-lock.json is missing. Restore it from the repository and launch again."
+fi
+
 export PATH="$NODE_DIR/bin:$PATH"
 
-if [ ! -d "$ROOT/node_modules" ]; then
-  step "Installing GUI dependencies locally (first launch only)..."
+if command -v sha256sum >/dev/null 2>&1; then
+  CURRENT_LOCK_HASH="$(sha256sum "$LOCK_FILE" | awk '{print $1}')"
+elif command -v shasum >/dev/null 2>&1; then
+  CURRENT_LOCK_HASH="$(shasum -a 256 "$LOCK_FILE" | awk '{print $1}')"
+else
+  fail "A SHA-256 utility (sha256sum or shasum) is required to verify GUI dependencies."
+fi
+
+INSTALLED_LOCK_HASH=""
+if [ -f "$DEPENDENCY_STAMP" ]; then
+  INSTALLED_LOCK_HASH="$(cat "$DEPENDENCY_STAMP")"
+fi
+
+if [ ! -d "$ROOT/node_modules" ] || [ ! -x "$ELECTRON_BIN" ] || [ "$INSTALLED_LOCK_HASH" != "$CURRENT_LOCK_HASH" ]; then
+  if [ -d "$ROOT/node_modules" ]; then
+    step "GUI dependencies changed or are incomplete. Refreshing local dependencies..."
+  else
+    step "Installing GUI dependencies locally (first launch only)..."
+  fi
   "$NPM_BIN" ci || fail "npm dependency installation failed."
+  printf '%s' "$CURRENT_LOCK_HASH" > "$DEPENDENCY_STAMP"
+fi
+
+if [ ! -x "$ELECTRON_BIN" ]; then
+  fail "Electron is missing after npm dependency installation."
 fi
 
 step "Building the GUI..."
@@ -74,5 +103,5 @@ fi
 step "Opening JCO GUI..."
 step "Julia is only needed when you start a JCO simulation."
 
-"$NPM_BIN" exec --yes --package=electron@43.4.1 -- electron . \
+"$ELECTRON_BIN" . \
   || fail "Electron failed to start the application. On Linux, missing system libraries may need to be installed by your distribution package manager."

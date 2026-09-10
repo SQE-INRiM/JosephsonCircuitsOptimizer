@@ -19,7 +19,7 @@
     "@mui/icons-material": "^9.1.1",
     "@mui/material": "^9.1.1",
     "@mui/x-charts": "^9.5.0",
-    "adm-zip": "^0.5.16",
+    "adm-zip": "0.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "zustand": "^5.0.8"
@@ -30,6 +30,7 @@
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
+    "electron": "43.4.1",
     "jsdom": "^27.0.1",
     "typescript": "^5.9.3",
     "vite": "^7.1.12",

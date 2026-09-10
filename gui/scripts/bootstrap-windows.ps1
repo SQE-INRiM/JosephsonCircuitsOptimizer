@@ -9,6 +9,9 @@ $NodeExe = Join-Path $NodeDir 'node.exe'
 $NpmCmd = Join-Path $NodeDir 'npm.cmd'
 $NodeZip = Join-Path $RuntimeDir "$NodeDirName.zip"
 $NodeUrl = "https://nodejs.org/dist/v$NodeVersion/$NodeDirName.zip"
+$LockFile = Join-Path $Root 'package-lock.json'
+$DependencyStamp = Join-Path $RuntimeDir 'package-lock.sha256'
+$ElectronCmd = Join-Path $Root 'node_modules\.bin\electron.cmd'
 
 function Write-Step([string]$Message) {
     Write-Host "[JCO GUI] $Message"
@@ -44,14 +47,36 @@ if (-not (Test-Path $NodeExe)) {
 if (-not (Test-Path $NpmCmd)) {
     Fail "The local Node.js runtime is incomplete. Delete .jco-runtime and launch again."
 }
+if (-not (Test-Path $LockFile)) {
+    Fail "package-lock.json is missing. Restore it from the repository and launch again."
+}
 
-# Make the local runtime visible only to this launcher and its child processes.
 $env:PATH = "$NodeDir;$env:PATH"
 
-if (-not (Test-Path (Join-Path $Root 'node_modules'))) {
-    Write-Step "Installing GUI dependencies locally (first launch only)..."
+$CurrentLockHash = (Get-FileHash -Algorithm SHA256 -Path $LockFile).Hash.ToLowerInvariant()
+$InstalledLockHash = ''
+if (Test-Path $DependencyStamp) {
+    $InstalledLockHash = (Get-Content -Raw $DependencyStamp).Trim().ToLowerInvariant()
+}
+
+$DependenciesNeedInstall =
+    (-not (Test-Path (Join-Path $Root 'node_modules'))) -or
+    (-not (Test-Path $ElectronCmd)) -or
+    ($InstalledLockHash -ne $CurrentLockHash)
+
+if ($DependenciesNeedInstall) {
+    if (Test-Path (Join-Path $Root 'node_modules')) {
+        Write-Step "GUI dependencies changed or are incomplete. Refreshing local dependencies..."
+    } else {
+        Write-Step "Installing GUI dependencies locally (first launch only)..."
+    }
     & $NpmCmd ci
     if ($LASTEXITCODE -ne 0) { Fail "npm dependency installation failed." }
+    Set-Content -Path $DependencyStamp -Value $CurrentLockHash -NoNewline -Encoding ascii
+}
+
+if (-not (Test-Path $ElectronCmd)) {
+    Fail "Electron is missing after npm dependency installation."
 }
 
 Write-Step "Building the GUI..."
@@ -65,5 +90,5 @@ if (-not (Test-Path (Join-Path $Root 'dist\index.html'))) {
 Write-Step "Opening JCO GUI..."
 Write-Step "Julia is only needed when you start a JCO simulation."
 
-& $NpmCmd exec --yes --package=electron@43.4.1 -- electron .
+& $ElectronCmd .
 if ($LASTEXITCODE -ne 0) { Fail "Electron failed to start the application." }
