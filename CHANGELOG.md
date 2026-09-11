@@ -4,6 +4,8 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+## 0.4.0 - 2026-09-11
+
 ### Application
 - Harden fresh-checkout Circuit Preview/runtime startup: materialize the Julia environment when needed, cache runtime readiness against the Julia path and project files, and prepare the GUI runtime before preview execution.
 - Update GUI launch/bootstrap dependencies for the unified repository, including Electron 43.4.1 and `adm-zip` 0.6.0.
