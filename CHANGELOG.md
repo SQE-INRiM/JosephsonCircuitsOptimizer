@@ -4,7 +4,15 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
-_No unreleased changes._
+### Application
+- Start the desktop GUI from a neutral unsaved `New project` workspace instead of a Carthago-specific preview state, with guidance to open bundled examples from the project menu.
+- Keep bundled `.jco` examples directory-driven: valid projects added under `gui/runtime/examples/` are discovered from their manifests without a hard-coded registry.
+- Allow bundled examples to run directly in their temporary session without `Save As`, while ordinary new/imported unsaved projects still require a durable `.jco` path before scientific execution.
+- Keep circuit-preview generation active while the user configures other Setup sections, and preserve stale detection when circuit code or preview parameters change during generation.
+- Clarify that resolved circuit generation can take time for complex circuits.
+
+### Governance
+- Track the example lifecycle and background circuit-preview behavior as a T2 GUI/desktop-bridge change with explicit acceptance criteria and qualified validation evidence.
 
 ## 0.3.0 - 2026-09-08
 
