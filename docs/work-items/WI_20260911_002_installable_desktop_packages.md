@@ -29,6 +29,8 @@ Packaging must remain a thin layer around the existing application:
 - Julia Settings can point to a working Julia executable and the runtime can instantiate/load the packaged JCO environment.
 - `npm run package:linux` / GitHub Actions produces an x64 AppImage.
 - Linux AppImage launches without a repository checkout or Node.js/npm.
+- A version tag matching root JCO and GUI package versions builds both platform artifacts and publishes them on the GitHub Releases page.
+- README installation instructions direct normal users to GitHub Releases before source launchers.
 - Opening an app/package does not execute arbitrary user Julia; existing explicit preview/run boundaries remain unchanged.
 - A normal `.jco` project can be opened/saved and a small scientific run can complete from the installed Windows build.
 

@@ -61,27 +61,59 @@ Developer and contributor documentation is kept separately in `AGENTS.md`, `adr/
 ### Requirements
 
 - **Julia** is required for circuit previews and simulations.
-- Node.js/npm do **not** need to be installed globally when using the desktop launchers; the GUI runtime is prepared locally on first launch.
-- An internet connection may be required on first use to prepare the GUI runtime and instantiate Julia dependencies.
+- The packaged desktop application already contains the GUI, JCO source, bridge files, templates, and bundled examples; users do **not** need Node.js/npm or a repository checkout.
+- An internet connection may be required on first Julia-backed use to instantiate and precompile the bundled JCO environment.
 
-### Packaged desktop builds
+### Install the desktop application
 
-JCO-GUI can also be distributed as a packaged desktop application. The package contains the GUI, the JCO Julia source, bridge files, templates, and bundled examples, so users do not need Node.js/npm or a repository checkout.
+For most users, the recommended way to use JCO-GUI is to download the latest desktop package from:
 
-- Windows builds provide a normal installer and a portable executable.
-- Linux builds provide an AppImage.
-- Julia remains an external requirement for circuit previews and simulations and can be selected from **Settings**.
+**[JCO-GUI Releases](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/releases/latest)**
 
-For maintainers, packaging is available from `gui/` with:
+#### Windows
 
-```bash
-npm run package:win
-npm run package:linux
+Download:
+
+```text
+JCO-GUI-<version>-Windows-Setup.exe
 ```
 
-The operating-system-specific packages are also built by GitHub Actions.
+and run the installer. It installs JCO-GUI as a normal per-user Windows application with Start Menu and desktop shortcuts.
 
-### Windows
+A portable build is also provided:
+
+```text
+JCO-GUI-<version>-Windows-Portable.exe
+```
+
+The portable executable runs without installation.
+
+Windows may show an unknown-publisher/SmartScreen warning for unsigned research builds.
+
+#### Linux
+
+Download:
+
+```text
+JCO-GUI-<version>-Linux-x64.AppImage
+```
+
+then make it executable and launch it:
+
+```bash
+chmod +x JCO-GUI-<version>-Linux-x64.AppImage
+./JCO-GUI-<version>-Linux-x64.AppImage
+```
+
+> **Linux packaged support is currently x86-64 and preliminary.** Linux has been less extensively validated than Windows and may still depend on distribution-specific system libraries.
+
+After launching JCO-GUI, use **Settings** to select the Julia executable and the desired number of Julia threads.
+
+### Run the GUI from source
+
+The repository launchers remain available for developers and source-based use.
+
+#### Windows
 
 From the repository root, double-click:
 
@@ -95,9 +127,7 @@ or run:
 .\START_JCO_GUI.bat
 ```
 
-Use **Settings** in the GUI to select the Julia executable and the desired number of Julia threads.
-
-### Linux
+#### Linux
 
 From the repository root:
 
@@ -106,7 +136,7 @@ chmod +x START_JCO_GUI.sh
 ./START_JCO_GUI.sh
 ```
 
-> **Linux support is preliminary.** The launcher supports x86-64 and ARM64/aarch64, but Linux has been less extensively validated than Windows and may require distribution-specific Electron/system libraries.
+The source launchers prepare their own local Node/Electron runtime, so a global Node.js/npm installation is not required.
 
 ### Running directly from Julia
 

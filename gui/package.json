@@ -37,5 +37,7 @@
     "typescript": "^5.9.3",
     "vite": "^7.1.12",
     "vitest": "^3.2.4"
-  }
+  },
+  "description": "Desktop GUI for JosephsonCircuitsOptimizer.jl",
+  "author": "SQE-INRiM"
 }
