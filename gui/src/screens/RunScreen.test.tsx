@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { initialStages } from '../data/carthago'
 import { useAppStore } from '../store'
@@ -14,15 +14,26 @@ describe('Run screen controls', () => {
     })
   })
 
-  it('runs the stage named by the selected-stage button', () => {
-    const onRunStage = vi.fn().mockResolvedValue(undefined)
-    render(<RunScreen desktop cancelling={false} onRunRemaining={vi.fn()} onRunStage={onRunStage} onStop={vi.fn()} />)
+it('runs the stage named by the selected-stage button', async () => {
+  const onRunStage = vi.fn().mockResolvedValue(undefined)
+  render(
+    <RunScreen
+      desktop
+      cancelling={false}
+      onRunRemaining={vi.fn()}
+      onRunStage={onRunStage}
+      onStop={vi.fn()}
+    />,
+  )
 
+  await act(async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Run Linear' }))
-
-    expect(onRunStage).toHaveBeenCalledOnce()
-    expect(onRunStage).toHaveBeenCalledWith('linear')
+    await Promise.resolve()
   })
+
+  expect(onRunStage).toHaveBeenCalledOnce()
+  expect(onRunStage).toHaveBeenCalledWith('linear')
+})
 
   it('shows a stopping state and prevents duplicate cancellation clicks', () => {
     useAppStore.setState({ running: true })
