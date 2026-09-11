@@ -5,3 +5,4 @@ dist-electron/
 .DS_Store
 *.log
 *.tsbuildinfo
+gui/runtime/jco/

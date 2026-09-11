@@ -8,10 +8,12 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "jco": "node scripts/start-jco.cjs",
-    "package:win": "npm run build && npm exec --yes --package=electron-builder@26.15.3 -- electron-builder --win portable --x64",
+    "package:win": "npm run build && npm run prepare:package && npm exec --yes --package=electron-builder@26.15.3 -- electron-builder --win nsis portable --x64",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run && node --test desktop/archive.node-test.cjs desktop/project-model.node-test.cjs desktop/run-session.node-test.cjs",
-    "test:desktop": "node --test desktop/archive.node-test.cjs desktop/project-model.node-test.cjs desktop/run-session.node-test.cjs"
+    "test:desktop": "node --test desktop/archive.node-test.cjs desktop/project-model.node-test.cjs desktop/run-session.node-test.cjs",
+    "prepare:package": "node scripts/prepare-packaged-jco.cjs",
+    "package:linux": "npm run build && npm run prepare:package && npm exec --yes --package=electron-builder@26.15.3 -- electron-builder --linux AppImage --x64"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -35,5 +37,7 @@
     "typescript": "^5.9.3",
     "vite": "^7.1.12",
     "vitest": "^3.2.4"
-  }
+  },
+  "description": "Desktop GUI for JosephsonCircuitsOptimizer.jl",
+  "author": "SQE-INRiM"
 }

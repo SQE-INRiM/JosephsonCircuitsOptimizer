@@ -1,0 +1,127 @@
+name: Publish desktop release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: gui
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches package version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}".TrimStart("v")
+          $pkg = (Get-Content package.json | ConvertFrom-Json).version
+          $projectLine = Select-String -Path ..\Project.toml -Pattern '^version\s*=\s*"([^"]+)"$'
+          if (-not $projectLine) { throw "Could not read Project.toml version" }
+          $jco = $projectLine.Matches[0].Groups[1].Value
+          if ($tag -ne $pkg -or $tag -ne $jco) {
+            throw "Release tag v$tag must match GUI version $pkg and JCO version $jco"
+          }
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build Windows packages
+        run: npm run package:win
+
+      - name: Upload Windows release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release-windows
+          path: |
+            gui/dist-electron/JCO-GUI-*-Windows-Setup.exe
+            gui/dist-electron/JCO-GUI-*-Windows-Portable.exe
+          if-no-files-found: error
+
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: gui
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches package version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          GUI_VERSION="$(node -p "require('./package.json').version")"
+          JCO_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' ../Project.toml | head -n 1)"
+          if [ "$TAG" != "$GUI_VERSION" ] || [ "$TAG" != "$JCO_VERSION" ]; then
+            echo "Release tag v$TAG must match GUI version $GUI_VERSION and JCO version $JCO_VERSION"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build Linux AppImage
+        run: npm run package:linux
+
+      - name: Upload Linux release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release-linux
+          path: gui/dist-electron/JCO-GUI-*-Linux-*.AppImage
+          if-no-files-found: error
+
+  publish:
+    needs:
+      - build-windows
+      - build-linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download packaged applications
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-release-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            release-assets/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "JosephsonCircuitsOptimizer ${GITHUB_REF_NAME}" \
+            --generate-notes

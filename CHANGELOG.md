@@ -17,6 +17,13 @@ This changelog records completed user-relevant and development-process changes. 
 - Refresh `governance/repository-status.md` for the unified `SQE-INRiM/JosephsonCircuitsOptimizer` repository and retain the Sep 7–10 migration/release/fresh-install history as the current recovery baseline.
 - Add a qualified historical audit for the Circuit Preview fresh-install/runtime-bootstrap follow-up without claiming checks that were not retained as evidence.
 - Track the example lifecycle and background circuit-preview behavior as a T2 GUI/desktop-bridge change with explicit acceptance criteria and qualified validation evidence.
+### Packaging
+- Add tag-driven GitHub Releases that publish Windows installer/portable artifacts and the Linux AppImage.
+- Make packaged desktop downloads the recommended README installation path while retaining source launchers for developers.
+- Add build-time staging of the authoritative root JCO Julia package for packaged Electron applications.
+- Add Windows x64 NSIS installer + portable packaging and Linux x64 AppImage packaging.
+- Add GitHub Actions jobs for Windows/Linux desktop artifacts while keeping Julia as an external runtime requirement.
+
 
 ## 0.3.0 - 2026-09-08
 
