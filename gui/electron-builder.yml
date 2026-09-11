@@ -2,12 +2,15 @@ appId: it.inrim.jco.gui
 productName: JCO GUI
 electronVersion: 43.4.1
 asar: true
+
 directories:
   output: dist-electron
+
 files:
   - dist/**
   - desktop/**
   - package.json
+
 extraResources:
   - from: runtime/jco
     to: jco
@@ -17,11 +20,36 @@ extraResources:
     to: templates
   - from: runtime/examples
     to: examples
+
 win:
   target:
+    - target: nsis
+      arch:
+        - x64
     - target: portable
       arch:
         - x64
-  artifactName: JCO-GUI-${version}-portable.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: JCO GUI
+  artifactName: JCO-GUI-${version}-Windows-Setup.${ext}
+
 portable:
   requestExecutionLevel: user
+  artifactName: JCO-GUI-${version}-Windows-Portable.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Science
+  executableName: jco-gui
+  synopsis: Josephson circuit optimization desktop GUI
+  description: Desktop interface for JosephsonCircuitsOptimizer.jl
+  artifactName: JCO-GUI-${version}-Linux-${arch}.${ext}

@@ -64,6 +64,23 @@ Developer and contributor documentation is kept separately in `AGENTS.md`, `adr/
 - Node.js/npm do **not** need to be installed globally when using the desktop launchers; the GUI runtime is prepared locally on first launch.
 - An internet connection may be required on first use to prepare the GUI runtime and instantiate Julia dependencies.
 
+### Packaged desktop builds
+
+JCO-GUI can also be distributed as a packaged desktop application. The package contains the GUI, the JCO Julia source, bridge files, templates, and bundled examples, so users do not need Node.js/npm or a repository checkout.
+
+- Windows builds provide a normal installer and a portable executable.
+- Linux builds provide an AppImage.
+- Julia remains an external requirement for circuit previews and simulations and can be selected from **Settings**.
+
+For maintainers, packaging is available from `gui/` with:
+
+```bash
+npm run package:win
+npm run package:linux
+```
+
+The operating-system-specific packages are also built by GitHub Actions.
+
 ### Windows
 
 From the repository root, double-click:

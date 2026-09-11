@@ -1,4 +1,4 @@
-name: Build Windows desktop packages
+name: Build Linux AppImage
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ on:
       - 'gui/vite.config.ts'
       - 'gui/tsconfig*.json'
       - 'gui/electron-builder.yml'
-      - '.github/workflows/build-windows-portable.yml'
+      - '.github/workflows/build-linux-appimage.yml'
 
 permissions:
   contents: read
@@ -30,8 +30,8 @@ defaults:
     working-directory: gui
 
 jobs:
-  build-windows-desktop:
-    runs-on: windows-latest
+  build-linux-appimage:
+    runs-on: ubuntu-latest
     timeout-minutes: 40
 
     steps:
@@ -51,13 +51,13 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build Windows installer and portable executable
-        run: npm run package:win
+      - name: Build Linux AppImage
+        run: npm run package:linux
 
-      - name: Upload Windows desktop packages
+      - name: Upload Linux AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: JCO-GUI-Windows-x64
-          path: gui/dist-electron/*.exe
+          name: JCO-GUI-Linux-x64-AppImage
+          path: gui/dist-electron/*.AppImage
           if-no-files-found: error
           retention-days: 14
