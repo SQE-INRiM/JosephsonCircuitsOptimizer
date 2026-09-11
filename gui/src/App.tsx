@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
+  Alert,
   AppBar,
   Avatar,
   Box,
@@ -68,6 +69,7 @@ export default function App() {
   const [juliaPath, setJuliaPath] = useState('julia')
   const [threads, setThreads] = useState(1)
   const desktop = isDesktopBridgeAvailable()
+  const startupInitialized = useRef(false)
 
   useEffect(() => {
     const adapter = getJcoAdapter()
@@ -81,6 +83,21 @@ export default function App() {
       }
     })
   }, [applyRunEvent, setResults])
+
+  useEffect(() => {
+    if (!desktop || startupInitialized.current) return
+    startupInitialized.current = true
+    const adapter = getJcoAdapter()
+    if (!adapter) return
+    void Promise.all([adapter.newProject(), adapter.listExamples()])
+      .then(([loaded, listedExamples]) => {
+        loadProject(loaded)
+        setExamples(listedExamples)
+      })
+      .catch((error) => {
+        setNotice(`New project could not be initialized: ${error instanceof Error ? error.message : String(error)}`)
+      })
+  }, [desktop, loadProject])
 
   const refreshExamples = async () => {
     const adapter = getJcoAdapter()
@@ -121,7 +138,7 @@ export default function App() {
     const loaded = await adapter.openExample(fileName)
     loadProject(loaded)
     await refreshResults()
-    setNotice(`Loaded example ${loaded.name}. Save As before modifying the original example.`)
+    setNotice(`Loaded example ${loaded.name}. You can run it directly; use Save As if you want to keep changes or results.`)
   })
 
   const openSettings = () => perform(async () => {
@@ -257,6 +274,11 @@ export default function App() {
 
       <Box component="main" className="content-scroll" sx={{ flex: 1, minWidth: 0, pt: '66px', overflow: 'auto' }}>
         <Box sx={{ p: { xs: 2.5, xl: 4 }, maxWidth: 1680, mx: 'auto' }}>
+          {section === 'setup' && project.name === 'New project' && !project.workspaceInfo?.projectPath && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Start from this new project, or open a bundled example from the ⋮ menu.
+            </Alert>
+          )}
           {section === 'setup' && <SetupScreen />}
           {section === 'run' && <RunScreen desktop={desktop} cancelling={cancelling} onRunRemaining={() => run()} onRunStage={(stage) => run([stage])} onStop={stop} />}
           {section === 'results' && <ResultsScreen />}

@@ -168,9 +168,10 @@ test('preserves cancellation intent when a forced process exit has a nonzero cod
   assert.equal(outcomeForClose(1, false), 'failed')
 })
 
-test('requires a durable project path before starting a scientific run', () => {
-  assert.throws(() => requireDurableProject({ projectPath: null }), /Save As a \.jco project before running/)
+test('requires a durable user project but allows bundled examples to run temporarily', () => {
+  assert.throws(() => requireDurableProject({ projectPath: null, manifest: { name: 'New project' } }), /Save As a \.jco project before running/)
   assert.equal(requireDurableProject({ projectPath: 'C:\\projects\\device.jco' }), 'C:\\projects\\device.jco')
+  assert.equal(requireDurableProject({ projectPath: null, manifest: { fileName: 'SNAIL JTWPA 3WM.jco' } }), null)
 })
 
 test('terminates the complete Julia process tree on Windows', () => {

@@ -10,10 +10,11 @@ function outcomeForClose(code, cancelRequested) {
 }
 
 function requireDurableProject(session) {
-  if (!session?.projectPath) {
-    throw new Error('Save As a .jco project before running. This ensures every generated dataset is stored in a durable project file.')
-  }
-  return session.projectPath
+  if (session?.projectPath) return session.projectPath
+  // Bundled examples are unpacked into an isolated temporary workspace. They may run
+  // without Save As; outputs remain temporary unless the user later saves the project.
+  if (session?.manifest?.fileName) return null
+  throw new Error('Save As a .jco project before running. This ensures every generated dataset is stored in a durable project file.')
 }
 
 function terminateProcessTree(child, { platform = process.platform, spawnProcess = spawn } = {}) {

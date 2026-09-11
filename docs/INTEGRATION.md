@@ -22,7 +22,9 @@ project.jco ───Open────┘            │
                                     └──> results.jl ──> charts / CSV
 ```
 
-The three supplied experiments are bundled as `.jco` examples. They are opened as unsaved copies so a user cannot overwrite the shipped example accidentally.
+Valid `.jco` files placed in `gui/runtime/examples/` are discovered automatically when the project menu is opened. Examples are unpacked into isolated temporary workspaces, so the shipped files cannot be overwritten accidentally. They can be simulated without Save As; changes and generated results become durable only if the user explicitly saves the example as a project.
+
+Packaged desktop builds include the examples present at build time, so adding an example to a released application requires rebuilding the package.
 
 ## Julia execution
 

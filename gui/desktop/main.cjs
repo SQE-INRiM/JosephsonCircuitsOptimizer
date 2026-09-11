@@ -442,7 +442,7 @@ function createWindow() {
 app.whenReady().then(() => {
   ipcMain.handle('jco:new', async () => {
     const template = path.join(resourcesRoot(), 'templates', 'default')
-    return openWorkspace(template, null, { name: 'Untitled project' })
+    return openWorkspace(template, null, { name: 'New project' })
   })
   ipcMain.handle('jco:open', chooseAndOpenProject)
   ipcMain.handle('jco:import-workspace', chooseAndImportWorkspace)

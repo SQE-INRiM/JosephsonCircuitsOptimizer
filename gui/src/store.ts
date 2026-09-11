@@ -65,8 +65,8 @@ function user_performance(sol, device_params_set, source_amps, source_freqs)
 end`
 
 const initialProject: ProjectModel = {
-  name: 'JTWPA Carthago — loss & fabrication spread',
-  filename: 'carthago_loss_spread.jco',
+  name: 'New project',
+  filename: 'New project.jco',
   schemaVersion: 'jco.project/1',
   circuitCode: placeholderCode,
   metricsCode: placeholderMetrics,
