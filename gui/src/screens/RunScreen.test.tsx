@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { initialStages } from '../data/carthago'
 import { useAppStore } from '../store'
 import { formatStageCompletion, RunScreen } from './RunScreen'
@@ -13,6 +13,9 @@ describe('Run screen controls', () => {
       currentRunId: null,
     })
   })
+afterEach(() => {
+  cleanup()
+})
 
 it('runs the stage named by the selected-stage button', async () => {
   const onRunStage = vi.fn().mockResolvedValue(undefined)
