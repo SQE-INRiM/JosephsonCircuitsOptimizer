@@ -5,6 +5,8 @@ This changelog records completed user-relevant and development-process changes. 
 ## Unreleased
 
 ### Application
+- Harden fresh-checkout Circuit Preview/runtime startup: materialize the Julia environment when needed, cache runtime readiness against the Julia path and project files, and prepare the GUI runtime before preview execution.
+- Update GUI launch/bootstrap dependencies for the unified repository, including Electron 43.4.1 and `adm-zip` 0.6.0.
 - Start the desktop GUI from a neutral unsaved `New project` workspace instead of a Carthago-specific preview state, with guidance to open bundled examples from the project menu.
 - Keep bundled `.jco` examples directory-driven: valid projects added under `gui/runtime/examples/` are discovered from their manifests without a hard-coded registry.
 - Allow bundled examples to run directly in their temporary session without `Save As`, while ordinary new/imported unsaved projects still require a durable `.jco` path before scientific execution.
@@ -12,6 +14,8 @@ This changelog records completed user-relevant and development-process changes. 
 - Clarify that resolved circuit generation can take time for complex circuits.
 
 ### Governance
+- Refresh `governance/repository-status.md` for the unified `SQE-INRiM/JosephsonCircuitsOptimizer` repository and retain the Sep 7–10 migration/release/fresh-install history as the current recovery baseline.
+- Add a qualified historical audit for the Circuit Preview fresh-install/runtime-bootstrap follow-up without claiming checks that were not retained as evidence.
 - Track the example lifecycle and background circuit-preview behavior as a T2 GUI/desktop-bridge change with explicit acceptance criteria and qualified validation evidence.
 
 ## 0.3.0 - 2026-09-08

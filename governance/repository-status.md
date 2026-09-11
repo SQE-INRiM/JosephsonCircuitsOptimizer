@@ -1,51 +1,71 @@
 # Repository Status
 
-Last governance refresh: 2026-08-31
+Last governance refresh: 2026-09-11
 
 ## Current development baseline
 
-- Repository: `emanuele-palumbo/JCO-GUI`
+- Repository: `SQE-INRiM/JosephsonCircuitsOptimizer`
 - Primary branch: `main`
-- Historical governance branch: `governance/baseline`
-- Application stack: Electron/React desktop GUI with Julia/JCO bridge and `.jco` project container.
-- PR #20 (`fix/cost-history-vector-recording-2`) was squash-merged into `main` at `4f37fdc04c5b083198a1f659ea581bd202b68647` on 2026-08-31.
-- Active follow-up: PR #21 from `fix/optimization-results-diagnostics` refines sparse Optimization Results presentation without changing optimizer mathematics or the original JCO density weighting.
+- Application stack: Julia/JCO package at repository root with the Electron/React GUI under `gui/`.
+- Unified-repository migration was merged by PR #1 on 2026-09-07 at `8e148a2`.
+- Preliminary Linux launcher was merged by PR #2 at `75dfe0b`.
+- Release `v0.3.0` was merged by PR #3 at `497ceb1` on 2026-09-08, followed by README/image-only refinements through `6e9ab98`.
+- `fix/circuit-preview-fresh-install` was integrated into `main` through `399873f` on 2026-09-10.
+- Current feature work: `feat/example-project-workflow`, implementation commit `aac3931`, with governance reconciliation and final local checks being recorded before integration.
 
-## Governance state
+The pre-migration `emanuele-palumbo/JCO-GUI` status is historical context. Git history and retained audits/work items preserve that development record; this file tracks the unified organization repository.
 
-Governance is intentionally lightweight and advisory. Start with `AGENTS.md` and this status file; consult work items/audits when relevant. Qualified audits record pending local verification without blocking integration.
+## Integrated history since migration
+
+### Unified repository / release
+- The GUI, runtime bridge, launchers, tests, governance material, examples and documentation live in the main JosephsonCircuitsOptimizer repository.
+- Windows startup uses `START_JCO_GUI.bat`; a preliminary Linux launcher is available as `START_JCO_GUI.sh`.
+- `v0.3.0` established the first documented unified-repository release baseline.
+
+### Circuit Preview fresh-install follow-up
+The three commits `e88f5d3` → `69b5453` → `399873f` hardened Circuit Preview and first-launch runtime behavior:
+- Circuit Preview can materialize the Julia project environment when it is the first Julia action after a fresh checkout.
+- The desktop process records a runtime-readiness fingerprint derived from the Julia path plus `Project.toml` / `Manifest.toml`, and prepares the runtime before preview execution when required.
+- Windows/Linux GUI bootstrap scripts were updated so the local GUI dependency/runtime setup is prepared before Electron launch.
+- Electron is declared at `43.4.1` in the GUI development dependencies and `adm-zip` is pinned to `0.6.0`.
+- These changes are a runtime/bootstrap follow-up to ADR 007; they do not change circuit topology semantics or the `.jco` schema.
+
+See `AUD_20260910_001_circuit_preview_fresh_install.md` for the scoped historical audit. It remains qualified where exact automated/manual checks were not retained in repository evidence.
 
 ## Current functional state
 
-The run/storage pipeline and current Linear/Optimization Results slices are integrated into `main`:
+The unified GUI provides:
+- Setup for circuit code, device parameters, sources, computation settings and metric code;
+- explicit JCO-resolved Circuit Preview with stale-state tracking and condensed rendering for long circuits;
+- Linear, Optimization and Harmonic Balance execution through the Julia bridge;
+- run cancellation/protection and persistent `.jco` project/result storage;
+- point-addressable Results views, retained-array plotting and CSV export;
+- dynamic bundled examples under `gui/runtime/examples/`;
+- Windows and preliminary Linux startup/bootstrap flows.
 
-- completed runs remain available in Results while setup values change or another run executes;
-- inactive stored runs can be deleted from Results with confirmation;
-- Results treats `currentRunId` as active only while the global run state is actually running;
-- Results avoids continuous full Julia/HDF5 polling during active simulations and provides manual `Refresh results`;
-- the Run screen distinguishes `Run remaining` (reuse valid earlier stages) from `Run all` (fresh Linear → Optimization → HB);
-- Linear Results support masked 1D/2D views, resolved circuit parameters, point-addressable retained arrays, custom X vectors, persistent trace selections and CSV export;
-- every GUI-created output folder updates `CURRENT_OUTPUT_PATH[]`;
-- optimizer evaluations are persisted separately in `df_optimization_analysis.h5`, with `simulation_info/optimization_persistence.json` diagnostics;
-- root cause of the previously missing optimizer history was identified from a supplied completed workspace: `cost_history["params_vecs"]` expects `Vector{Float64}` entries while tuple-like optimizer coordinates were recorded using `Float64.(vec)`, preserving the tuple container; the failed push was hidden by an empty catch and left all history arrays empty;
-- the desktop bridge now records coordinates with `collect(Float64.(vec))` and warns on unexpected history-recording failures, without changing simulation or optimizer mathematics;
-- Optimization Best sampled objective, Pearson parameter correlation and original JCO-style 1D density heatmaps consume BO-only evaluations when persistence succeeds.
+On the active `feat/example-project-workflow` change:
+- desktop startup creates a neutral `New project` session rather than showing the old Carthago-specific placeholder;
+- valid bundled `.jco` examples are discovered from the examples directory and may run in isolated temporary sessions without Save As;
+- ordinary unsaved user projects retain the durable-project Save As guard;
+- Circuit Preview generation can continue while the user configures other Setup sections, with stale-result detection if preview-relevant inputs change in flight.
 
-On PR #21 / `fix/optimization-results-diagnostics`:
+## Governance state
 
-- Best sampled objective uses an explicit integer evaluation X axis;
-- correlation and 1D density diagnostics are not rendered as meaningful plots when fewer than three optimizer evaluations are available;
-- the original density transform remains count / mean(metric), normalized by maximum weight;
-- implementation-oriented explanatory text requested for removal is no longer shown.
+Governance remains lightweight and advisory:
+- `AGENTS.md` is the coding-agent entry point;
+- ADR 007 remains authoritative for Circuit Preview execution/topology boundaries;
+- `WI_20260911_001_example_project_workflow.md` and `AUD_20260911_001_example_project_workflow.md` track the current T2 workflow change;
+- older qualified audits remain historical evidence and are not silently upgraded to complete without recorded validation.
 
-`AUD_20260831_004` and `AUD_20260831_008` remain `qualified`: static review is recorded, while build/runtime validation and one fresh local Windows/Julia `Run all` are still required for end-to-end confirmation.
+No current change intentionally modifies JCO numerical algorithms, scientific metric semantics, source units, or the persistent `.jco` schema.
 
 ## Recovery rule
 
 For multi-session work, record only what is needed to resume safely: last verified commit, current state, next safe action, checks already run and important open findings.
 
-## Next useful action
+## Next safe action
 
-1. Validate PR #21 with `npm run build` if a build-capable checkout/CI becomes available.
-2. Run a small fresh `Run all`. For the 2×2 Linear seed and optimizer settings of 2 iterations × 2 samples, `optimization_persistence.json` should report 4 initial evaluations, 8 total cost evaluations, 4 BO evaluations and `hdf5_written=true`.
-3. Confirm that `df_optimization_analysis.h5` populates four BO rows, Best sampled objective shows evaluation numbers, and correlation/density plots are non-uniform when the underlying optimizer samples actually support that structure.
+1. Run `npm test` and `npm run build` on `feat/example-project-workflow`.
+2. Manually confirm New project startup, dynamic example discovery, direct example execution, ordinary unsaved-project Save As protection, background Circuit Preview navigation and stale-state behavior.
+3. Record only the checks actually performed in `AUD_20260911_001`.
+4. Commit the governance reconciliation, merge the feature branch into `main`, and update this recovery point if the resulting integrated commit differs from the implementation commit recorded above.
