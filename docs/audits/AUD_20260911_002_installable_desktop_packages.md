@@ -25,19 +25,21 @@ Verify that JCO-GUI can be distributed as OS-specific desktop packages without r
 ## Validation status
 Qualified.
 
-Evidence reported by the maintainer on Windows:
-- `npm run package:win` completed successfully;
-- the renderer production build completed successfully as part of that command;
-- build-time JCO staging completed successfully;
-- both `JCO-GUI-0.3.0-Windows-Setup.exe` and `JCO-GUI-0.3.0-Windows-Portable.exe` were generated;
-- the packaged Windows application/installer was manually exercised and reported to work correctly.
+Recorded evidence for the final feature branch:
+- GitHub Actions governance check completed successfully on the final PR state.
+- GitHub Actions `PR build check` completed successfully on run `34600027238`.
+- GitHub Actions `Build Linux AppImage` completed successfully on run `34600027233` and produced the `JCO-GUI-Linux-x64-AppImage` artifact.
+- GitHub Actions `Build Windows desktop packages` completed successfully on run `34600027301` and produced the `JCO-GUI-Windows-x64` artifact.
+- The GitHub-built Windows artifact was downloaded and manually tested successfully.
+- The installed Windows application remained operational with the local repository directory renamed, confirming that packaged startup does not depend on the development checkout.
+- Local Windows `npm run package:win` had already completed successfully and generated both Windows package variants.
 
 Still pending before this audit can be considered complete:
-- a separately recorded `npm test` result for this final branch state;
-- installed-app Julia setup and one small JCO scientific run;
-- Linux GitHub Actions AppImage build;
-- Linux AppImage launch when a Linux validation environment is available;
-- tag-driven GitHub Release publication after the feature is merged and a release version is selected.
+- manual launch/runtime validation of the Linux AppImage on a Linux system;
+- tag-driven GitHub Release publication after the release version is selected;
+- an explicitly recorded Julia-backed scientific run from the installed package, if required for release qualification.
+
+Integrated recovery point after merge: `659d2ee` (`659d2ee33fc3208c324f92b4c5aec17d59216ba3`).
 
 ## Known limitations
 - Julia is not bundled and remains required for Julia-backed operations.
