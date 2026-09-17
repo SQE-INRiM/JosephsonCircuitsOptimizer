@@ -16,6 +16,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  LinearProgress,
   Menu,
   MenuItem,
   Snackbar,
@@ -63,6 +64,7 @@ export default function App() {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [examples, setExamples] = useState<ExampleDescriptor[]>([])
   const [notice, setNotice] = useState('')
+  const [runtimePreparing, setRuntimePreparing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -89,6 +91,12 @@ export default function App() {
     startupInitialized.current = true
     const adapter = getJcoAdapter()
     if (!adapter) return
+    setRuntimePreparing(true)
+    void adapter.setupRuntime()
+      .catch((error) => {
+        setNotice('Julia environment setup failed: ' + (error instanceof Error ? error.message : String(error)))
+      })
+      .finally(() => setRuntimePreparing(false))
     void Promise.all([adapter.newProject(), adapter.listExamples()])
       .then(([loaded, listedExamples]) => {
         loadProject(loaded)
@@ -274,6 +282,13 @@ export default function App() {
 
       <Box component="main" className="content-scroll" sx={{ flex: 1, minWidth: 0, pt: '66px', overflow: 'auto' }}>
         <Box sx={{ p: { xs: 2.5, xl: 4 }, maxWidth: 1680, mx: 'auto' }}>
+          {runtimePreparing && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Preparing Julia environment...</Typography>
+              <Typography variant="body2">First-time setup can take several minutes. You can keep editing; simulations will start automatically when Julia is ready.</Typography>
+              <LinearProgress sx={{ mt: 1.2 }} />
+            </Alert>
+          )}
           {section === 'setup' && project.name === 'New project' && !project.workspaceInfo?.projectPath && (
             <Alert severity="info" sx={{ mb: 2 }}>
               Start from this new project, or open a bundled example from the ⋮ menu.
