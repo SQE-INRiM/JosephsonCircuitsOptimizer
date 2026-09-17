@@ -15,6 +15,8 @@ const { assertProcessIdle, captureRunSession } = require('./run-session.cjs')
 let mainWindow
 let session = null
 let juliaProcess = null
+let runtimeSetupProcess = null
+let runtimeSetupPromise = null
 let stopTimer = null
 let activeRun = null
 
@@ -235,6 +237,8 @@ async function startRun(request) {
   saveProjectModel(session.workspace, request.project)
   const validation = validateWorkspace(session.workspace)
   if (!validation.valid) throw new Error(`Missing inputs: ${validation.missing.join(', ')}`)
+  await ensureRuntimePrepared()
+  if (juliaProcess) throw new Error('A simulation is already running.')
   const settings = getSettings()
   const runId = createRunId()
   const runSession = captureRunSession(session, runId)
@@ -288,9 +292,11 @@ async function cancelRun(_event, requestedRunId) {
   return { accepted: true, runId: activeRun.runId }
 }
 
-function runJuliaJson(scriptName, extraArgs = []) {
+async function runJuliaJson(scriptName, extraArgs = []) {
+  if (!session) throw new Error('No project is open.')
+  await ensureRuntimePrepared()
+
   return new Promise((resolve, reject) => {
-    if (!session) return reject(new Error('No project is open.'))
     const settings = getSettings()
     const script = path.join(resourcesRoot(), 'bridge', scriptName)
     const child = spawn(settings.juliaPath || 'julia', ['--startup-file=no', '--color=no', `--project=${jcoRoot()}`, script, session.workspace, ...extraArgs], { cwd: jcoRoot(), windowsHide: true })
@@ -309,18 +315,31 @@ function runJuliaJson(scriptName, extraArgs = []) {
 }
 
 async function previewCircuit(project) {
-  if (juliaProcess) throw new Error('Circuit preview is unavailable while a simulation or runtime setup is running.')
+  if (juliaProcess) throw new Error('Circuit preview is unavailable while a simulation is running.')
   if (!session) throw new Error('Open or import a project first.')
   saveProjectModel(session.workspace, project)
   const validation = validateWorkspace(session.workspace)
   if (!validation.valid) throw new Error(`Missing inputs: ${validation.missing.join(', ')}`)
-  if (!runtimeIsPrepared()) await setupRuntime()
+  await ensureRuntimePrepared()
   return runJuliaJson('circuit_preview.jl')
+}
+
+function ensureRuntimePrepared() {
+  if (runtimeIsPrepared()) {
+    return Promise.resolve({ ok: true, message: 'Julia and the JCO environment are ready.' })
+  }
+  if (!runtimeSetupPromise) {
+    runtimeSetupPromise = setupRuntime().finally(() => { runtimeSetupPromise = null })
+  }
+  return runtimeSetupPromise
 }
 
 function setupRuntime() {
   return new Promise((resolve, reject) => {
-    try { assertProcessIdle(juliaProcess, 'Julia runtime setup') } catch (error) { return reject(error) }
+    try {
+      assertProcessIdle(juliaProcess, 'Julia runtime setup')
+      assertProcessIdle(runtimeSetupProcess, 'Julia runtime setup')
+    } catch (error) { return reject(error) }
     const settings = getSettings()
     const runId = 'runtime-setup'
     const code = 'using Pkg; Pkg.instantiate(); Pkg.precompile(); println("JCO_RUNTIME_READY")'
@@ -329,16 +348,19 @@ function setupRuntime() {
       env: { ...process.env, JULIA_NUM_THREADS: String(Math.max(1, settings.threads || 1)) },
       windowsHide: true,
     })
-    juliaProcess = child
+    runtimeSetupProcess = child
     let ready = false
     readline.createInterface({ input: child.stdout }).on('line', (line) => {
       if (line.includes('JCO_RUNTIME_READY')) ready = true
       else parseOutputLine(line, runId)
     })
     readline.createInterface({ input: child.stderr }).on('line', (line) => parseOutputLine(line, runId))
-    child.on('error', reject)
+    child.on('error', (error) => {
+      runtimeSetupProcess = null
+      reject(error)
+    })
     child.on('close', (code) => {
-      juliaProcess = null
+      runtimeSetupProcess = null
       if (code === 0 && ready) {
         try { markRuntimePrepared(settings) } catch (error) {
           parseOutputLine(`Runtime setup succeeded, but readiness state could not be saved: ${error.message}`, runId)
@@ -474,9 +496,14 @@ app.whenReady().then(() => {
   ipcMain.handle('jco:export-data', (_event, request) => exportData(request))
   ipcMain.handle('jco:get-settings', getSettings)
   ipcMain.handle('jco:set-settings', (_event, patch) => setSettings(patch))
-  ipcMain.handle('jco:setup-runtime', setupRuntime)
+  ipcMain.handle('jco:setup-runtime', ensureRuntimePrepared)
   ipcMain.handle('jco:show-workspace', () => session ? shell.openPath(session.workspace) : null)
   createWindow()
+  if (!runtimeIsPrepared()) {
+    void ensureRuntimePrepared().catch((error) => {
+      parseOutputLine(`Automatic Julia environment setup failed: ${error.message}`, 'runtime-setup')
+    })
+  }
 })
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
