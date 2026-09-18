@@ -4,6 +4,17 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+## 0.4.1 - 2026-09-18
+
+### Application
+- Prepare the bundled Julia environment automatically on first desktop launch, and again only when the configured Julia executable or bundled `Project.toml` / `Manifest.toml` changes.
+- Share one runtime-setup operation across Run, Results, saved-data reads, and Circuit Preview so Julia-backed actions wait for readiness instead of failing on missing packages.
+- Keep the GUI available while Julia packages are instantiated and precompiled, with a visible first-start preparation banner.
+
+### Packaging
+- Fix fresh installations that could fail with missing Julia dependencies such as `HDF5` or `IntervalArithmetic`.
+- Reuse the runtime fingerprint/readiness state after successful setup so normal subsequent launches do not repeat `Pkg.instantiate()` / `Pkg.precompile()`.
+
 ## 0.4.0 - 2026-09-11
 
 ### Application

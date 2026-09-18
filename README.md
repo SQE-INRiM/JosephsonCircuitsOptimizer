@@ -16,7 +16,7 @@ JCO combines three levels of analysis:
 
 The project includes a desktop GUI and stores complete experiments in portable `.jco` project files.
 
-> **Version 0.3.0** introduces the integrated desktop architecture, `.jco` project workflow, stage-aware execution and reuse, structured Results views, retained-array persistence, and preliminary Linux launcher support.
+The desktop application includes the integrated `.jco` project workflow, stage-aware execution and reuse, structured Results views, retained-array persistence, and automatic first-start preparation of the bundled Julia environment.
 
 ## Desktop GUI
 
@@ -62,7 +62,7 @@ Developer and contributor documentation is kept separately in `AGENTS.md`, `adr/
 
 - **Julia** is required for circuit previews and simulations.
 - The packaged desktop application already contains the GUI, JCO source, bridge files, templates, and bundled examples; users do **not** need Node.js/npm or a repository checkout.
-- An internet connection may be required on first Julia-backed use to instantiate and precompile the bundled JCO environment.
+- An internet connection may be required on the first launch after installation (or after bundled Julia dependencies change). JCO-GUI automatically instantiates and precompiles the bundled Julia environment; this first setup can take several minutes.
 
 ### Install the desktop application
 

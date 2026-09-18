@@ -26,7 +26,8 @@ Packaging must remain a thin layer around the existing application:
 - The Windows installer installs/uninstalls as a per-user application and creates normal launch shortcuts.
 - Installed Windows application opens without Node.js/npm or a repository checkout.
 - Installed application resolves bundled templates/examples and the packaged JCO source tree.
-- Julia Settings can point to a working Julia executable and the runtime can instantiate/load the packaged JCO environment.
+- On a fresh Julia environment, JCO-GUI automatically runs the one-time `Pkg.instantiate()` / `Pkg.precompile()` preparation before Julia-backed operations need the environment.
+- Successful runtime preparation is cached against the configured Julia executable and bundled project files so unchanged subsequent launches do not repeat the full setup.
 - `npm run package:linux` / GitHub Actions produces an x64 AppImage.
 - Linux AppImage launches without a repository checkout or Node.js/npm.
 - A version tag matching root JCO and GUI package versions builds both platform artifacts and publishes them on the GitHub Releases page.
