@@ -33,13 +33,31 @@ Recorded evidence for the final feature branch:
 - The GitHub-built Windows artifact was downloaded and manually tested successfully.
 - The installed Windows application remained operational with the local repository directory renamed, confirming that packaged startup does not depend on the development checkout.
 - Local Windows `npm run package:win` had already completed successfully and generated both Windows package variants.
+- Tag-driven release publication was subsequently exercised successfully by `v0.4.0`, which published Windows Setup/Portable and Linux AppImage assets through the release workflow.
 
 Still pending before this audit can be considered complete:
 - manual launch/runtime validation of the Linux AppImage on a Linux system;
-- tag-driven GitHub Release publication after the release version is selected;
 - an explicitly recorded Julia-backed scientific run from the installed package, if required for release qualification.
 
 Integrated recovery point after merge: `659d2ee` (`659d2ee33fc3208c324f92b4c5aec17d59216ba3`).
+
+## 2026-09-17/18 fresh-runtime follow-up
+
+PR #8 (`Prepare Julia runtime automatically on first launch`) was merged to `main` at `641e12d4b20f0472683d61c40e27e06867c0a361`.
+
+The change keeps Julia external but makes environment preparation automatic and fingerprinted:
+- one shared runtime-setup process executes `Pkg.instantiate()` followed by `Pkg.precompile()` when readiness is missing or stale;
+- Run, Results/saved-data bridge reads and Circuit Preview wait for the shared setup instead of starting with an incomplete Julia environment;
+- the renderer shows a first-start preparation notice while setup is running.
+
+Recorded validation:
+- PR #8 governance check: passed;
+- PR #8 `PR build check`: passed;
+- PR #8 Linux AppImage build: passed;
+- PR #8 Windows desktop package build: passed;
+- manual source-mode fresh-runtime test used an isolated empty `JULIA_DEPOT_PATH`; Julia installed the General registry and project dependencies (including `HDF5` and `IntervalArithmetic`), completed project precompilation, and subsequent simulation use no longer reproduced the missing-dependency failures.
+
+This follow-up does not change JCO numerical algorithms, metric semantics, source units, `.jco` schema, or stored-result transformations. The audit remains **qualified** because Linux runtime launch and an explicitly recorded Julia-backed scientific run from the installed desktop package remain pending.
 
 ## Known limitations
 - Julia is not bundled and remains required for Julia-backed operations.
