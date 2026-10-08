@@ -90,33 +90,19 @@ The portable executable runs without installation.
 
 Windows may show an unknown-publisher/SmartScreen warning for unsigned research builds.
 
-#### Windows Smart App Control and Julia dependencies
 
-Some Windows 11 systems with **Smart App Control** enabled may block native DLLs
-loaded by Julia packages, including the HDF5 library required by JCO. Typical
-messages mention an application-control policy, a blocked `.dll`, or error
-`0xc0e90002`. A DLL block can occur even when using Julia independently of JCO.
+<details>
+<summary>⚠️ If Windows blocks installation or simulation</summary>
 
-For a source checkout, a useful diagnostic in PowerShell (from the repository
-root) is:
+Windows may warn about the **unsigned JCO installer** (SmartScreen). Separately, Windows 11 **Smart App Control** may block native DLLs required by **Julia**, such as HDF5.
 
-```powershell
-julia --startup-file=no --project=. -e 'using HDF5; println(:HDF5_OK)'
-```
+**This is a Windows–Julia compatibility issue, not a JCO bug.**
 
-If Windows blocks a DLL, inspect **Windows Security → App & browser control →
-Smart App Control settings**, and optionally the Windows Code Integrity event log.
-This is a Windows application-control compatibility issue affecting native
-Julia dependencies; it does not by itself indicate a problem in JCO's numerical
-algorithms or that the blocked library is malicious.
+If you encounter blocked DLLs or error `0xc0e90002`, see [Microsoft's Smart App Control FAQ](https://support.microsoft.com/en-us/windows/smart-app-control-faq-285ea03d-fa88-4a37-8837-aacbe6d2e7d0).
 
-Turning Smart App Control off can allow Julia to load these libraries, but it
-**reduces Windows security protection**. JCO does not disable it automatically,
-and switching it back on may depend on the installed Windows version. Treat
-this as a user-controlled workaround, **not a required installation step**.
-Consult [Microsoft's Smart App Control documentation](https://support.microsoft.com/en-us/windows/smart-app-control-faq-285ea03d-fa88-4a37-8837-aacbe6d2e7d0)
-before changing the setting. Neither installing Ubuntu/WSL nor a larger JCO
-installer is currently required for ordinary users whose Julia environment works.
+As a workaround, you can disable Smart App Control under **Windows Security → App & browser control → Smart App Control settings**. However, doing so **reduces Windows security** and is not required for all users.
+
+</details>
 
 #### Linux
 
