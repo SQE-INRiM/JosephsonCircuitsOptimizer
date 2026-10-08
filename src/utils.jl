@@ -456,6 +456,7 @@ function _write_sidecar_json(png_path::AbstractString; params=nothing, metric=no
 end
 
 function plot_update(p; params=nothing, metric=nothing, plot_type::AbstractString="plot", run_id=nothing, extra=Dict())
+    _ensure_plotting_loaded!()
     mkpath(plot_path)
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
     filepath = joinpath(plot_path, "plot_$timestamp.png")
@@ -522,14 +523,15 @@ end
 Save a Makie `Figure` into `corr_path` safely (write to .part then move),
 and write a sidecar JSON metadata file with the same basename.
 """
-function correlation_update(fig::Figure;
+function correlation_update(fig;
     params=nothing,
     metric=nothing,  # will be skipped if array (by your sidecar writer)
     plot_type::AbstractString="correlation",
     run_id=nothing,
     extra::Dict=Dict()
     )
-    
+    _ensure_plotting_loaded!()
+
     isdir(corr_path) || mkpath(corr_path)
 
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS-sss")
@@ -551,6 +553,7 @@ end
 
 
 function plot_delta_vs_amplitude(results)
+    _ensure_plotting_loaded!()
     
     if length(results) < 2
         @info "Not enough points for amplitude sweep (need ≥ 2)."
@@ -609,6 +612,7 @@ end
 
 
 function plot_performance_vs_amplitude(results)
+    _ensure_plotting_loaded!()
 
     if length(results) < 2
         @info "Not enough points for amplitude sweep (need ≥ 2)."

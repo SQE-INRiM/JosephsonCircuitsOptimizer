@@ -535,8 +535,24 @@ function plot_update(p, params; metric=nothing, plot_type::AbstractString="plot"
     return plot_update(p; params=params, metric=metric, plot_type=plot_type, run_id=run_id, extra=extra)
 end
 
-function correlation_update(fig::Figure;
+function correlation_update(fig;
     params=nothing, metric=nothing, plot_type::AbstractString="correlation", run_id=nothing, extra::Dict=Dict())
     @debug "Skipping automatic correlation figure save; regenerate from HDF5 data" plot_type=plot_type
+    return nothing
+end
+
+# GUI results are constructed from retained HDF5 data by the React renderer.
+# Avoid allocating Makie/Plots figures (and loading native graphics DLLs)
+# for all GUI modes, including full, optimization-only and nonlinear-only runs.
+function create_corr_figure(df; df_ref=nothing, optimal_params=nothing)
+    @debug "Skipping GUI correlation figure; see Results for stored data"
+    return nothing
+end
+
+function plot_delta_vs_amplitude(results)
+    return nothing
+end
+
+function plot_performance_vs_amplitude(results)
     return nothing
 end
