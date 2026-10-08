@@ -316,7 +316,7 @@ function create_gui(df_ref, df)
 end
 """
 
-function create_corr_figure(df; df_ref=nothing, optimal_params=nothing)
+function _create_corr_figure_impl(df; df_ref=nothing, optimal_params=nothing)
 
     if isempty(df)
         error("The input DataFrame is empty. Please provide a non-empty DataFrame.")
