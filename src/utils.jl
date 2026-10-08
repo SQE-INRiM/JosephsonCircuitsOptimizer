@@ -465,12 +465,12 @@ function plot_update(p; params=nothing, metric=nothing, plot_type::AbstractStrin
     
     if !isempty(summary)
         try
-            P.plot!(p; subtitle=summary)
+            Base.invokelatest(P.plot!, p; subtitle=summary)
         catch
         end
     end
     
-    savefig(p, filepath)
+    Base.invokelatest(P.savefig, p, filepath)
     _write_sidecar_json(filepath; params=params, metric=metric, plot_type=plot_type, run_id=run_id, extra=extra)
 
     @info "Saved plot to $filepath"
@@ -541,7 +541,7 @@ function correlation_update(fig;
     filepath  = joinpath(corr_path, filename)
     tmpfile   = filepath * ".part.png"
 
-    save(tmpfile, fig)
+    Base.invokelatest(FileIO.save, tmpfile, fig)
     mv(tmpfile, filepath; force=true)
 
     _write_sidecar_json(filepath; params=params, metric=metric, plot_type=plot_type, run_id=run_id, extra=extra)
@@ -581,7 +581,7 @@ function plot_delta_vs_amplitude(results)
     sweep_amps = amps_mat[:, idx]
 
     # Plot scatter
-    plt = plot(
+    plt = Base.invokelatest(P.plot,
         sweep_amps, delta_vals,
         xlabel = "Signal amplitude (source $idx)",
         ylabel = "Δ quantity (nonlinear - linear)",
@@ -595,7 +595,7 @@ function plot_delta_vs_amplitude(results)
     # Build key dynamically for the vertical line
     key = Symbol("source_$(idx)_non_linear_amplitude_for_delta_correction")
     if haskey(sim_vars, key)
-        P.vline!(
+        Base.invokelatest(P.vline!,
             plt,
             [sim_vars[key]],
             color = :darkblue,
@@ -639,7 +639,7 @@ function plot_performance_vs_amplitude(results)
     sweep_amps = amps_mat[:, idx]
 
     # Plot scatter
-    plt = plot(
+    plt = Base.invokelatest(P.plot,
         sweep_amps, performances,
         xlabel = "Signal amplitude (source $idx)",
         ylabel = "Performance",
@@ -653,7 +653,7 @@ function plot_performance_vs_amplitude(results)
     # Build key dynamically for the vertical line
     key = Symbol("source_$(idx)_non_linear_amplitude_for_delta_correction")
     if haskey(sim_vars, key)
-        P.vline!(
+        Base.invokelatest(P.vline!,
             plt,
             [sim_vars[key]],
             color = :darkblue,

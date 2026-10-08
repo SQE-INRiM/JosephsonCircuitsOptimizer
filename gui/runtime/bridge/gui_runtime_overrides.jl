@@ -556,3 +556,9 @@ end
 function plot_performance_vs_amplitude(results)
     return nothing
 end
+
+# Also suppress the nonlinear-feedback convergence plot: its discarded PNG
+# must not load Plots/FFMPEG during GUI simulations.
+function _jco_plot_correction_convergence(correction_terms)
+    return nothing
+end

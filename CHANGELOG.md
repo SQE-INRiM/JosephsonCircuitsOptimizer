@@ -4,6 +4,16 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Julia dependencies and Windows compatibility
+- Defer legacy Julia plotting initialization until requested and avoid constructing
+  discarded figures in GUI runs, including nonlinear-feedback convergence plots.
+- Remove seven unreferenced direct Julia dependencies, keeping the numerical
+  solver, HDF5 storage, and optional Julia plotting packages intact.
+- Remove the generic `JCO.plot` / `JCO.mplot` aliases; use `Plots.plot` /
+  `GLMakie.plot` explicitly in Julia scripts. Preserve JCO's lazy diagnostic
+  plotting helpers and fix world-age/name collisions.
+- Document Smart App Control DLL blocks and the security trade-off of disabling it.
+
 ## 0.4.1 - 2026-09-18
 
 ### Application

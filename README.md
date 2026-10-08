@@ -90,6 +90,34 @@ The portable executable runs without installation.
 
 Windows may show an unknown-publisher/SmartScreen warning for unsigned research builds.
 
+#### Windows Smart App Control and Julia dependencies
+
+Some Windows 11 systems with **Smart App Control** enabled may block native DLLs
+loaded by Julia packages, including the HDF5 library required by JCO. Typical
+messages mention an application-control policy, a blocked `.dll`, or error
+`0xc0e90002`. A DLL block can occur even when using Julia independently of JCO.
+
+For a source checkout, a useful diagnostic in PowerShell (from the repository
+root) is:
+
+```powershell
+julia --startup-file=no --project=. -e 'using HDF5; println(:HDF5_OK)'
+```
+
+If Windows blocks a DLL, inspect **Windows Security → App & browser control →
+Smart App Control settings**, and optionally the Windows Code Integrity event log.
+This is a Windows application-control compatibility issue affecting native
+Julia dependencies; it does not by itself indicate a problem in JCO's numerical
+algorithms or that the blocked library is malicious.
+
+Turning Smart App Control off can allow Julia to load these libraries, but it
+**reduces Windows security protection**. JCO does not disable it automatically,
+and switching it back on may depend on the installed Windows version. Treat
+this as a user-controlled workaround, **not a required installation step**.
+Consult [Microsoft's Smart App Control documentation](https://support.microsoft.com/en-us/windows/smart-app-control-faq-285ea03d-fa88-4a37-8837-aacbe6d2e7d0)
+before changing the setting. Neither installing Ubuntu/WSL nor a larger JCO
+installer is currently required for ordinary users whose Julia environment works.
+
 #### Linux
 
 Download:
@@ -155,6 +183,11 @@ Optionally specify another workspace with:
 ```julia
 JCO.run(workspace=raw"C:\...\my_experiment_01")
 ```
+
+For custom plots in Julia scripts, use `Plots.plot(...)` or
+`GLMakie.plot(...)` directly after importing the corresponding package.
+The old generic `JCO.plot` and `JCO.mplot` aliases are no longer provided.
+JCO's existing diagnostic plotting helpers remain available on demand.
 
 ## The `.jco` project
 

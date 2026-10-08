@@ -8,7 +8,7 @@ using Colors, StatsBase, KernelDensity
 using Statistics, LinearAlgebra, Dates, Logging, LoggingExtras, Interpolations
 using Pkg, QuasiMonteCarlo, Random
 
-export plot, mplot, run, run_sweep_only, run_from_latest_dataset_only, seed_next_run_from_latest!
+export run, run_sweep_only, run_from_latest_dataset_only, seed_next_run_from_latest!
 export run_optimization_only, run_nonlinear_only
 
 # Plotting is not needed by the numerical engine. Do not load native graphics
@@ -22,29 +22,35 @@ function _ensure_plotting_loaded!()
     lock(_jco_plotting_lock) do
         _jco_plotting_initialized[] && return nothing
         @eval import Plots as P
-        @eval import Plots: savefig
-        @eval import GLMakie as M
-        @eval using Makie
-        @eval using FileIO
+        # GLMakie remains the backend for the optional legacy correlation figures.
+        @eval import GLMakie
+        # Do not bring Makie.plot into the module's namespace.
+        @eval using Makie: Figure, Axis, GridLayout, Colorbar, cgrad, heatmap!, hlines!, ylims!, colgap!, rowgap!
+        @eval import FileIO
         Base.include(@__MODULE__, joinpath(@__DIR__, "Analysis_plots.jl"))
         _jco_plotting_initialized[] = true
     end
     return nothing
 end
 
-function plot(args...; kwargs...)
-    _ensure_plotting_loaded!()
-    return P.plot(args...; kwargs...)
-end
-
-function mplot(args...; kwargs...)
-    _ensure_plotting_loaded!()
-    return M.plot(args...; kwargs...)
-end
-
 function create_corr_figure(args...; kwargs...)
     _ensure_plotting_loaded!()
-    return _create_corr_figure_impl(args...; kwargs...)
+    return Base.invokelatest(_create_corr_figure_impl, args...; kwargs...)
+end
+
+function _jco_plot_correction_convergence(correction_terms)
+    _ensure_plotting_loaded!()
+    return Base.invokelatest(P.plot, collect(1:length(correction_terms)), correction_terms,
+        xlabel="Iteration",
+        ylabel="Nonlinear Correction Term",
+        title="Nonlinear Correction Convergence",
+        label="",
+        markershape=:circle,
+        markersize=2,
+        framestyle=:box,
+        size=(800, 600),
+        xticks=1:length(correction_terms)
+    )
 end
 
 # Import the Config module
@@ -414,18 +420,9 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 end
             end
 
-            # Convergence plot
-            p = P.plot(collect(1:length(correction_terms)), correction_terms,
-                xlabel="Iteration",
-                ylabel="Nonlinear Correction Term",
-                title="Nonlinear Correction Convergence",
-                label="",
-                markershape=:circle,
-                markersize=2,
-                framestyle=:box,
-                size=(800, 600),
-                xticks=1:length(correction_terms)
-            )
+            # Direct Julia runs retain the original convergence plot; GUI runs
+            # override the helper to avoid loading graphics or allocating a figure.
+            p = _jco_plot_correction_convergence(correction_terms)
             plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="nonlinear_correction_convergence")
 
         end
