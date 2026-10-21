@@ -327,7 +327,27 @@ function ModelStep() {
                   <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 1.5, alignItems: { md: 'center' } }}>
                     <Typography variant="subtitle1" sx={{ minWidth: 120, fontWeight: 600 }}>{source.name}</Typography>
                     <TextField label="Port" type="number" value={source.port} onChange={(event) => updateSource(source.id, { port: Math.max(1, Number(event.target.value)) })} sx={{ width: 100 }} />
-                    <FormControlLabel control={<Checkbox checked={source.isDc} onChange={(event) => updateSource(source.id, { isDc: event.target.checked, frequency: event.target.checked ? { mode: 'Fixed', value: '0' } : source.frequency.mode === 'Fixed' && Number(source.frequency.value) === 0 ? { mode: 'Fixed', value: '1' } : source.frequency })} />} label={source.isDc ? 'DC source · zero mode' : 'AC source'} />
+                    <TextField
+                      select
+                      size="small"
+                      label="Source type"
+                      value={source.isDc ? 'DC' : 'AC'}
+                      onChange={(event) => {
+                        const isDc = event.target.value === 'DC'
+                        updateSource(source.id, {
+                          isDc,
+                          frequency: isDc
+                            ? { mode: 'Fixed', value: '0' }
+                            : source.frequency.mode === 'Fixed' && Number(source.frequency.value) === 0
+                              ? { mode: 'Fixed', value: '1' }
+                              : source.frequency,
+                        })
+                      }}
+                      sx={{ minWidth: 140 }}
+                    >
+                      <MenuItem value="AC">AC</MenuItem>
+                      <MenuItem value="DC">DC</MenuItem>
+                    </TextField>
                     <TextField label="Z₀" type="number" value={impedanceOhm} onChange={(event) => updateSource(source.id, { impedanceOhm: Math.max(Number.EPSILON, Number(event.target.value)) })} slotProps={{ input: { endAdornment: <Typography variant="caption" color="text.secondary">Ω</Typography> } }} sx={{ width: 120 }} />
                     <Box sx={{ flex: 1 }} />
                     <Tooltip title="Remove source"><IconButton color="error" onClick={() => removeSource(source.id)}><DeleteOutlineRoundedIcon /></IconButton></Tooltip>
