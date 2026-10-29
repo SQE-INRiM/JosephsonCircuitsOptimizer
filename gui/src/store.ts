@@ -165,7 +165,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((state) => {
       const parameters = state.project.parameters.map((parameter) => {
         if (parameter.id !== id) return parameter
-        const updated = { ...parameter, ...patch }
+        // A mode change invalidates all values from the previous shape.
+        // Clearing in the store (rather than only hiding inputs) also prevents
+        // stale Range stop/step fields being saved or restored after .jco import.
+        const modeChanged = patch.mode !== undefined && patch.mode !== parameter.mode
+        const updated = modeChanged
+          ? { ...parameter, value: '', start: '', stop: '', step: '', values: '', ...patch }
+          : { ...parameter, ...patch }
         return { ...updated, role: updated.mode === 'Fixed' ? 'Fixed model' as const : 'Design' as const }
       })
       return {
