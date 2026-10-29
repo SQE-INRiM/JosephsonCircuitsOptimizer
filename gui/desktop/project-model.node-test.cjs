@@ -115,3 +115,44 @@ test('deletes optional Julia hook files when their editor contents are cleared',
     fs.rmSync(workspace, { recursive: true, force: true })
   }
 })
+
+
+test('preserves last AC frequency through DC save/reload without changing the DC drive', () => {
+  for (const acFrequency of [
+    { mode: 'Fixed', value: '7.5' },
+    { mode: 'List', values: '7, 8' },
+    { mode: 'Range', start: '6', stop: '9', step: '0.5' },
+  ]) {
+    const workspace = makeWorkspace()
+    try {
+      const project = loadProjectModel(workspace, null, { name: 'Source frequency memory' })
+      project.sources[0].isDc = true
+      project.sources[0].frequency = { mode: 'Fixed', value: '0' }
+      project.sources[0].acFrequency = acFrequency
+      saveProjectModel(workspace, project)
+
+      const drives = JSON.parse(fs.readFileSync(path.join(workspace, 'user_inputs', 'drive_physical_quantities.json'), 'utf8'))
+      assert.equal(drives.source_1_frequency, 0, 'DC physics must always use zero frequency')
+
+      const savedMetadata = JSON.parse(fs.readFileSync(path.join(workspace, 'jco_gui_metadata.json'), 'utf8'))
+      assert.deepEqual(savedMetadata.sourceDisplay.source_1.acFrequency, acFrequency)
+
+      const reloaded = loadProjectModel(workspace, null, { name: 'Source frequency memory' })
+      assert.equal(reloaded.sources[0].isDc, true)
+      assert.deepEqual(reloaded.sources[0].frequency, { mode: 'Fixed', value: '0' })
+      assert.deepEqual(reloaded.sources[0].acFrequency, acFrequency)
+
+      // When toggling back to AC, this remembered specification can be restored
+      // and serialized to the original physical frequency values.
+      reloaded.sources[0].isDc = false
+      reloaded.sources[0].frequency = reloaded.sources[0].acFrequency
+      saveProjectModel(workspace, reloaded)
+      const acDrives = JSON.parse(fs.readFileSync(path.join(workspace, 'user_inputs', 'drive_physical_quantities.json'), 'utf8'))
+      if (acFrequency.mode === 'Fixed') assert.equal(acDrives.source_1_frequency, 7.5e9)
+      if (acFrequency.mode === 'List') assert.deepEqual(acDrives.source_1_frequency, [7e9, 8e9])
+      if (acFrequency.mode === 'Range') assert.deepEqual(acDrives.source_1_frequency, { start: 6e9, stop: 9e9, step: 0.5e9 })
+    } finally {
+      fs.rmSync(workspace, { recursive: true, force: true })
+    }
+  }
+})
