@@ -80,6 +80,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
   const [juliaPath, setJuliaPath] = useState('julia')
   const [threads, setThreads] = useState(1)
   const [zoom, setZoom] = useState(100)
+  const [draggingProject, setDraggingProject] = useState(false)
   const desktop = isDesktopBridgeAvailable()
   const startupInitialized = useRef(false)
 
@@ -157,9 +158,60 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
   const openProject = () => perform(async () => {
     const adapter = getJcoAdapter()
     if (!adapter) return setNotice('Use the Windows desktop build to open .jco files.')
+    if (running) return setNotice('Stop the active simulation before opening another project.')
+    if (dirty && !window.confirm('Unsaved changes will be lost when you open another project. Continue?')) return
     const loaded = await adapter.openProject()
     if (loaded) { loadProject(loaded); await refreshResults(); setNotice(`Opened ${loaded.filename}`) }
   })
+
+  useEffect(() => {
+    if (!desktop) return
+    const hasFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files')
+    const enter = (event: DragEvent) => {
+      if (!hasFiles(event)) return
+      event.preventDefault()
+      setDraggingProject(true)
+    }
+    const over = (event: DragEvent) => {
+      if (!hasFiles(event)) return
+      event.preventDefault()
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+    }
+    const leave = (event: DragEvent) => {
+      if (!event.relatedTarget) setDraggingProject(false)
+    }
+    const drop = (event: DragEvent) => {
+      if (!hasFiles(event)) return
+      event.preventDefault() // prevent Chromium from navigating away on file drops
+      setDraggingProject(false)
+      const files = Array.from(event.dataTransfer?.files ?? [])
+      if (files.length !== 1 || !files[0].name.toLowerCase().endsWith('.jco')) {
+        setNotice('Drop exactly one .jco project file.')
+        return
+      }
+      if (busy || running) {
+        setNotice('Opening a project is unavailable while the app is busy or a simulation is running.')
+        return
+      }
+      if (dirty && !window.confirm('Unsaved changes will be lost when you open another project. Continue?')) return
+      void perform(async () => {
+        const adapter = getJcoAdapter()
+        if (!adapter?.openDroppedProject) throw new Error('Project file drop is unavailable in this desktop version.')
+        const loaded = await adapter.openDroppedProject(files[0])
+        if (loaded) { loadProject(loaded); await refreshResults(); setNotice(`Opened ${loaded.filename}`) }
+      })
+    }
+    window.addEventListener('dragenter', enter)
+    window.addEventListener('dragover', over)
+    window.addEventListener('dragleave', leave)
+    window.addEventListener('drop', drop)
+    return () => {
+      window.removeEventListener('dragenter', enter)
+      window.removeEventListener('dragover', over)
+      window.removeEventListener('dragleave', leave)
+      window.removeEventListener('drop', drop)
+    }
+  }, [desktop, busy, running, dirty, loadProject, setResults])
 
   const importWorkspace = () => perform(async () => {
     const adapter = getJcoAdapter()
@@ -353,6 +405,12 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
       >
         {running ? 'Stop run' : 'Run remaining'}
       </Button>
+      {draggingProject && <Box role="status" aria-label="Drop .jco project" sx={{ position: 'fixed', inset: 0, zIndex: 1600, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(13,29,49,.72)', border: '4px dashed', borderColor: 'secondary.main' }}>
+        <Box sx={{ backgroundColor: 'background.paper', color: 'text.primary', borderRadius: 3, p: 5, textAlign: 'center', boxShadow: 8 }}>
+          <Typography variant="h5">Drop your .jco project here</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1 }}>Opens the project just like Open .jco…</Typography>
+        </Box>
+      </Box>}
       <Snackbar open={Boolean(notice)} autoHideDuration={3600} onClose={() => setNotice('')} message={notice} />
 
       <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm">
