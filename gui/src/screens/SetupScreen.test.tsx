@@ -19,21 +19,38 @@ describe('Setup source type toggle', () => {
 
   afterEach(() => cleanup())
 
-  it('switches between AC and DC while keeping the source frequency semantics', () => {
+  it.each([
+    { mode: 'Fixed' as const, value: '7.5' },
+    { mode: 'List' as const, values: '7, 8' },
+    { mode: 'Range' as const, start: '6', stop: '9', step: '0.5' },
+  ])('restores the previous AC frequency specification after toggling DC ($mode)', (acFrequency) => {
+    useAppStore.setState((state) => ({
+      project: {
+        ...state.project,
+        sources: state.project.sources.map((source) => ({ ...source, frequency: acFrequency })),
+      },
+    }))
     render(<SetupScreen />)
     expect(screen.getByRole('button', { name: 'AC' }).getAttribute('aria-pressed')).toBe('true')
 
     fireEvent.click(screen.getByRole('button', { name: 'DC' }))
     expect(screen.getByRole('button', { name: 'DC' }).getAttribute('aria-pressed')).toBe('true')
-
-    expect(useAppStore.getState().project.sources[0].isDc).toBe(true)
-    expect(useAppStore.getState().project.sources[0].frequency).toEqual({ mode: 'Fixed', value: '0' })
+    expect(useAppStore.getState().project.sources[0]).toMatchObject({
+      isDc: true,
+      frequency: { mode: 'Fixed', value: '0' },
+      acFrequency,
+    })
 
     fireEvent.click(screen.getByRole('button', { name: 'AC' }))
     expect(screen.getByRole('button', { name: 'AC' }).getAttribute('aria-pressed')).toBe('true')
+    expect(useAppStore.getState().project.sources[0]).toMatchObject({
+      isDc: false,
+      frequency: acFrequency,
+    })
 
-    expect(useAppStore.getState().project.sources[0].isDc).toBe(false)
-    expect(useAppStore.getState().project.sources[0].frequency).toEqual({ mode: 'Fixed', value: '1' })
+    fireEvent.click(screen.getByRole('button', { name: 'DC' }))
+    fireEvent.click(screen.getByRole('button', { name: 'AC' }))
+    expect(useAppStore.getState().project.sources[0].frequency).toEqual(acFrequency)
   })
 
   it('displays the existing source type when opening a project with a DC source', () => {
@@ -45,6 +62,17 @@ describe('Setup source type toggle', () => {
     render(<SetupScreen />)
     expect(screen.getByRole('button', { name: 'DC' }).getAttribute('aria-pressed')).toBe('true')
   })
+  it('uses the default 1 GHz only for a DC source with no previous AC configuration', () => {
+    const dcSource = structuredClone(originalProject.sources.find((source) => source.isDc)!)
+    useAppStore.setState((state) => ({
+      project: { ...state.project, sources: [dcSource] },
+    }))
+    render(<SetupScreen />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'AC' }))
+    expect(useAppStore.getState().project.sources[0].frequency).toEqual({ mode: 'Fixed', value: '1' })
+  })
+
   it('does not deselect the active source type', () => {
     render(<SetupScreen />)
     fireEvent.click(screen.getByRole('button', { name: 'AC' }))
