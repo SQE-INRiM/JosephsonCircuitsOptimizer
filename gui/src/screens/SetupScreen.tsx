@@ -424,6 +424,9 @@ function ComputationStep() {
   const update = useAppStore((state) => state.updateComputation)
   const frequencyPoints = Math.floor(((config.frequencyStopGHz - config.frequencyStartGHz) * 1000) / config.frequencyStepMHz) + 1
   const variableParameterCount = project.parameters.filter((parameter) => parameter.mode !== 'Fixed').length
+  const linearFirstOrder = config.linearStrongToneHarmonics === 1
+    && config.linearModulationHarmonics === 1
+    && Number(config.maxIntermodOrder) === 1
 
   return (
     <Stack spacing={2}>
@@ -456,7 +459,21 @@ function ComputationStep() {
         <SectionHeading icon={<MemoryRoundedIcon />} title="Harmonic and solver settings" description="Stage-specific harmonic truncation and shared JosephsonCircuits hbsolve controls." />
         <Stack spacing={2.5} sx={{ mt: 2.5 }}>
           <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
-            <Paper variant="outlined" sx={{ p: 2, flex: 1 }}><Typography variant="subtitle2" sx={{ mb: 1.5 }}>Linear stage harmonics</Typography><Stack direction="row" spacing={1.5}><NumberField label="Strong-tone harmonics" value={config.linearStrongToneHarmonics} onChange={(value) => update({ linearStrongToneHarmonics: value })} /><NumberField label="Modulation harmonics" value={config.linearModulationHarmonics} onChange={(value) => update({ linearModulationHarmonics: value })} /></Stack></Paper>
+            <Paper variant="outlined" sx={{ p: 2, flex: 1 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1.5 }}>Linear stage harmonics</Typography>
+              <Stack direction="row" spacing={1.5}>
+                <NumberField label="Strong-tone harmonics" value={config.linearStrongToneHarmonics} onChange={(value) => update({ linearStrongToneHarmonics: value })} />
+                <NumberField label="Modulation harmonics" value={config.linearModulationHarmonics} onChange={(value) => update({ linearModulationHarmonics: value })} />
+              </Stack>
+              <Alert severity={linearFirstOrder ? 'success' : 'warning'} sx={{ mt: 1.5 }}>
+                {linearFirstOrder
+                  ? 'Linear-stage harmonic and intermodulation limits are set to first order (1).'
+                  : 'For first-order linear simulations, set both linear harmonic counts and Max intermodulation order to 1. Other values can include higher-order mixing.'}
+              </Alert>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                Max intermodulation order is a shared solver setting below; changing it also affects the nonlinear HB stage.
+              </Typography>
+            </Paper>
             <Paper variant="outlined" sx={{ p: 2, flex: 1 }}><Typography variant="subtitle2" sx={{ mb: 1.5 }}>Nonlinear stage harmonics</Typography><Stack direction="row" spacing={1.5}><NumberField label="Strong-tone harmonics" value={config.nonlinearStrongToneHarmonics} onChange={(value) => update({ nonlinearStrongToneHarmonics: value })} /><NumberField label="Modulation harmonics" value={config.nonlinearModulationHarmonics} onChange={(value) => update({ nonlinearModulationHarmonics: value })} /></Stack></Paper>
           </Stack>
           <Divider />
@@ -466,7 +483,7 @@ function ComputationStep() {
             <Stack spacing={1.5}>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}><NumberField label="Max solver iterations" value={config.maxSimulatorIterations} onChange={(value) => update({ maxSimulatorIterations: value })} /><NumberField label="Residual tolerance (ftol)" value={config.solverFtol} onChange={(value) => update({ solverFtol: value })} /><NumberField label="Switch-off line search tolerance" value={config.switchOffLineSearchTolerance} onChange={(value) => update({ switchOffLineSearchTolerance: value })} /><NumberField label="Minimum line-search step (alphamin)" value={config.alphaMin} onChange={(value) => update({ alphaMin: value })} /></Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}>
-                <TextField label="Max intermodulation order" value={config.maxIntermodOrder} helperText="Use Inf for no additional truncation" onChange={(event) => update({ maxIntermodOrder: event.target.value })} fullWidth />
+                <TextField label="Max intermodulation order" value={config.maxIntermodOrder} helperText="Shared by linear and nonlinear stages; use 1 to restrict mixing to first order, or Inf for no additional truncation." onChange={(event) => update({ maxIntermodOrder: event.target.value })} fullWidth />
                 <NumberField label="Frequency batches" value={config.solverBatches} onChange={(value) => update({ solverBatches: value })} />
                 <TextField select label="Node sorting" value={config.nodeSorting} onChange={(event) => update({ nodeSorting: event.target.value as typeof config.nodeSorting })} fullWidth><MenuItem value="number">Numeric node names</MenuItem><MenuItem value="name">Text node names</MenuItem><MenuItem value="none">Circuit order</MenuItem></TextField>
               </Box>
