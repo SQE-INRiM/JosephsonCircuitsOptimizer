@@ -4,6 +4,16 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### October 2026 — GUI usability, results and display
+- Replace the Setup AC/DC source selector with exclusive buttons and retain the previous AC frequency only during GUI editing; export DC frequency as zero without persisting temporary AC history (PR #15).
+- Fix duplicate desktop scrolling and explain the shared intermodulation limit needed for first-order Linear-stage harmonic settings, without changing solver defaults (PRs #15–16).
+- Add two-point A/B comparison for Linear and Harmonic Balance landscapes, including compact parameter/metric differences and on-demand overlays of matching retained arrays without hidden X-axis resampling (PR #17).
+- Add native desktop zoom at 50–150% with shortcuts and preference persistence, bounded heatmap Y-cell height, and Light/Dark/System themes (PR #18).
+
+### October 2026 — Development traceability
+- Add a PR documentation checklist and automatic GitHub Governance check for changelog, ADR, audit/work item, repository status and agent instructions, allowing explained "not needed" decisions for routine changes.
+- Reconcile the historical GUI PR #15–18 record in a qualified retrospective audit and refresh the repository recovery status.
+
 ### Julia dependencies and Windows compatibility
 - Defer legacy Julia plotting initialization until requested and avoid constructing
   discarded figures in GUI runs, including nonlinear-feedback convergence plots.
