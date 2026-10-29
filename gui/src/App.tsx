@@ -30,6 +30,11 @@ import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined'
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded'
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
+import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded'
+import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded'
+import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded'
+import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded'
+import SettingsBrightnessRoundedIcon from '@mui/icons-material/SettingsBrightnessRounded'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
@@ -41,6 +46,7 @@ import { useAppStore } from './store'
 import { getJcoAdapter, isDesktopBridgeAvailable } from './services/jcoAdapter'
 import type { ExampleDescriptor } from './services/jcoAdapter'
 import type { NavigationSection, StageId } from './types'
+import type { ThemePreference } from './theme'
 
 const navigation: Array<{ id: NavigationSection; label: string; description: string; icon: React.ReactElement }> = [
   { id: 'setup', label: 'Setup', description: 'Model, computation, metrics', icon: <SettingsInputComponentRoundedIcon /> },
@@ -48,7 +54,10 @@ const navigation: Array<{ id: NavigationSection; label: string; description: str
   { id: 'results', label: 'Results', description: 'Explore simulation data', icon: <AnalyticsOutlinedIcon /> },
 ]
 
-export default function App() {
+export default function App({ themePreference = 'system', onThemePreferenceChange }: {
+  themePreference?: ThemePreference
+  onThemePreferenceChange?: (value: ThemePreference) => void
+} = {}) {
   const section = useAppStore((state) => state.section)
   const setSection = useAppStore((state) => state.setSection)
   const project = useAppStore((state) => state.project)
@@ -70,8 +79,27 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [juliaPath, setJuliaPath] = useState('julia')
   const [threads, setThreads] = useState(1)
+  const [zoom, setZoom] = useState(100)
   const desktop = isDesktopBridgeAvailable()
   const startupInitialized = useRef(false)
+
+  useEffect(() => {
+    const adapter = getJcoAdapter()
+    if (!adapter?.getZoom) return
+    let active = true
+    void adapter.getZoom().then((percent) => { if (active) setZoom(percent) }).catch(() => {})
+    const unsubscribe = adapter.onZoomChanged?.((percent) => { if (active) setZoom(percent) })
+    return () => { active = false; unsubscribe?.() }
+  }, [])
+
+  const applyZoom = async (value: number) => {
+    try {
+      const next = await getJcoAdapter()?.setZoom?.(value)
+      if (next != null) setZoom(next)
+    } catch (error) {
+      setNotice('Unable to change zoom: ' + String(error))
+    }
+  }
 
   useEffect(() => {
     const adapter = getJcoAdapter()
@@ -203,7 +231,7 @@ export default function App() {
           <Avatar variant="rounded" sx={{ width: 38, height: 38, background: 'linear-gradient(135deg,#d9a34b,#9c6723)', color: '#fff' }}>
             <BoltRoundedIcon />
           </Avatar>
-          <Box sx={{ minWidth: 240 }}>
+          <Box sx={{ minWidth: { xs: 175, lg: 240 } }}>
             <Typography sx={{ fontWeight: 760, letterSpacing: '-.01em', lineHeight: 1.1 }}>Josephson Circuits Optimizer</Typography>
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,.6)' }}>Project workspace prototype</Typography>
           </Box>
@@ -214,9 +242,14 @@ export default function App() {
               <Chip size="small" label={project.filename} sx={{ backgroundColor: 'rgba(255,255,255,.09)', color: 'rgba(255,255,255,.78)' }} />
             </Stack>
           </Box>
-          <Chip size="small" label={desktop ? 'Desktop bridge' : 'Browser preview'} color={desktop ? 'success' : 'warning'} variant="outlined" sx={{ color: desktop ? '#a9dec9' : '#f1c77b', borderColor: desktop ? '#4c8a73' : '#9b753a' }} />
-          <Chip size="small" label="Schema v1" sx={{ backgroundColor: 'rgba(255,255,255,.08)', color: '#d9e1e8' }} />
-          <Tooltip title="Save project">
+          <Chip size="small" label={desktop ? 'Desktop bridge' : 'Browser preview'} color={desktop ? 'success' : 'warning'} variant="outlined" sx={{ display: { xs: 'none', xl: 'flex' }, color: desktop ? '#a9dec9' : '#f1c77b', borderColor: desktop ? '#4c8a73' : '#9b753a' }} />
+          <Chip size="small" label="Schema v1" sx={{ display: { xs: 'none', lg: 'flex' }, backgroundColor: 'rgba(255,255,255,.08)', color: '#d9e1e8' }} />
+          {desktop && <Stack direction="row" spacing={0.2} sx={{ alignItems: 'center', border: '1px solid rgba(255,255,255,.2)', borderRadius: 2, px: 0.3 }}>
+              <Tooltip title="Zoom out · Ctrl+−"><span><IconButton color="inherit" size="small" disabled={zoom <= 50} onClick={() => void applyZoom(zoom - 10)} aria-label="Zoom out"><ZoomOutRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
+              <Tooltip title="Reset zoom · Ctrl+0"><Button color="inherit" size="small" onClick={() => void applyZoom(100)} aria-label="Reset zoom" sx={{ minWidth: 50, color: '#fff' }}>{zoom}%</Button></Tooltip>
+              <Tooltip title="Zoom in · Ctrl++"><span><IconButton color="inherit" size="small" disabled={zoom >= 150} onClick={() => void applyZoom(zoom + 10)} aria-label="Zoom in"><ZoomInRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
+            </Stack>}
+           <Tooltip title="Save project">
             <span>
               <IconButton color="inherit" disabled={!dirty || busy} onClick={() => save(false)}>
                 <SaveRoundedIcon />
@@ -239,11 +272,22 @@ export default function App() {
             <Divider />
             <MenuItem onClick={() => setNotice('Choose a dataset in Results, then use Export filtered data.')}>Export Data…</MenuItem>
             <MenuItem disabled={running} onClick={openSettings}>Julia settings…</MenuItem>
+            <Divider />
+            <MenuItem disabled sx={{ opacity: '1 !important', fontWeight: 750 }}>Appearance</MenuItem>
+            {(['light', 'dark', 'system'] as const).map((choice) => <MenuItem
+              key={choice} selected={themePreference === choice}
+              onClick={() => { onThemePreferenceChange?.(choice); setMenuAnchor(null) }}>
+              {choice === 'light' ? <LightModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />
+                : choice === 'dark' ? <DarkModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />
+                : <SettingsBrightnessRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />}
+              {choice === 'light' ? 'Light' : choice === 'dark' ? 'Dark' : 'System'}
+              {themePreference === choice ? ' ✓' : ''}
+            </MenuItem>)}
           </Menu>
         </Toolbar>
       </AppBar>
 
-      <Box component="aside" sx={{ width: 250, flexShrink: 0, backgroundColor: '#fff', borderRight: '1px solid', borderColor: 'divider', pt: '66px' }}>
+      <Box component="aside" sx={{ width: 250, flexShrink: 0, backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider', pt: '66px' }}>
         <Stack sx={{ height: '100%' }}>
           <Box sx={{ p: 2.2, pb: 1 }}>
             <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800, letterSpacing: '.12em' }}>Workspace</Typography>
@@ -269,7 +313,7 @@ export default function App() {
             ))}
           </List>
           <Box sx={{ mt: 'auto', p: 2 }}>
-            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, p: 1.6, backgroundColor: '#f8fafb' }}>
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, p: 1.6, backgroundColor: 'background.default' }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <ScienceOutlinedIcon color="primary" fontSize="small" />
                 <Typography variant="subtitle2" sx={{ fontWeight: 750 }}>{project.name}</Typography>

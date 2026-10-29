@@ -228,7 +228,14 @@ export function PointComparisonPanel({
       <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <Typography variant="h6">Compare configurations</Typography>
         {ids.map((id, index) => <Chip key={id} size="small" label={(index === 0 ? 'A' : 'B') + ' · Point ' + id}
-          sx={{ backgroundColor: index === 0 ? '#e6eff7' : '#fff1df', color: index === 0 ? '#2d6ca2' : '#a76716' }} />)}
+          sx={(theme) => ({
+            backgroundColor: theme.palette.mode === 'dark'
+              ? index === 0 ? '#28435a' : '#493921'
+              : index === 0 ? '#e6eff7' : '#fff1df',
+            color: theme.palette.mode === 'dark'
+              ? index === 0 ? '#abd6f5' : '#f3c280'
+              : index === 0 ? '#2d6ca2' : '#a76716',
+          })} />)}
         {ids.map((id) => maskedIds?.has(id) ? <Chip size="small" key={'masked-' + id} color="warning" label={'Point ' + id + ' masked'} /> : null)}
       </Stack>
       {!ids.length && <Alert severity="info">Select Point A on the heatmap to begin comparing.</Alert>}

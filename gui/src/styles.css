@@ -1,7 +1,18 @@
 * { box-sizing: border-box; }
+:root {
+  --jco-app-background: #f4f6f8;
+  --jco-scroll-thumb: #aebac5;
+  --jco-heatmap-hover: #172231;
+}
+html[data-jco-theme='dark'] {
+  --jco-app-background: #131d2a;
+  --jco-scroll-thumb: #61768c;
+  --jco-heatmap-hover: #f2f6fb;
+  color-scheme: dark;
+}
 /* The main content owns vertical scrolling; never let the document add a second scrollbar. */
-html, body, #root { margin: 0; min-width: 1180px; height: 100%; overflow: hidden; }
-body { background: #f4f6f8; }
+html, body, #root { margin: 0; min-width: 0; height: 100%; overflow: hidden; }
+body { background: var(--jco-app-background); }
 button, input, textarea { font: inherit; }
 
 .code-editor textarea {
@@ -14,11 +25,11 @@ button, input, textarea { font: inherit; }
 .log-scroll::-webkit-scrollbar,
 .content-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
 .log-scroll::-webkit-scrollbar-thumb,
-.content-scroll::-webkit-scrollbar-thumb { background: #aebac5; border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+.content-scroll::-webkit-scrollbar-thumb { background: var(--jco-scroll-thumb); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
 
 .heatmap-grid { display: grid; align-items: stretch; gap: 3px; min-width: 420px; }
 .heatmap-cell { min-height: 30px; border-radius: 4px; transition: transform 120ms ease, outline 120ms ease; cursor: crosshair; }
-.heatmap-cell:hover { transform: scale(1.07); outline: 2px solid #172231; z-index: 2; }
+.heatmap-cell:hover { transform: scale(1.07); outline: 2px solid var(--jco-heatmap-hover); z-index: 2; }
 
 /* On wide desktop windows, keep the interactive design-space overview and its
    selected-point drill-down visible together. This applies to both Linear and

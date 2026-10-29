@@ -20,6 +20,13 @@ const api = {
   setSettings: (patch) => ipcRenderer.invoke('jco:set-settings', patch),
   setupRuntime: () => ipcRenderer.invoke('jco:setup-runtime'),
   showWorkspace: () => ipcRenderer.invoke('jco:show-workspace'),
+  getZoom: () => ipcRenderer.invoke('jco:get-zoom'),
+  setZoom: (percent) => ipcRenderer.invoke('jco:set-zoom', percent),
+  onZoomChanged: (listener) => {
+    const wrapped = (_event, percent) => listener(percent)
+    ipcRenderer.on('jco:zoom-changed', wrapped)
+    return () => ipcRenderer.removeListener('jco:zoom-changed', wrapped)
+  },
   onRunEvent: (listener) => {
     const wrapped = (_event, payload) => listener(payload)
     ipcRenderer.on('jco:event', wrapped)
@@ -28,3 +35,11 @@ const api = {
 }
 
 contextBridge.exposeInMainWorld('jco', api)
+
+// Capture Ctrl + wheel to override browser zoom and keep the persisted app
+// zoom level synchronized with the keyboard and toolbar controls.
+window.addEventListener('wheel', (event) => {
+  if (!event.ctrlKey || event.deltaY === 0) return
+  event.preventDefault()
+  ipcRenderer.send('jco:zoom-step', event.deltaY < 0 ? 1 : -1)
+}, { passive: false, capture: true })
