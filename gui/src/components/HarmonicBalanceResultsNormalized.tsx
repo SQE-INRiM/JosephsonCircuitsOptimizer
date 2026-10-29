@@ -150,7 +150,7 @@ export function HarmonicBalanceResultsNormalized({ results, activeRunId, unitByR
   const [runId, setRunId] = useState(results.runs[0]?.id ?? '')
   useEffect(() => { if (!results.runs.some((run) => run.id === runId)) setRunId(results.runs[0]?.id ?? '') }, [results, runId])
   const run = results.runs.find((item) => item.id === runId) ?? results.runs[0]
-  const amplitudeUnit: SourceAmplitudeUnits = unitByRun?.[run.id] ?? 'dBm'
   if (!run) return <Alert severity="info">The project contains no indexed runs yet.</Alert>
+  const amplitudeUnit: SourceAmplitudeUnits = unitByRun?.[run.id] ?? 'dBm'
   return <Stack spacing={1.3}><Paper variant="outlined" sx={{ p: 1.2 }}><Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}><FormControl size="small" sx={{ minWidth: 290 }}><InputLabel>Run</InputLabel><Select label="Run" value={run.id} onChange={(event) => setRunId(event.target.value)}>{results.runs.map((item) => <MenuItem key={item.id} value={item.id}>{item.id}{item.id === activeRunId ? ' · running' : ''}</MenuItem>)}</Select></FormControl><Chip size="small" color="success" variant="outlined" label="Stored JCO data" />{run.savedNonlinear && <Chip size="small" variant="outlined" label={`${run.savedNonlinear.points.length} retained-data points`} />}</Stack></Paper><HarmonicBalanceRun run={run} amplitudeUnit={amplitudeUnit} /></Stack>
 }
