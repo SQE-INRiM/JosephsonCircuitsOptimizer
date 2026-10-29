@@ -10,7 +10,6 @@ const NO_RESULT_FILES = new Set([
   'simulation_info/status.json',
   'simulation_info/run_config.json',
   'simulation_info/versions.txt',
-  'simulation_info/optimization_persistence.json',
   'STOP',
 ])
 
@@ -18,6 +17,7 @@ function hasNumericHistory(metadata) {
   const history = metadata?.results?.metric_history
   if (Array.isArray(history?.metrics) && history.metrics.length) return true
   if (Array.isArray(metadata?.cost_history?.metrics) && metadata.cost_history.metrics.length) return true
+  if (metadata?.results && typeof metadata.results === 'object' && Object.keys(metadata.results).some((key) => key !== 'metric_history')) return true
   // An optimizer may have produced optimal device parameters without an HDF5 table.
   return false
 }
