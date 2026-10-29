@@ -207,10 +207,19 @@ export function PointComparisonPanel({
     ? [...new Set(resolved.flatMap((item) => Object.keys(item)))] : []
   const deviceParameters = deviceParameterNames.map((name) =>
     entry(name, parameterLabel(projectParameters, name), resolved[0]?.[name], resolved[1]?.[name]))
+  const convergenceIndex = stage === 'nonlinear' ? table.columns.indexOf('converged') : -1
+  const convergence = ids.map((_, index) => {
+    const value = rows[index]?.[convergenceIndex]
+    return value == null ? '—' : Number(value) === 1 ? 'Converged' : 'Non-converged'
+  })
   const compareRows = [
     { heading: stage === 'linear' ? 'Device parameters' : 'Source coordinates', entries: parameters },
     ...(deviceParameters.length ? [{ heading: 'Device parameters', entries: deviceParameters }] : []),
     { heading: 'Scalar metrics', entries: metrics },
+    ...(convergenceIndex >= 0 ? [{
+      heading: 'Solver status',
+      entries: [{ name: 'converged', label: 'Convergence', a: convergence[0], b: convergence[1] ?? '—', delta: '—' }],
+    }] : []),
   ]
   const selected = useMemo(() => new Set(selectedArrays), [chosenKey])
 
