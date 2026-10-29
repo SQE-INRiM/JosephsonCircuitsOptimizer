@@ -231,7 +231,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
           <Avatar variant="rounded" sx={{ width: 38, height: 38, background: 'linear-gradient(135deg,#d9a34b,#9c6723)', color: '#fff' }}>
             <BoltRoundedIcon />
           </Avatar>
-          <Box sx={{ minWidth: 240 }}>
+          <Box sx={{ minWidth: { xs: 175, lg: 240 } }}>
             <Typography sx={{ fontWeight: 760, letterSpacing: '-.01em', lineHeight: 1.1 }}>Josephson Circuits Optimizer</Typography>
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,.6)' }}>Project workspace prototype</Typography>
           </Box>
@@ -242,8 +242,8 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
               <Chip size="small" label={project.filename} sx={{ backgroundColor: 'rgba(255,255,255,.09)', color: 'rgba(255,255,255,.78)' }} />
             </Stack>
           </Box>
-          <Chip size="small" label={desktop ? 'Desktop bridge' : 'Browser preview'} color={desktop ? 'success' : 'warning'} variant="outlined" sx={{ color: desktop ? '#a9dec9' : '#f1c77b', borderColor: desktop ? '#4c8a73' : '#9b753a' }} />
-          <Chip size="small" label="Schema v1" sx={{ backgroundColor: 'rgba(255,255,255,.08)', color: '#d9e1e8' }} />
+          <Chip size="small" sx={{ display: { xs: 'none', xl: 'flex' } }} label={desktop ? 'Desktop bridge' : 'Browser preview'} color={desktop ? 'success' : 'warning'} variant="outlined" sx={{ color: desktop ? '#a9dec9' : '#f1c77b', borderColor: desktop ? '#4c8a73' : '#9b753a' }} />
+          <Chip size="small" label="Schema v1" sx={{ display: { xs: 'none', lg: 'flex' }, backgroundColor: 'rgba(255,255,255,.08)', color: '#d9e1e8' }} />
           {desktop && <Stack direction="row" spacing={0.2} sx={{ alignItems: 'center', border: '1px solid rgba(255,255,255,.2)', borderRadius: 2, px: 0.3 }}>
               <Tooltip title="Zoom out · Ctrl+−"><span><IconButton color="inherit" size="small" disabled={zoom <= 70} onClick={() => void applyZoom(zoom - 10)} aria-label="Zoom out"><ZoomOutRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
               <Tooltip title="Reset zoom · Ctrl+0"><Button color="inherit" size="small" onClick={() => void applyZoom(100)} aria-label="Reset zoom" sx={{ minWidth: 50, color: '#fff' }}>{zoom}%</Button></Tooltip>
