@@ -14,11 +14,21 @@ const NO_RESULT_FILES = new Set([
 ])
 
 function hasNumericHistory(metadata) {
-  const history = metadata?.results?.metric_history
+  const results = metadata?.results
+  const history = results?.metric_history
   if (Array.isArray(history?.metrics) && history.metrics.length) return true
   if (Array.isArray(metadata?.cost_history?.metrics) && metadata.cost_history.metrics.length) return true
-  if (metadata?.results && typeof metadata.results === 'object' && Object.keys(metadata.results).some((key) => key !== 'metric_history')) return true
-  // An optimizer may have produced optimal device parameters without an HDF5 table.
+  if (results && typeof results === 'object') {
+    // run_config.json always writes these three keys, even on empty runs.
+    // Check their values rather than their mere presence.
+    if (results.best_metric !== null && results.best_metric !== undefined && results.best_metric !== '') return true
+    const best = results.best_device_parameters
+    if (best != null && (typeof best !== 'object' || Object.keys(best).length > 0)) return true
+    for (const [key, value] of Object.entries(results)) {
+      if (['best_metric', 'best_device_parameters', 'metric_history'].includes(key)) continue
+      if (value !== null && value !== undefined) return true
+    }
+  }
   return false
 }
 
