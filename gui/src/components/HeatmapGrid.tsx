@@ -1,5 +1,6 @@
 import { Box, Stack, Typography } from '@mui/material'
 import { useAppStore } from '../store'
+import { useTheme } from '@mui/material/styles'
 import type { SourceAmplitudeUnit } from '../types'
 import { parameterLabel, sourceCoordinateLabel } from '../utils/resultUnits'
 
@@ -32,6 +33,7 @@ function divergingColor(value: number) {
 
 export function HeatmapGrid({ xLabels, yLabels, values, valueLabel, xAxisLabel, yAxisLabel, amplitudeUnit = 'A', diverging = false, formatValue, onCellClick, selectedCell, selectedCells }: HeatmapGridProps) {
   const projectParameters = useAppStore((state) => state.project.parameters)
+  const theme = useTheme()
   const axisLabel = (label?: string) => {
     if (!label) return ''
     const parameter = parameterLabel(projectParameters, label)
@@ -85,7 +87,7 @@ export function HeatmapGrid({ xLabels, yLabels, values, valueLabel, xAxisLabel, 
             const masked = value === null || !Number.isFinite(value)
             const displayedY = axisValue(yAxisLabel, label)
             const displayedX = axisValue(xAxisLabel, xLabels[columnIndex])
-            return <Box key={`${displayRowIndex}-${columnIndex}`} className="heatmap-cell" title={masked ? `${displayedY} × ${displayedX} · ${valueLabel}: masked / unavailable` : `${displayedY} × ${displayedX} · ${valueLabel}: ${formatValue ? formatValue(value) : value}`} onClick={masked || !onCellClick ? undefined : () => onCellClick(originalIndex, columnIndex, value)} sx={{ backgroundColor: masked ? '#ffffff' : diverging ? divergingColor(value) : sequentialColor(value, min, max), cursor: masked || !onCellClick ? 'default' : 'pointer', outline: selected ? '3px solid' : undefined, outlineColor: selected ? (pairIndex === 0 ? '#2d6ca2' : pairIndex === 1 ? '#cf8a2f' : 'text.primary') : undefined, outlineOffset: selected ? '-3px' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pairIndex >= 0 && <Typography component="span" sx={{ fontSize: 12, fontWeight: 800, color: '#172231', backgroundColor: '#fff', borderRadius: '3px', px: 0.5 }}>{pairIndex === 0 ? 'A' : 'B'}</Typography>}</Box>
+            return <Box key={`${displayRowIndex}-${columnIndex}`} className="heatmap-cell" title={masked ? `${displayedY} × ${displayedX} · ${valueLabel}: masked / unavailable` : `${displayedY} × ${displayedX} · ${valueLabel}: ${formatValue ? formatValue(value) : value}`} onClick={masked || !onCellClick ? undefined : () => onCellClick(originalIndex, columnIndex, value)} sx={{ backgroundColor: masked ? (theme.palette.mode === 'dark' ? '#314052' : '#ffffff') : diverging ? divergingColor(value) : sequentialColor(value, min, max), cursor: masked || !onCellClick ? 'default' : 'pointer', outline: selected ? '3px solid' : undefined, outlineColor: selected ? (pairIndex === 0 ? '#2d6ca2' : pairIndex === 1 ? '#cf8a2f' : 'text.primary') : undefined, outlineOffset: selected ? '-3px' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pairIndex >= 0 && <Typography component="span" sx={{ fontSize: 12, fontWeight: 800, color: '#172231', backgroundColor: '#fff', borderRadius: '3px', px: 0.5 }}>{pairIndex === 0 ? 'A' : 'B'}</Typography>}</Box>
           }),
         ])}
         <Box />
