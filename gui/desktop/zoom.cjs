@@ -1,5 +1,5 @@
 // Display-only Electron zoom preferences (independent of .jco projects).
-const MIN_ZOOM = 70
+const MIN_ZOOM = 50
 const MAX_ZOOM = 150
 const ZOOM_STEP = 10
 
