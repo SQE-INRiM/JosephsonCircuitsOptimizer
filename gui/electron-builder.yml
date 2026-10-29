@@ -22,6 +22,7 @@ extraResources:
     to: examples
 
 win:
+  icon: build/icon.svg
   target:
     - target: nsis
       arch:
@@ -44,6 +45,7 @@ portable:
   artifactName: JCO-GUI-${version}-Windows-Portable.${ext}
 
 linux:
+  icon: build/icon.svg
   target:
     - target: AppImage
       arch:

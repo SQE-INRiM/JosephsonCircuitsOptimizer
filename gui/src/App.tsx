@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Alert,
   AppBar,
-  Avatar,
   Box,
   Button,
   Chip,
@@ -27,7 +26,6 @@ import {
   Typography,
 } from '@mui/material'
 import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined'
-import BoltRoundedIcon from '@mui/icons-material/BoltRounded'
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded'
@@ -77,6 +75,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
   const [busy, setBusy] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [juliaPath, setJuliaPath] = useState('julia')
   const [threads, setThreads] = useState(1)
   const [zoom, setZoom] = useState(100)
@@ -294,14 +293,12 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', minHeight: 0, overflow: 'hidden' }}>
-      <AppBar position="fixed" elevation={0} sx={{ zIndex: 1300, backgroundColor: '#101b2d', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
+      <AppBar position="fixed" elevation={0} sx={{ zIndex: 1300, backgroundColor: '#0B1F3B', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
         <Toolbar sx={{ minHeight: '66px !important', gap: 2 }}>
-          <Avatar variant="rounded" sx={{ width: 38, height: 38, background: 'linear-gradient(135deg,#d9a34b,#9c6723)', color: '#fff' }}>
-            <BoltRoundedIcon />
-          </Avatar>
+          <Box component="img" src="./jco-app-icon.svg" alt="JCO application icon" sx={{ width: 38, height: 38, flexShrink: 0, borderRadius: 1 }} />
           <Box sx={{ minWidth: { xs: 175, lg: 240 } }}>
             <Typography sx={{ fontWeight: 760, letterSpacing: '-.01em', lineHeight: 1.1 }}>Josephson Circuits Optimizer</Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,.6)' }}>Project workspace prototype</Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,.6)' }}>Superconducting circuit design</Typography>
           </Box>
           <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,.12)', my: 1.4 }} />
           <Box sx={{ flex: 1, overflow: 'hidden' }}>
@@ -340,6 +337,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
             <Divider />
             <MenuItem onClick={() => setNotice('Choose a dataset in Results, then use Export filtered data.')}>Export Data…</MenuItem>
             <MenuItem disabled={running} onClick={openSettings}>Julia settings…</MenuItem>
+            <MenuItem onClick={() => { setMenuAnchor(null); setAboutOpen(true) }}>About JCO…</MenuItem>
             <Divider />
             <MenuItem disabled sx={{ opacity: '1 !important', fontWeight: 750 }}>Appearance</MenuItem>
             {(['light', 'dark', 'system'] as const).map((choice) => <MenuItem
@@ -428,6 +426,17 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
         </Box>
       </Box>}
       <Snackbar open={Boolean(notice)} autoHideDuration={3600} onClose={() => setNotice('')} message={notice} />
+
+      <Dialog open={aboutOpen} onClose={() => setAboutOpen(false)} fullWidth maxWidth="sm" aria-labelledby="jco-about-title">
+        <DialogTitle id="jco-about-title">About JCO</DialogTitle>
+        <DialogContent>
+          <Box component="img" src="./jco-logo.svg" alt="JCO — Josephson Circuits Optimizer" sx={{ display: 'block', width: '100%', maxWidth: 445, height: 'auto', mx: 'auto', borderRadius: 1.5 }} />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Explore and optimize superconducting Josephson circuits with linear analysis, surrogate optimization and nonlinear harmonic balance.
+          </Typography>
+        </DialogContent>
+        <DialogActions><Button onClick={() => setAboutOpen(false)}>Close</Button></DialogActions>
+      </Dialog>
 
       <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Julia runtime</DialogTitle>

@@ -4,6 +4,11 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### October 2026 — JCO visual identity
+- Adopt the JCO Josephson-junction logo in the desktop application's About dialog and repository README; replace the placeholder lightning-bolt header icon with the final JCO icon.
+- Add vector branding assets under `docs/images/` and `gui/public/`, use the icon as the GUI favicon, and configure Electron Builder to generate Windows/Linux application icons from the SVG master in `gui/build/`.
+- Match the application header to the logo's deep navy, preserving the existing functional light/dark palettes and scientific workflows.
+
 ### October 2026 — Run lifecycle and Results usability
 - Remove a newly finished run automatically only if its output directory contains no known or potential numerical results, user-saved data or optimizer history; preserve partial/uncertain runs and repair the latest-run pointer.
 - Display HB source amplitudes using the **per-source units from each run's original input** (A or dBm) without a global Results toggle, retaining dBm/50 Ω as a backward-compatible display convention for older runs without snapshots.
