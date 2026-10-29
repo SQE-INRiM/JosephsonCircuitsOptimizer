@@ -32,6 +32,9 @@ import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded'
 import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded'
+import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded'
+import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded'
+import SettingsBrightnessRoundedIcon from '@mui/icons-material/SettingsBrightnessRounded'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
@@ -43,6 +46,7 @@ import { useAppStore } from './store'
 import { getJcoAdapter, isDesktopBridgeAvailable } from './services/jcoAdapter'
 import type { ExampleDescriptor } from './services/jcoAdapter'
 import type { NavigationSection, StageId } from './types'
+import type { ThemePreference } from './theme'
 
 const navigation: Array<{ id: NavigationSection; label: string; description: string; icon: React.ReactElement }> = [
   { id: 'setup', label: 'Setup', description: 'Model, computation, metrics', icon: <SettingsInputComponentRoundedIcon /> },
@@ -50,7 +54,10 @@ const navigation: Array<{ id: NavigationSection; label: string; description: str
   { id: 'results', label: 'Results', description: 'Explore simulation data', icon: <AnalyticsOutlinedIcon /> },
 ]
 
-export default function App() {
+export default function App({ themePreference = 'system', onThemePreferenceChange }: {
+  themePreference?: ThemePreference
+  onThemePreferenceChange?: (value: ThemePreference) => void
+} = {}) {
   const section = useAppStore((state) => state.section)
   const setSection = useAppStore((state) => state.setSection)
   const project = useAppStore((state) => state.project)
@@ -265,11 +272,22 @@ export default function App() {
             <Divider />
             <MenuItem onClick={() => setNotice('Choose a dataset in Results, then use Export filtered data.')}>Export Data…</MenuItem>
             <MenuItem disabled={running} onClick={openSettings}>Julia settings…</MenuItem>
+            <Divider />
+            <MenuItem disabled sx={{ opacity: '1 !important', fontWeight: 750 }}>Appearance</MenuItem>
+            {(['light', 'dark', 'system'] as const).map((choice) => <MenuItem
+              key={choice} selected={themePreference === choice}
+              onClick={() => { onThemePreferenceChange?.(choice); setMenuAnchor(null) }}>
+              {choice === 'light' ? <LightModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />
+                : choice === 'dark' ? <DarkModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />
+                : <SettingsBrightnessRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />}
+              {choice === 'light' ? 'Light' : choice === 'dark' ? 'Dark' : 'System'}
+              {themePreference === choice ? ' ✓' : ''}
+            </MenuItem>)}
           </Menu>
         </Toolbar>
       </AppBar>
 
-      <Box component="aside" sx={{ width: 250, flexShrink: 0, backgroundColor: '#fff', borderRight: '1px solid', borderColor: 'divider', pt: '66px' }}>
+      <Box component="aside" sx={{ width: 250, flexShrink: 0, backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider', pt: '66px' }}>
         <Stack sx={{ height: '100%' }}>
           <Box sx={{ p: 2.2, pb: 1 }}>
             <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800, letterSpacing: '.12em' }}>Workspace</Typography>
@@ -295,7 +313,7 @@ export default function App() {
             ))}
           </List>
           <Box sx={{ mt: 'auto', p: 2 }}>
-            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, p: 1.6, backgroundColor: '#f8fafb' }}>
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, p: 1.6, backgroundColor: 'background.default' }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <ScienceOutlinedIcon color="primary" fontSize="small" />
                 <Typography variant="subtitle2" sx={{ fontWeight: 750 }}>{project.name}</Typography>
