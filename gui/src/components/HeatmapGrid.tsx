@@ -78,7 +78,7 @@ export function HeatmapGrid({ xLabels, yLabels, values, valueLabel, xAxisLabel, 
   return <Stack className={interactiveLandscape ? 'jco-interactive-landscape-heatmap' : undefined} spacing={1.1} sx={{ width: '100%', maxWidth: diverging ? undefined : 1240, mx: diverging ? undefined : 'auto', pb: 0.5 }}>
     <Stack direction="row" spacing={1} sx={{ alignItems: 'stretch', minWidth: 0 }}>
       {yAxisLabel && <Typography variant="caption" color="text.secondary" sx={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', textAlign: 'center', alignSelf: 'center', fontWeight: 700 }}>{axisLabel(yAxisLabel)}</Typography>}
-      <Box className="heatmap-grid" sx={{ gridTemplateColumns: columns, gridTemplateRows: gridRows, height: dataHeight + xLabelsHeight, flex: 1, minWidth: 0, '& .heatmap-cell': { minHeight: 0 } }}>
+      <Box className="heatmap-grid" style={{ gridTemplateRows: gridRows, height: dataHeight + xLabelsHeight }} sx={{ gridTemplateColumns: columns, flex: 1, minWidth: 0, '& .heatmap-cell': { minHeight: 0 } }}>
         {displayedRows.map(({ row, originalIndex, label }, displayRowIndex) => [
           <Typography key={`label-${label}-${displayRowIndex}`} variant="caption" color="text.secondary" title={String(axisValue(yAxisLabel, label))} sx={{ pr: 1, textAlign: 'right', alignSelf: 'center', whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{displayRowIndex % yTickEvery === 0 || displayRowIndex === values.length - 1 ? axisValue(yAxisLabel, label) : ''}</Typography>,
           ...row.map((value, columnIndex) => {
