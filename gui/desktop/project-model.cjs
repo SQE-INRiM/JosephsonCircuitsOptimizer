@@ -134,8 +134,6 @@ function sourcesFromJson(raw, metadata = {}) {
       port: Number(raw[`source_${id}_on_port`] ?? Number(id)),
       isDc,
       frequency: isDc ? { mode: 'Fixed', value: '0' } : valueSpecFromRaw(frequency, 1e9),
-      // GUI-only history; the physical drive remains zero frequency while DC.
-      acFrequency: ['Fixed', 'Range', 'List'].includes(display.acFrequency?.mode) ? display.acFrequency : undefined,
       linearAmplitude: display.linearAmplitude || valueSpecFromRaw(linearAmplitude),
       nonlinearAmplitude: display.nonlinearAmplitude || valueSpecFromRaw(hbAmplitude),
       linearAmplitudeUnit: display.linearAmplitudeUnit === 'dBm' ? 'dBm' : 'A',
@@ -405,7 +403,6 @@ function saveProjectModel(workspace, project) {
       impedanceOhm,
       linearAmplitude: source.linearAmplitude,
       nonlinearAmplitude: source.nonlinearAmplitude,
-      ...(source.acFrequency ? { acFrequency: source.acFrequency } : {}),
     }
     for (const [suffix, value] of Object.entries(source.extras || {})) existingDrives[`source_${id}_${suffix}`] = value
   }
