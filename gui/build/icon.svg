@@ -1,0 +1,54 @@
+<svg
+   width="1024"
+   height="1024"
+   viewBox="0 0 512 512"
+   role="img"
+   aria-label="JCO application icon — identical O of the reference logo"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <rect
+     width="512"
+     height="512"
+     rx="104"
+     fill="#0B1F3B"
+     id="rect1" />
+  <path
+     id="ring-left"
+     d="m 230.075,73 c -92.72,9.15 -159.82,87.535 -159.82,183 0,95.465 69.235,173.85 159.82,183 V 396.3 C 160.23,389.895 115.09,329.505 115.09,256 c 0,-70.455 45.445,-128.405 114.985,-137.25 z"
+     fill="#f5f8fc"
+     style="stroke-width:3.05" />
+  <path
+     id="ring-right"
+     d="m 281.925,73 c 92.72,9.15 159.82,87.535 159.82,183 0,95.465 -69.235,173.85 -159.82,183 V 396.3 C 351.77,389.895 396.91,329.505 396.91,256 c 0,-70.455 -45.445,-128.405 -114.985,-137.25 z"
+     fill="#f5f8fc"
+     style="stroke-width:3.05" />
+  <path
+     id="junction-leads"
+     d="m 256,79.1 v 108.275 m 0,143.35 V 432.9"
+     stroke="#f5f8fc"
+     stroke-width="17.69"
+     stroke-linecap="round"
+     fill="none" />
+  <path
+     id="junction-complete-cross"
+     d="m 190.39912,192.50644 131.37766,134.48719 m 0,-134.48719 -131.37766,134.48719"
+     stroke="#23b8d1"
+     stroke-width="24.0989"
+     fill="none"
+     stroke-linejoin="miter"
+     stroke-linecap="butt" />
+  <rect
+     id="junction-square"
+     x="188.89999"
+     y="191.95"
+     width="134.2"
+     height="135.72501"
+     rx="3.355"
+     fill="none"
+     stroke="#23b8d1"
+     stroke-width="20.435"
+     stroke-linejoin="round" />
+</svg>

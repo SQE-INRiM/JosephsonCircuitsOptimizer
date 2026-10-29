@@ -20,8 +20,13 @@ extraResources:
     to: templates
   - from: runtime/examples
     to: examples
+  - from: build/icon.ico
+    to: icons/icon.ico
+  - from: build/icon.png
+    to: icons/icon.png
 
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch:
@@ -44,6 +49,7 @@ portable:
   artifactName: JCO-GUI-${version}-Windows-Portable.${ext}
 
 linux:
+  icon: build/icon.svg
   target:
     - target: AppImage
       arch:
