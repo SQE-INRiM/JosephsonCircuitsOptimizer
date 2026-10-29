@@ -1,8 +1,13 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 const api = {
   newProject: () => ipcRenderer.invoke('jco:new'),
   openProject: () => ipcRenderer.invoke('jco:open'),
+  openDroppedProject: (file) => {
+    const filePath = webUtils.getPathForFile(file)
+    if (!filePath || !filePath.toLowerCase().endsWith('.jco')) throw new Error('Drop a valid .jco project file.')
+    return ipcRenderer.invoke('jco:open-path', filePath)
+  },
   importWorkspace: () => ipcRenderer.invoke('jco:import-workspace'),
   listExamples: () => ipcRenderer.invoke('jco:list-examples'),
   openExample: (fileName) => ipcRenderer.invoke('jco:open-example', fileName),

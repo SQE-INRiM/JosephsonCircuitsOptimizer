@@ -1,7 +1,7 @@
 import { Box, Stack, Typography } from '@mui/material'
 import { useAppStore } from '../store'
 import { useTheme } from '@mui/material/styles'
-import type { SourceAmplitudeUnit } from '../types'
+import type { SourceAmplitudeUnits } from '../types'
 import { parameterLabel, sourceCoordinateLabel } from '../utils/resultUnits'
 
 interface HeatmapGridProps {
@@ -11,7 +11,7 @@ interface HeatmapGridProps {
   valueLabel: string
   xAxisLabel?: string
   yAxisLabel?: string
-  amplitudeUnit?: SourceAmplitudeUnit
+  amplitudeUnit?: SourceAmplitudeUnits
   diverging?: boolean
   formatValue?: (value: number) => string
   onCellClick?: (rowIndex: number, columnIndex: number, value: number) => void

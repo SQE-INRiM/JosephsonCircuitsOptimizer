@@ -8,6 +8,33 @@ describe('GUI device parameter workflow', () => {
     useAppStore.setState({ project: structuredClone(originalProject), dirty: false })
   })
 
+  it('clears obsolete Range fields when changing mode, including after loading a .jco-shaped project', () => {
+    const circuitCode = 'function create_user_circuit(device_params_set)\\nCg = device_params_set[:Cg]\\nend'
+    useAppStore.getState().loadProject({
+      ...structuredClone(originalProject),
+      filename: 'dropped.jco',
+      name: 'Dropped from disk',
+      circuitCode,
+      parameters: [
+        { id: 'Cg', name: 'Cg', mode: 'Range', start: '100', stop: '350', step: '25', unit: 'fF', role: 'Design', circuitStatus: 'configured' },
+      ],
+    })
+    expect(useAppStore.getState().project.parameters[0].id).toBe('Cg')
+    const { updateParameter } = useAppStore.getState()
+    updateParameter('Cg', { mode: 'Fixed' })
+    expect(useAppStore.getState().project.parameters[0]).toMatchObject({
+      mode: 'Fixed', start: '', stop: '', step: '', values: '', value: '',
+    })
+    updateParameter('Cg', { value: '250' })
+    expect(useAppStore.getState().project.parameters[0].value).toBe('250')
+    updateParameter('Cg', { mode: 'List' })
+    expect(useAppStore.getState().project.parameters[0]).toMatchObject({
+      mode: 'List', start: '', stop: '', step: '', values: '', value: '',
+    })
+    updateParameter('Cg', { values: '100, 250' })
+    expect(useAppStore.getState().project.parameters[0].values).toBe('100, 250')
+  })
+
   it('creates a parameter from the circuit editor and accepts its value', () => {
     useAppStore.getState().updateCircuitCode(`
       function create_user_circuit(device_parameters_set::Dict)

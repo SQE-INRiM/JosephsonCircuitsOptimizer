@@ -12,6 +12,7 @@ const { modeForStages } = require('./run-mode.cjs')
 const { createRunId, outcomeForClose, requireDurableProject, terminateProcessTree } = require('./run-process.cjs')
 const { assertProcessIdle, captureRunSession } = require('./run-session.cjs')
 const { normalizeZoom, stepZoom, zoomShortcut } = require('./zoom.cjs')
+const { isProvablyEmptyRun, updateLatestPointer } = require('./empty-run-cleanup.cjs')
 
 let mainWindow
 let session = null
@@ -145,16 +146,28 @@ function openWorkspace(source, projectPath = null, manifest = {}) {
   return currentModel()
 }
 
+function openProjectPath(filePath) {
+  assertProcessIdle(juliaProcess, 'Opening a project')
+  if (typeof filePath !== 'string' || !filePath.toLowerCase().endsWith('.jco')) throw new Error('Only .jco project files can be opened.')
+  const projectPath = path.resolve(filePath)
+  if (!fs.statSync(projectPath).isFile()) throw new Error('The dropped .jco path is not a file.')
+  const workspace = createSessionWorkspace()
+  try {
+    const manifest = unpackProject(projectPath, workspace)
+    const model = loadProjectModel(workspace, projectPath, manifest)
+    session = { workspace, projectPath, manifest }
+    return model
+  } catch (error) {
+    fs.rmSync(workspace, { recursive: true, force: true })
+    throw error
+  }
+}
+
 async function chooseAndOpenProject() {
   assertProcessIdle(juliaProcess, 'Opening a project')
   const selected = await dialog.showOpenDialog(mainWindow, { title: 'Open JCO project', properties: ['openFile'], filters: [{ name: 'JCO project', extensions: ['jco'] }] })
   if (selected.canceled) return null
-  assertProcessIdle(juliaProcess, 'Opening a project')
-  const projectPath = selected.filePaths[0]
-  const workspace = createSessionWorkspace()
-  const manifest = unpackProject(projectPath, workspace)
-  session = { workspace, projectPath, manifest }
-  return currentModel()
+  return openProjectPath(selected.filePaths[0])
 }
 
 async function chooseAndImportWorkspace() {
@@ -243,6 +256,10 @@ async function startRun(request) {
   const settings = getSettings()
   const runId = createRunId()
   const runSession = captureRunSession(session, runId)
+  // Preserve the GUI's original per-source A/dBm and impedance selections for
+  // the immutable run snapshot; numeric JCO input files stay in SI units.
+  const displayMetadataPath = path.join(runSession.workspace, 'jco_gui_metadata.json')
+  const displayMetadata = fs.existsSync(displayMetadataPath) ? fs.readFileSync(displayMetadataPath) : null
   const bootstrap = path.join(resourcesRoot(), 'bridge', 'run.jl')
   const mode = modeForStages(request.stages)
   const args = ['--startup-file=no', '--color=no', `--project=${jcoRoot()}`, bootstrap]
@@ -261,12 +278,27 @@ async function startRun(request) {
     stopTimer = null
     const cancelRequested = activeRun?.runId === runId && activeRun.cancelRequested
     juliaProcess = null
-    activeRun = null
     const outcome = outcomeForClose(code, cancelRequested)
     try { fs.rmSync(path.join(runSession.workspace, 'STOP'), { force: true }) } catch {}
+    const outputPath = path.join(runSession.workspace, 'outputs', runId)
+    if (displayMetadata && fs.existsSync(path.join(outputPath, 'inputs_snapshot'))) {
+      try {
+        fs.writeFileSync(path.join(outputPath, 'inputs_snapshot', 'jco_gui_metadata.json'), displayMetadata)
+      } catch (error) { parseOutputLine(`Run display-unit snapshot could not be stored: ${error.message}`, runId) }
+    }
+    // Never remove partial or uncertain data: only known input/bookkeeping-only
+    // output folders qualify. Clean before saving the .jco archive.
+    if (isProvablyEmptyRun(runSession.workspace, runId)) {
+      try {
+        fs.rmSync(outputPath, { recursive: true, force: false })
+        updateLatestPointer(runSession.workspace, outputPath)
+        parseOutputLine('No numerical results were produced; the empty run was removed automatically.', runId)
+      } catch (error) { parseOutputLine(`Empty-run cleanup skipped: ${error.message}`, runId) }
+    }
     if (runSession.projectPath) {
       try { packProject(runSession.workspace, runSession.projectPath, runSession.manifest) } catch (error) { parseOutputLine(`Auto-save failed: ${error.message}`, runId) }
     }
+    activeRun = null
     emit({ type: 'run-finished', runId, outcome, timestamp: new Date().toISOString() })
   })
   return { runId }
@@ -494,6 +526,7 @@ app.whenReady().then(() => {
     return openWorkspace(template, null, { name: 'New project' })
   })
   ipcMain.handle('jco:open', chooseAndOpenProject)
+  ipcMain.handle('jco:open-path', (_event, filePath) => openProjectPath(filePath))
   ipcMain.handle('jco:import-workspace', chooseAndImportWorkspace)
   ipcMain.handle('jco:list-examples', () => listExamples())
   ipcMain.handle('jco:open-example', (_event, fileName) => {

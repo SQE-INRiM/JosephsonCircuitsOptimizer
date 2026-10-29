@@ -2,6 +2,7 @@ export type NavigationSection = 'setup' | 'run' | 'results'
 export type SetupStep = 0 | 1 | 2
 export type ParameterMode = 'Fixed' | 'Range' | 'List'
 export type SourceAmplitudeUnit = 'A' | 'dBm'
+export type SourceAmplitudeUnits = SourceAmplitudeUnit | Record<number, SourceAmplitudeUnit>
 export type StageId = 'linear' | 'optimization' | 'hb'
 export type StageStatus =
   | 'not_ready'
@@ -174,6 +175,7 @@ export interface SavedTraceData {
 }
 
 export interface RunSetupSnapshot {
+  sourceDisplay?: Record<string, { nonlinearAmplitudeUnit?: SourceAmplitudeUnit; impedanceOhm?: number }> | null
   parameters?: Record<string, unknown> | null
   sources?: Record<string, unknown> | null
   simulation?: Record<string, unknown> | null
