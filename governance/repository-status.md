@@ -1,6 +1,6 @@
 # Repository Status
 
-Last governance refresh: 2026-09-11
+Last governance refresh: 2026-10-29
 
 ## Current development baseline
 
@@ -12,7 +12,8 @@ Last governance refresh: 2026-09-11
 - Release `v0.3.0` was merged by PR #3 at `497ceb1` on 2026-09-08, followed by README/image refinements through `6e9ab98`.
 - Circuit Preview / fresh-install runtime hardening is integrated through `399873f`.
 - Example-project lifecycle and background Circuit Preview work is integrated through implementation `aac3931` plus governance follow-up through `9ac91fd`.
-- Installable desktop packaging from PR #6 is integrated in `main`; current recovery point is `659d2ee`.
+- Installable desktop packaging from PR #6 is integrated in `main` (historical packaging recovery point `659d2ee`).
+- October GUI usability PRs #15–18 are integrated; latest documented `main` reference before this governance follow-up is `1f627845592f822fafa7fa402b1ad1e88ad77c2d` (PR #18, 2026-10-29).
 
 ## Integrated functional state
 
@@ -34,6 +35,16 @@ Desktop distribution now provides:
 - Julia remains an external runtime requirement.
 
 No packaging change intentionally modifies JCO numerical algorithms, scientific metric semantics, source units, persistent `.jco` schema, or the renderer/Julia scientific contract.
+
+## October 2026 GUI baseline
+
+- PR #15: improved AC/DC selection, transient AC-frequency editing history and corrected duplicate desktop scrollbar.
+- PR #16: Linear-stage harmonic and shared intermodulation-order guidance, without automatic numerical changes.
+- PR #17: A/B selection and retained-trace overlays for Linear/HB Results, with explicit X-axis compatibility checks.
+- PR #18: desktop zoom 50–150%, bounded Y dimension for colormaps and Light/Dark/System appearance.
+- GitHub Actions on the final heads of PRs #15–18 passed the PR test/build, governance, Windows packaging and Linux packaging workflows.
+- A retrospective T2 audit is recorded at `docs/audits/AUD_20261029_001_october_gui_prs.md`; status remains **qualified** because no new independent scientific reference or reproducible full OS/runtime test is claimed.
+- New code PRs use `.github/PULL_REQUEST_TEMPLATE.md`; the GitHub Governance check verifies five explicit documentation review decisions, rather than only file existence. ADR and audit documents remain conditional on impact.
 
 ## Packaging validation state
 
@@ -59,7 +70,8 @@ Governance remains lightweight and advisory:
 - ADR 007 remains authoritative for Circuit Preview execution/topology boundaries;
 - `WI_20260911_001_example_project_workflow.md` / `AUD_20260911_001_example_project_workflow.md` retain the example/background-preview record;
 - `WI_20260911_002_installable_desktop_packages.md` / `AUD_20260911_002_installable_desktop_packages.md` track the T3 packaging change;
-- `CHANGELOG.md` keeps desktop-packaging work under `Unreleased` until a new version is published.
+- `CHANGELOG.md` keeps desktop-packaging and October GUI changes under `Unreleased` until a new version is published.
+- PR documentation decisions are checked automatically for code/configuration changes; repository branch-protection settings control whether the status is mandatory for merging.
 
 ## Recovery rule
 
@@ -67,7 +79,7 @@ For multi-session work, record only what is needed to resume safely: last verifi
 
 ## Next safe action
 
-1. Update the user manual source/PDF with the installer-first workflow once the manual source is available.
-2. Optionally validate the Linux AppImage on a real Linux system.
-3. Select the next release version, update version/changelog files as needed, then create the matching `v*` tag.
-4. Record only checks actually performed; do not upgrade the packaging audit to complete until its remaining evidence is available.
+1. Confirm the new PR documentation-review workflow on a PR changing code and by editing the PR description; enable the **Governance check / governance** required status in GitHub branch protection/rulesets if unconditional blocking is desired.
+2. Perform targeted real-data GUI checks for A/B retained-trace overlays, dense heatmaps at 50% zoom and theme switching, recording actual platform/input evidence if performed.
+3. Update the user manual source/PDF with the installer-first workflow once the manual source is available; optionally validate Linux AppImage launch on Linux.
+4. Select the next release version, update version/changelog files as needed, then create the matching `v*` tag. Preserve pending qualifications until independently verified.
