@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, Chip, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
 import { LineChart } from '@mui/x-charts/LineChart'
-import type { ResultTable, ResultsBundle, RunResults, SavedTraceData, SourceAmplitudeUnits } from '../types'
+import type { ResultTable, ResultsBundle, RunResults, SavedTraceData, SourceAmplitudeUnits, SourceAmplitudeUnit } from '../types'
 import { getJcoAdapter } from '../services/jcoAdapter'
 import { sourceCoordinateLabel } from '../utils/resultUnits'
 import { HeatmapGrid } from './HeatmapGrid'
@@ -86,7 +86,7 @@ function HbPointInspector({ run, table, pointId, amplitudeUnit }: { run: RunResu
   </Stack></Paper>
 }
 
-function HarmonicBalanceRun({ run, unitControl, amplitudeUnit }: { run: RunResults; unitControl?: React.ReactNode; amplitudeUnit: SourceAmplitudeUnits }) {
+function HarmonicBalanceRun({ run, amplitudeUnit }: { run: RunResults; amplitudeUnit: SourceAmplitudeUnits }) {
   const table = run.nonlinear
   if (!table) return <Alert severity="info">This run does not contain a Harmonic Balance dataset.</Alert>
   const coordinates = sourceCoordinateColumns(table); const metrics = metricColumns(table); if (coordinates.length < 2 || !metrics.length) return <Alert severity="warning">The Harmonic Balance table does not contain enough source coordinates and scalar metrics.</Alert>
@@ -136,7 +136,7 @@ function HarmonicBalanceRun({ run, unitControl, amplitudeUnit }: { run: RunResul
       {view === 'response' && <><FormControl size="small" sx={{ minWidth: 210 }}><InputLabel>Source amplitude</InputLabel><Select label="Source amplitude" value={responseAmplitude} onChange={(event) => setResponseAmplitude(event.target.value)}>{amplitudes.map((column) => <MenuItem key={column} value={column}>{column}</MenuItem>)}</Select></FormControl>{coordinates.filter((column) => column !== responseAmplitude).map((column) => <FormControl key={column} size="small" sx={{ minWidth: 180 }}><InputLabel>{column} fixed</InputLabel><Select label={`${column} fixed`} value={responseFixed[column] ?? ''} onChange={(event) => setResponseFixed((current) => ({ ...current, [column]: Number(event.target.value) }))}>{columnValues(table, column).map((value) => <MenuItem key={value} value={value}>{formatNumber(value)}</MenuItem>)}</Select></FormControl>)}</>}
       <Stack direction="row" spacing={1} sx={{ ml: { md: 'auto' }, alignItems: 'center' }}>
         <FormControl size="small" sx={{ minWidth: 175 }}><InputLabel>Convergence</InputLabel><Select label="Convergence" value={convergence} onChange={(event) => setConvergence(event.target.value as ConvergenceFilter)}><MenuItem value="all">All points</MenuItem><MenuItem value="converged">Converged</MenuItem><MenuItem value="nonconverged">Non-converged</MenuItem></Select></FormControl>
-        {unitControl}
+        
       </Stack>
     </Stack></Paper>
     {view === 'landscape' && <Stack spacing={1.2}>{grid && grid.x.length > 0 && grid.y.length > 0 ? <Paper variant="outlined" sx={{ p: 1.7 }}><Typography variant="h6">{metric}</Typography><Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{x} × {y} · Harmonic Balance dataset{fixedSummary ? ` · fixed: ${fixedSummary}` : ''}.</Typography><PointSelectionControls mode={selectionMode} onModeChange={changeSelectionMode} pointIds={comparisonIds} onClear={() => setComparisonIds([])} /><Box sx={{ minHeight: 390, display: 'flex', alignItems: 'center' }}><HeatmapGrid xLabels={grid.x.map(formatNumber)} yLabels={grid.y.map(formatNumber)} values={grid.values} valueLabel={metric} xAxisLabel={x} yAxisLabel={y} amplitudeUnit={amplitudeUnit} formatValue={formatNumber} selectedCell={selectionMode === 'single' ? singleCell : null} selectedCells={selectionMode === 'compare' ? comparisonCells : undefined} onCellClick={(r, c) => { const id = grid.pointIds[r]?.[c]; if (id != null) selectPoint(id) }} /></Box></Paper> : <Alert severity="info">No stored Harmonic Balance points match the selected slice and convergence filter.</Alert>}{selectionMode === 'compare'
@@ -146,10 +146,11 @@ function HarmonicBalanceRun({ run, unitControl, amplitudeUnit }: { run: RunResul
   </Stack>
 }
 
-export function HarmonicBalanceResultsNormalized({ results, activeRunId, unitControl, amplitudeUnit = 'A' }: { results: ResultsBundle; activeRunId?: string | null; unitControl?: React.ReactNode; amplitudeUnit?: SourceAmplitudeUnits }) {
+export function HarmonicBalanceResultsNormalized({ results, activeRunId, unitByRun }: { results: ResultsBundle; activeRunId?: string | null; unitByRun?: Record<string, Record<number, SourceAmplitudeUnit>> }) {
   const [runId, setRunId] = useState(results.runs[0]?.id ?? '')
   useEffect(() => { if (!results.runs.some((run) => run.id === runId)) setRunId(results.runs[0]?.id ?? '') }, [results, runId])
   const run = results.runs.find((item) => item.id === runId) ?? results.runs[0]
+  const amplitudeUnit: SourceAmplitudeUnits = unitByRun?.[run.id] ?? 'dBm'
   if (!run) return <Alert severity="info">The project contains no indexed runs yet.</Alert>
-  return <Stack spacing={1.3}><Paper variant="outlined" sx={{ p: 1.2 }}><Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}><FormControl size="small" sx={{ minWidth: 290 }}><InputLabel>Run</InputLabel><Select label="Run" value={run.id} onChange={(event) => setRunId(event.target.value)}>{results.runs.map((item) => <MenuItem key={item.id} value={item.id}>{item.id}{item.id === activeRunId ? ' · running' : ''}</MenuItem>)}</Select></FormControl><Chip size="small" color="success" variant="outlined" label="Stored JCO data" />{run.savedNonlinear && <Chip size="small" variant="outlined" label={`${run.savedNonlinear.points.length} retained-data points`} />}</Stack></Paper><HarmonicBalanceRun run={run} unitControl={unitControl} amplitudeUnit={amplitudeUnit} /></Stack>
+  return <Stack spacing={1.3}><Paper variant="outlined" sx={{ p: 1.2 }}><Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}><FormControl size="small" sx={{ minWidth: 290 }}><InputLabel>Run</InputLabel><Select label="Run" value={run.id} onChange={(event) => setRunId(event.target.value)}>{results.runs.map((item) => <MenuItem key={item.id} value={item.id}>{item.id}{item.id === activeRunId ? ' · running' : ''}</MenuItem>)}</Select></FormControl><Chip size="small" color="success" variant="outlined" label="Stored JCO data" />{run.savedNonlinear && <Chip size="small" variant="outlined" label={`${run.savedNonlinear.points.length} retained-data points`} />}</Stack></Paper><HarmonicBalanceRun run={run} amplitudeUnit={amplitudeUnit} /></Stack>
 }
