@@ -2,10 +2,14 @@ name: Governance check
 
 on:
   pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
   push:
     branches:
       - main
       - migration/unified-jco-gui
+
+permissions:
+  contents: read
 
 jobs:
   governance:
@@ -14,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -22,3 +28,10 @@ jobs:
 
       - name: Check governance structure
         run: python gui/scripts/governance_check.py
+
+      - name: Test PR documentation checker
+        run: python -m unittest discover -s gui/scripts -p 'test_pr_documentation_check.py'
+
+      - name: Verify PR documentation and governance decisions
+        if: github.event_name == 'pull_request'
+        run: python gui/scripts/pr_documentation_check.py
