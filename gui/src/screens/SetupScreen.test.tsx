@@ -127,6 +127,7 @@ describe('Device parameter mode editor regression', () => {
     useAppStore.setState({
       project: {
         ...structuredClone(originalProject),
+        circuitCode: 'function create_user_circuit(device_params_set)\nCg = device_params_set[:Cg]\nend',
         parameters: [{
           id: 'circuit-Cg', name: 'Cg', mode: 'Fixed',
           value: '250', unit: 'fF', role: 'Fixed model', circuitStatus: 'configured',
