@@ -10,7 +10,7 @@
 
 ## Scope
 
-Review the conservative post-run cleanup, per-run display metadata and Open-equivalent `.jco` drag/drop. The default deletion policy is deliberately conservative; any uncertain output is retained.
+Review the conservative post-run cleanup, per-run display metadata and Open-equivalent `.jco` drag/drop. A related parameter editor usability regression was addressed while reviewing the file-drop change: List values now use an explicitly labeled editable field instead of a disabled primary cell. The default deletion policy is deliberately conservative; any uncertain output is retained.
 
 ## Intended safeguards
 
@@ -21,7 +21,7 @@ Review the conservative post-run cleanup, per-run display metadata and Open-equi
 
 ## Automated evidence
 
-Targeted unit tests are committed under `gui/desktop/empty-run-cleanup.node-test.cjs` and `gui/src/components/HarmonicBalanceResultsWithUnits.test.ts`. GitHub Actions CI status will be the authoritative evidence for whether these tests and the TypeScript build actually passed.
+Targeted unit tests are committed under `gui/desktop/empty-run-cleanup.node-test.cjs`, `gui/src/components/HarmonicBalanceResultsWithUnits.test.ts`, and interactive parameter mode tests in `gui/src/screens/SetupScreen.test.tsx`. GitHub Actions CI status will be the authoritative evidence for whether these tests and the TypeScript build actually passed.
 
 ## Limitations
 
