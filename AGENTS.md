@@ -27,14 +27,27 @@ The agent does not need to reread every governance document for every routine ch
 
 If these layers conflict, preserve the conflict explicitly and fix the stale record when practical. Do not let stale governance metadata block otherwise safe development.
 
-## Governance is advisory, not a merge gate
+## Required review before a code-changing PR
 
-Governance documents provide context, evidence and warnings. They do **not** independently block commits, pull requests or merges.
+Before creating or completing a PR that changes code or configuration, review five documentation categories:
+
+1. **Changelog:** update `CHANGELOG.md` for user-visible completed behavior, or explain why not.
+2. **ADR:** record consequential architectural/scientific/persistence decisions; routine GUI fixes do not need an ADR.
+3. **Audit / work item:** record verification and acceptance criteria when they will aid recovery (especially T2/T3), or explain why the diff/tests suffice.
+4. **Repository status:** refresh `governance/repository-status.md` when the integrated baseline, risks or next actions change.
+5. **Agent instructions:** update `AGENTS.md` / `governance/agent-handbook.md` when the development contract changes.
+
+Complete the checked **Documentation & governance** section from `.github/PULL_REQUEST_TEMPLATE.md`:
+each category must say either "updated" with a path changed in the PR, or "not needed" with a meaningful justification. `.github/workflows/governance-check.yml` verifies the declaration, including when the PR body is edited. Documentation-only PRs do not require this checklist. Review **before merging**, even if the maintainer asks for a quick merge; the checklist itself never mandates unnecessary ADRs/audits.
+
+## Governance is proportionate, not an audit merge gate
+
+Governance documents provide context, evidence and warnings. They do **not** independently require new ADRs, audits or work items. The automated PR review checks whether documentation was considered; it is not a certification of correctness. Whether a failing CI check blocks merge depends on repository protection settings.
 
 - `qualified` means some verification is still pending; it does not mean “do not merge”.
 - Missing manual/system validation should normally be recorded as follow-up work.
 - When the maintainer explicitly instructs an agent to merge or proceed, the agent should do so and retain any unresolved limitations in the audit/status record.
-- Do not invent procedural blockers that are not enforced by GitHub, CI, or an explicit maintainer decision.
+- Do not invent procedural blockers beyond the declared PR review, GitHub/CI and explicit maintainer decisions.
 
 The only situations that require an explicit human decision before claiming the change safe are material scientific-meaning changes, known data-corruption/incompatibility risks, or destructive/irreversible actions. Even there, the governance system records the risk; it is not an automatic repository lock.
 

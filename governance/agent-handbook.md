@@ -20,7 +20,9 @@ This handbook turns `AGENTS.md` into a lightweight development workflow. Use onl
 - If an environment-dependent check cannot run, record it as a limitation or follow-up instead of stopping routine integration.
 
 ### 4. Reconcile only what matters
-- Update changelog/status/audit/ADR only when the change makes those records materially stale or when the information will help future recovery.
+- Review the five documentation categories listed in `AGENTS.md`: changelog, ADR, audit/work item, repository status, and agent instructions.
+- Update them only when the change makes them materially stale or the information aids future recovery; never invent validation evidence.
+- Before a code-changing PR is ready, complete every checked decision in `.github/PULL_REQUEST_TEMPLATE.md`. Use "updated — changed file" or "not needed — reason". The automatic Governance check validates the answers.
 - Do not create paperwork merely to satisfy process.
 
 ### 5. Hand off

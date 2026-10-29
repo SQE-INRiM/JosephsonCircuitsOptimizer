@@ -46,3 +46,9 @@ The historical `governance/baseline` branch remains preserved as provenance and 
 ## Supersession
 
 A future ADR may move shared templates elsewhere, but the repository must remain self-contained enough for an agent/maintainer to understand the active rules and project state from a checkout alone.
+
+## Amendment — 2026-10-29: automatic PR documentation review
+
+To address several October GUI PRs that merged with green structural checks but no changelog/status reconciliation, the lightweight consistency check now verifies **PR documentation decisions**, not just file existence. Code/configuration PRs declare one outcome for changelog, ADR, audit/work item, repository status and agent instructions. An explicit "not needed" with rationale remains valid; nothing requires an ADR or audit for every bug fix. Documentation-only PRs are exempt.
+
+A GitHub Actions check fails an incomplete or contradictory declaration, and reruns when the PR description changes. This is a traceability check, not a scientific audit or a change to the existing T0–T3 risk policy. Whether the CI status is a required merge check remains a separate branch-protection configuration.

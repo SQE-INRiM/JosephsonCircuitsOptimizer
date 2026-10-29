@@ -50,6 +50,10 @@ Audits must not create procedural deadlocks.
 - If the maintainer explicitly instructs an agent to merge or proceed, retain unresolved findings and perform the requested integration unless an external repository protection or safety constraint prevents it.
 - Only material known risks such as data corruption, destructive incompatibility, or an unvalidated scientific-meaning change require explicit acknowledgement before representing the result as safe or scientifically validated.
 
+## PR documentation review
+
+The GitHub Governance check verifies that each code-changing PR explicitly considers whether an audit/work item is useful, alongside other documentation. "Not needed" with a concrete explanation is valid. A green checklist only verifies disclosure: it is **not** a substitute for scoped audit evidence, manual testing or scientific validation. Branch protection (if configured) determines whether a failing status prevents merging.
+
 ## Scientific audit rule
 
 Review scientific meaning separately from visual behavior. In particular, inspect as applicable:
