@@ -30,6 +30,8 @@ import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined'
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded'
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
+import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded'
+import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
@@ -70,8 +72,27 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [juliaPath, setJuliaPath] = useState('julia')
   const [threads, setThreads] = useState(1)
+  const [zoom, setZoom] = useState(100)
   const desktop = isDesktopBridgeAvailable()
   const startupInitialized = useRef(false)
+
+  useEffect(() => {
+    const adapter = getJcoAdapter()
+    if (!adapter?.getZoom) return
+    let active = true
+    void adapter.getZoom().then((percent) => { if (active) setZoom(percent) }).catch(() => {})
+    const unsubscribe = adapter.onZoomChanged?.((percent) => { if (active) setZoom(percent) })
+    return () => { active = false; unsubscribe?.() }
+  }, [])
+
+  const applyZoom = async (value: number) => {
+    try {
+      const next = await getJcoAdapter()?.setZoom?.(value)
+      if (next != null) setZoom(next)
+    } catch (error) {
+      setNotice('Unable to change zoom: ' + String(error))
+    }
+  }
 
   useEffect(() => {
     const adapter = getJcoAdapter()
@@ -216,7 +237,12 @@ export default function App() {
           </Box>
           <Chip size="small" label={desktop ? 'Desktop bridge' : 'Browser preview'} color={desktop ? 'success' : 'warning'} variant="outlined" sx={{ color: desktop ? '#a9dec9' : '#f1c77b', borderColor: desktop ? '#4c8a73' : '#9b753a' }} />
           <Chip size="small" label="Schema v1" sx={{ backgroundColor: 'rgba(255,255,255,.08)', color: '#d9e1e8' }} />
-          <Tooltip title="Save project">
+          {desktop && <Stack direction="row" spacing={0.2} sx={{ alignItems: 'center', border: '1px solid rgba(255,255,255,.2)', borderRadius: 2, px: 0.3 }}>
+              <Tooltip title="Zoom out · Ctrl+−"><span><IconButton color="inherit" size="small" disabled={zoom <= 70} onClick={() => void applyZoom(zoom - 10)} aria-label="Zoom out"><ZoomOutRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
+              <Tooltip title="Reset zoom · Ctrl+0"><Button color="inherit" size="small" onClick={() => void applyZoom(100)} aria-label="Reset zoom" sx={{ minWidth: 50, color: '#fff' }}>{zoom}%</Button></Tooltip>
+              <Tooltip title="Zoom in · Ctrl++"><span><IconButton color="inherit" size="small" disabled={zoom >= 150} onClick={() => void applyZoom(zoom + 10)} aria-label="Zoom in"><ZoomInRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
+            </Stack>}
+           <Tooltip title="Save project">
             <span>
               <IconButton color="inherit" disabled={!dirty || busy} onClick={() => save(false)}>
                 <SaveRoundedIcon />
