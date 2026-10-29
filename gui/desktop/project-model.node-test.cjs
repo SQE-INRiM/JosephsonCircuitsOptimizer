@@ -115,3 +115,24 @@ test('deletes optional Julia hook files when their editor contents are cleared',
     fs.rmSync(workspace, { recursive: true, force: true })
   }
 })
+
+test('AC source editing history is not persisted in the .jco metadata', () => {
+  const workspace = makeWorkspace()
+  try {
+    const project = loadProjectModel(workspace, null, { name: 'Transient AC frequency test' })
+    project.sources[0].acFrequency = { mode: 'List', values: '7, 8' }
+    saveProjectModel(workspace, project)
+
+    const drives = JSON.parse(fs.readFileSync(path.join(workspace, 'user_inputs', 'drive_physical_quantities.json'), 'utf8'))
+    assert.equal(drives.source_1_frequency, 0, 'DC solver frequency must remain zero')
+
+    const metadata = JSON.parse(fs.readFileSync(path.join(workspace, 'jco_gui_metadata.json'), 'utf8'))
+    assert.equal(Object.hasOwn(metadata.sourceDisplay.source_1, 'acFrequency'), false)
+
+    const reloaded = loadProjectModel(workspace, null, { name: 'Transient AC frequency test' })
+    assert.equal(reloaded.sources[0].acFrequency, undefined)
+    assert.deepEqual(reloaded.sources[0].frequency, { mode: 'Fixed', value: '0' })
+  } finally {
+    fs.rmSync(workspace, { recursive: true, force: true })
+  }
+})

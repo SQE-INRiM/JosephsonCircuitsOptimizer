@@ -42,6 +42,8 @@ export interface SourceSpec {
   port: number
   isDc: boolean
   frequency: SourceValueSpec
+  /** Transient AC frequency editing history; not persisted in .jco projects. */
+  acFrequency?: SourceValueSpec
   linearAmplitude: SourceValueSpec
   nonlinearAmplitude: SourceValueSpec
   linearAmplitudeUnit?: SourceAmplitudeUnit

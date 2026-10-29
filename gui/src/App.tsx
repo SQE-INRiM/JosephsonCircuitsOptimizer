@@ -197,7 +197,7 @@ export default function App() {
   }
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', minHeight: 760, overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', height: '100vh', minHeight: 0, overflow: 'hidden' }}>
       <AppBar position="fixed" elevation={0} sx={{ zIndex: 1300, backgroundColor: '#101b2d', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
         <Toolbar sx={{ minHeight: '66px !important', gap: 2 }}>
           <Avatar variant="rounded" sx={{ width: 38, height: 38, background: 'linear-gradient(135deg,#d9a34b,#9c6723)', color: '#fff' }}>

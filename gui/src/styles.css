@@ -1,5 +1,6 @@
 * { box-sizing: border-box; }
-html, body, #root { margin: 0; min-width: 1180px; min-height: 100%; }
+/* The main content owns vertical scrolling; never let the document add a second scrollbar. */
+html, body, #root { margin: 0; min-width: 1180px; height: 100%; overflow: hidden; }
 body { background: #f4f6f8; }
 button, input, textarea { font: inherit; }
 
