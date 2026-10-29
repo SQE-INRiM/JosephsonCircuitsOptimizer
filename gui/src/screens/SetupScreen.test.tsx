@@ -6,7 +6,7 @@ import { SetupScreen } from './SetupScreen'
 
 const originalProject = structuredClone(useAppStore.getState().project)
 
-describe('Setup source type dropdown', () => {
+describe('Setup source type toggle', () => {
   beforeEach(() => {
     const acSource = structuredClone(originalProject.sources.find((source) => !source.isDc)!)
     useAppStore.setState({
@@ -21,16 +21,16 @@ describe('Setup source type dropdown', () => {
 
   it('switches between AC and DC while keeping the source frequency semantics', () => {
     render(<SetupScreen />)
-    expect(screen.getByRole('combobox', { name: 'Source type' }).textContent).toContain('AC')
+    expect(screen.getByRole('button', { name: 'AC' }).getAttribute('aria-pressed')).toBe('true')
 
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source type' }))
-    fireEvent.click(screen.getByRole('option', { name: 'DC' }))
+    fireEvent.click(screen.getByRole('button', { name: 'DC' }))
+    expect(screen.getByRole('button', { name: 'DC' }).getAttribute('aria-pressed')).toBe('true')
 
     expect(useAppStore.getState().project.sources[0].isDc).toBe(true)
     expect(useAppStore.getState().project.sources[0].frequency).toEqual({ mode: 'Fixed', value: '0' })
 
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source type' }))
-    fireEvent.click(screen.getByRole('option', { name: 'AC' }))
+    fireEvent.click(screen.getByRole('button', { name: 'AC' }))
+    expect(screen.getByRole('button', { name: 'AC' }).getAttribute('aria-pressed')).toBe('true')
 
     expect(useAppStore.getState().project.sources[0].isDc).toBe(false)
     expect(useAppStore.getState().project.sources[0].frequency).toEqual({ mode: 'Fixed', value: '1' })
@@ -43,6 +43,12 @@ describe('Setup source type dropdown', () => {
     }))
 
     render(<SetupScreen />)
-    expect(screen.getByRole('combobox', { name: 'Source type' }).textContent).toContain('DC')
+    expect(screen.getByRole('button', { name: 'DC' }).getAttribute('aria-pressed')).toBe('true')
+  })
+  it('does not deselect the active source type', () => {
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'AC' }))
+    expect(useAppStore.getState().project.sources[0].isDc).toBe(false)
+    expect(screen.getByRole('button', { name: 'AC' }).getAttribute('aria-pressed')).toBe('true')
   })
 })
