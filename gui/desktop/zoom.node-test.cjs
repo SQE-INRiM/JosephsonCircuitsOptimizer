@@ -1,0 +1,23 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const { normalizeZoom, stepZoom, zoomShortcut } = require('./zoom.cjs')
+
+test('zoom is clamped and snapped to 10% steps', () => {
+  assert.equal(normalizeZoom(undefined), 100)
+  assert.equal(normalizeZoom('110'), 110)
+  assert.equal(normalizeZoom(199), 150)
+  assert.equal(normalizeZoom(32), 70)
+  assert.equal(stepZoom(100, 1), 110)
+  assert.equal(stepZoom(70, -1), 70)
+  assert.equal(stepZoom(150, 1), 150)
+})
+test('Zoom keyboard shortcuts accept control and keypad variants', () => {
+  const keyDown = (key, code = 'Unidentified') => ({ type: 'keyDown', control: true, key, code })
+  assert.deepEqual(zoomShortcut(keyDown('+')), { type: 'step', direction: 1 })
+  assert.deepEqual(zoomShortcut(keyDown('=')), { type: 'step', direction: 1 })
+  assert.deepEqual(zoomShortcut(keyDown('Add', 'NumpadAdd')), { type: 'step', direction: 1 })
+  assert.deepEqual(zoomShortcut(keyDown('-')), { type: 'step', direction: -1 })
+  assert.deepEqual(zoomShortcut(keyDown('0')), { type: 'reset' })
+  assert.equal(zoomShortcut({ ...keyDown('+'), control: false }), null)
+  assert.equal(zoomShortcut({ ...keyDown('+'), type: 'keyUp' }), null)
+})
