@@ -109,7 +109,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
       applyRunEvent(event)
       if (event.type === 'run-started') setCancelling(false)
       if (event.type === 'run-finished') setCancelling(false)
-      if (event.type === 'run-finished' && event.outcome === 'completed') {
+      if (event.type === 'run-finished') {
         try { setResults(await adapter.readResults()) } catch (error) { setNotice(`Run completed, but results could not be indexed: ${String(error)}`) }
       }
     })
