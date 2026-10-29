@@ -69,7 +69,10 @@ end
 function setup_snapshot(run_path)
     root = joinpath(run_path, "inputs_snapshot")
     isdir(root) || return nothing
+    gui_metadata = read_json(joinpath(root, "jco_gui_metadata.json"))
+    source_display = gui_metadata isa AbstractDict ? get(gui_metadata, "sourceDisplay", nothing) : nothing
     return Dict(
+        "sourceDisplay" => source_display,
         "parameters" => read_json(joinpath(root, "device_parameters_space.json")),
         "sources" => read_json(joinpath(root, "drive_physical_quantities.json")),
         "simulation" => read_json(joinpath(root, "simulation_config.json")),
