@@ -11,7 +11,7 @@ html[data-jco-theme='dark'] {
   color-scheme: dark;
 }
 /* The main content owns vertical scrolling; never let the document add a second scrollbar. */
-html, body, #root { margin: 0; min-width: 1180px; height: 100%; overflow: hidden; }
+html, body, #root { margin: 0; min-width: 0; height: 100%; overflow: hidden; }
 body { background: var(--jco-app-background); }
 button, input, textarea { font: inherit; }
 
