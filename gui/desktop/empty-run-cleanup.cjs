@@ -47,6 +47,14 @@ function onlyBookkeeping(runPath) {
       } else if (entry.isFile()) {
         if (rel.startsWith('inputs_snapshot/')) continue
         if (NO_RESULT_FILES.has(rel)) continue
+        if (rel === 'simulation_info/optimization_persistence.json') {
+          // The optimizer can write an explicit "zero evaluations" diagnostic
+          // without producing any scientific data. Any actual evaluation,
+          // unknown or corrupt diagnostic conservatively preserves the run.
+          const diagnostic = JSON.parse(fs.readFileSync(full, 'utf8'))
+          if (diagnostic.total_cost_evaluations === 0 && diagnostic.bo_evaluations === 0 && diagnostic.hdf5_written === false) continue
+          return false
+        }
         if (rel.startsWith('simulation_info/') && /\.(?:log|txt)$/i.test(rel)) continue
         // Any other file can be numerical output; preserve the whole run.
         return false
