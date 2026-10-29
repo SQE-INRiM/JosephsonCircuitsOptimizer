@@ -8,6 +8,7 @@ This changelog records completed user-relevant and development-process changes. 
 - Remove a newly finished run automatically only if its output directory contains no known or potential numerical results, user-saved data or optimizer history; preserve partial/uncertain runs and repair the latest-run pointer.
 - Display HB source amplitudes using the **per-source units from each run's original input** (A or dBm) without a global Results toggle, retaining dBm/50 Ω as a backward-compatible display convention for older runs without snapshots.
 - Open a single dragged-and-dropped `.jco` file from any GUI screen using the normal validated project loader, with warnings for unsaved changes and active-run protection.
+- Make the Device parameter space List values editable in the primary field after a Fixed/Range/List mode change, with explicit Start/Stop/Step labels and regression coverage.
 
 ### October 2026 — GUI usability, results and display
 - Replace the Setup AC/DC source selector with exclusive buttons and retain the previous AC frequency only during GUI editing; export DC frequency as zero without persisting temporary AC history (PR #15).
