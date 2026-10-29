@@ -29,6 +29,48 @@ afterEach(() => {
 })
 
 describe('Desktop .jco file-drop and parameter editing integration', () => {
+  it('keeps the dropped project when startup completes late', async () => {
+    let resolveNewProject!: (project: ProjectModel) => void
+    const pendingStartup = new Promise<ProjectModel>((resolve) => { resolveNewProject = resolve })
+    const model = projectFromArchive()
+    const openDroppedProject = vi.fn(async () => model)
+    window.jco = {
+      onRunEvent: () => () => {},
+      setupRuntime: async () => ({ ok: true, message: 'ready' }),
+      newProject: () => pendingStartup,
+      listExamples: async () => [],
+      openDroppedProject,
+      readResults: async () => ({ schemaVersion: 'jco.results/4', workspace: '', runs: [] }),
+    } as unknown as JcoAdapter
+
+    render(<App />)
+    const file = new File(['example'], 'dropped.jco')
+    const transfer = { types: ['Files'], files: [file], dropEffect: 'copy' }
+    fireEvent.dragEnter(window, { dataTransfer: transfer })
+    fireEvent.drop(window, { dataTransfer: transfer })
+    expect(openDroppedProject).not.toHaveBeenCalled()
+    resolveNewProject(structuredClone(baseline))
+    await waitFor(() => expect(useAppStore.getState().project.name).toBe('Dropped JTWPA'))
+    expect(openDroppedProject).toHaveBeenCalledTimes(1)
+    useAppStore.getState().updateParameter('Cg', { mode: 'Fixed' })
+    useAppStore.getState().updateParameter('Cg', { value: '250' })
+    expect(useAppStore.getState().project.parameters[0]).toMatchObject({ mode: 'Fixed', value: '250' })
+  })
+
+  it('clears the drag overlay even if the drop event omits file types', async () => {
+    window.jco = {
+      onRunEvent: () => () => {},
+      setupRuntime: async () => ({ ok: true, message: 'ready' }),
+      newProject: async () => structuredClone(baseline),
+      listExamples: async () => [],
+    } as unknown as JcoAdapter
+    render(<App />)
+    fireEvent.dragEnter(window, { dataTransfer: { types: ['Files'], files: [] } })
+    expect(screen.getByRole('status', { name: 'Drop .jco project' })).toBeTruthy()
+    fireEvent.drop(window, { dataTransfer: { types: [], files: [] } })
+    expect(screen.queryByRole('status', { name: 'Drop .jco project' })).toBeNull()
+  })
+
   it('can edit Range, Fixed and List after dropping a project', async () => {
     const model = projectFromArchive()
     const openDroppedProject = vi.fn(async (_file: File) => model)
