@@ -340,14 +340,18 @@ function ModelStep() {
                         onChange={(_, nextType) => {
                           if (nextType !== 'AC' && nextType !== 'DC') return
                           const isDc = nextType === 'DC'
-                          updateSource(source.id, {
-                            isDc,
-                            frequency: isDc
-                              ? { mode: 'Fixed', value: '0' }
-                              : source.frequency.mode === 'Fixed' && Number(source.frequency.value) === 0
-                                ? { mode: 'Fixed', value: '1' }
-                                : source.frequency,
-                          })
+                          if (isDc === source.isDc) return
+                          updateSource(source.id, isDc
+                            ? {
+                                isDc: true,
+                                // Keep the complete AC specification, including lists and ranges.
+                                acFrequency: source.frequency,
+                                frequency: { mode: 'Fixed', value: '0' },
+                              }
+                            : {
+                                isDc: false,
+                                frequency: source.acFrequency ?? { mode: 'Fixed', value: '1' },
+                              })
                         }}
                         sx={{ '& .MuiToggleButton-root': { minWidth: 58, fontWeight: 700, py: 0.8 } }}
                       >
