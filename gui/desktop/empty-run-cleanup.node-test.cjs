@@ -14,7 +14,7 @@ function fixture() {
   const run = path.join(outputs, RUN_A)
   fs.mkdirSync(path.join(run, 'simulation_info'), { recursive: true })
   fs.mkdirSync(path.join(run, 'inputs_snapshot'))
-  fs.writeFileSync(path.join(run, 'simulation_info', 'run_config.json'), JSON.stringify({ results: { metric_history: { metrics: [] } } }))
+  fs.writeFileSync(path.join(run, 'simulation_info', 'run_config.json'), JSON.stringify({ results: { best_metric: null, best_device_parameters: null, metric_history: { metrics: [], params_vecs: [] } } }))
   fs.writeFileSync(path.join(run, 'simulation_info', 'status.json'), JSON.stringify({ status: 'failed' }))
   fs.writeFileSync(path.join(run, 'inputs_snapshot', 'device_parameters_space.json'), '{"N":100}')
   fs.writeFileSync(path.join(run, 'inputs_snapshot', 'jco_gui_metadata.json'), '{"sourceDisplay":{"source_1":{"nonlinearAmplitudeUnit":"dBm"}}}')
@@ -52,6 +52,15 @@ test('preserve run when optimizer bookkeeping contains recorded metric history',
   t.after(() => fs.rmSync(f.workspace, { recursive: true, force: true }))
   fs.writeFileSync(path.join(f.run, 'simulation_info', 'run_config.json'),
     JSON.stringify({ results: { metric_history: { metrics: [-11] } } }))
+  assert.equal(isProvablyEmptyRun(f.workspace, RUN_A), false)
+})
+
+test('preserve numerical best metrics even without HDF5 arrays', (t) => {
+  const f = fixture()
+  t.after(() => fs.rmSync(f.workspace, { recursive: true, force: true }))
+  fs.writeFileSync(path.join(f.run, 'simulation_info', 'run_config.json'),
+    JSON.stringify({ results: { best_metric: -12.5, best_device_parameters: null,
+      metric_history: { metrics: [] } } }))
   assert.equal(isProvablyEmptyRun(f.workspace, RUN_A), false)
 })
 
