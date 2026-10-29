@@ -42,6 +42,8 @@ export interface SourceSpec {
   port: number
   isDc: boolean
   frequency: SourceValueSpec
+  /** Last AC frequency (Fixed, Range or List), retained while the source is DC. */
+  acFrequency?: SourceValueSpec
   linearAmplitude: SourceValueSpec
   nonlinearAmplitude: SourceValueSpec
   linearAmplitudeUnit?: SourceAmplitudeUnit
