@@ -498,7 +498,10 @@ function adjustWindowZoom(direction) {
 }
 
 function createWindow() {
+  const iconName = process.platform === 'win32' ? 'icon.ico' : 'icon.png'
+  const iconRoot = app.isPackaged ? path.join(process.resourcesPath, 'icons') : path.join(__dirname, '..', 'build')
   mainWindow = new BrowserWindow({
+    icon: path.join(iconRoot, iconName),
     width: 1480,
     height: 940,
     minWidth: 1120,
@@ -519,6 +522,8 @@ function createWindow() {
   if (devUrl) mainWindow.loadURL(devUrl)
   else mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
 }
+
+if (process.platform === 'win32') app.setAppUserModelId('it.inrim.jco.gui')
 
 app.whenReady().then(() => {
   ipcMain.handle('jco:new', async () => {
