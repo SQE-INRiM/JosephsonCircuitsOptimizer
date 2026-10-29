@@ -11,6 +11,7 @@ const { loadProjectModel, saveProjectModel } = require('./project-model.cjs')
 const { modeForStages } = require('./run-mode.cjs')
 const { createRunId, outcomeForClose, requireDurableProject, terminateProcessTree } = require('./run-process.cjs')
 const { assertProcessIdle, captureRunSession } = require('./run-session.cjs')
+const { normalizeZoom, stepZoom, zoomShortcut } = require('./zoom.cjs')
 
 let mainWindow
 let session = null
@@ -446,6 +447,24 @@ async function deleteRun(requestedRunId) {
   return runJuliaJson('results.jl')
 }
 
+function setWindowZoom(value) {
+  const zoomPercent = normalizeZoom(value)
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.setZoomFactor(zoomPercent / 100)
+    mainWindow.webContents.send('jco:zoom-changed', zoomPercent)
+  }
+  // Desktop preference independent of the .jco project model.
+  setSettings({ zoomPercent })
+  return zoomPercent
+}
+
+function adjustWindowZoom(direction) {
+  const current = mainWindow && !mainWindow.isDestroyed()
+    ? Math.round(mainWindow.webContents.getZoomFactor() * 100)
+    : getSettings().zoomPercent ?? 100
+  return setWindowZoom(stepZoom(current, direction))
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1480,
@@ -456,6 +475,14 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: false },
   })
   mainWindow.removeMenu()
+  mainWindow.webContents.setZoomFactor(normalizeZoom(getSettings().zoomPercent ?? 100) / 100)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    const shortcut = zoomShortcut(input)
+    if (!shortcut) return
+    event.preventDefault()
+    if (shortcut.type === 'reset') setWindowZoom(100)
+    else adjustWindowZoom(shortcut.direction)
+  })
   const devUrl = process.env.JCO_DEV_SERVER_URL
   if (devUrl) mainWindow.loadURL(devUrl)
   else mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
@@ -494,6 +521,13 @@ app.whenReady().then(() => {
   ipcMain.handle('jco:read-results', () => runJuliaJson('results.jl'))
   ipcMain.handle('jco:read-saved-trace', (_event, request) => readSavedTrace(request))
   ipcMain.handle('jco:export-data', (_event, request) => exportData(request))
+  ipcMain.handle('jco:get-zoom', () => normalizeZoom(getSettings().zoomPercent ?? 100))
+  ipcMain.handle('jco:set-zoom', (_event, value) => setWindowZoom(value))
+  ipcMain.on('jco:zoom-step', (event, direction) => {
+    if (mainWindow && event.sender === mainWindow.webContents && Number.isFinite(Number(direction))) {
+      adjustWindowZoom(Number(direction))
+    }
+  })
   ipcMain.handle('jco:get-settings', getSettings)
   ipcMain.handle('jco:set-settings', (_event, patch) => setSettings(patch))
   ipcMain.handle('jco:setup-runtime', ensureRuntimePrepared)
