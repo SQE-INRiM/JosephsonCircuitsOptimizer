@@ -154,8 +154,9 @@ function openProjectPath(filePath) {
   const workspace = createSessionWorkspace()
   try {
     const manifest = unpackProject(projectPath, workspace)
+    const model = loadProjectModel(workspace, projectPath, manifest)
     session = { workspace, projectPath, manifest }
-    return currentModel()
+    return model
   } catch (error) {
     fs.rmSync(workspace, { recursive: true, force: true })
     throw error
