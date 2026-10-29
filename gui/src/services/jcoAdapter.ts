@@ -68,6 +68,7 @@ export type RunEvent =
 export interface JcoAdapter {
   newProject(): Promise<ProjectModel>
   openProject(): Promise<ProjectModel | null>
+  openDroppedProject?(file: File): Promise<ProjectModel | null>
   importWorkspace(): Promise<ProjectModel | null>
   listExamples(): Promise<ExampleDescriptor[]>
   openExample(fileName: string): Promise<ProjectModel>
