@@ -80,3 +80,44 @@ describe('Setup source type toggle', () => {
     expect(screen.getByRole('button', { name: 'AC' }).getAttribute('aria-pressed')).toBe('true')
   })
 })
+
+describe('Linear-stage harmonic and intermodulation guidance', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: structuredClone(originalProject),
+      setupStep: 1,
+      dirty: false,
+    })
+  })
+
+  afterEach(() => cleanup())
+
+  it('warns when the shared intermodulation order is unlimited', () => {
+    render(<SetupScreen />)
+    expect(screen.getByText(/For first-order linear simulations, set both linear harmonic counts and Max intermodulation order to 1/)).toBeTruthy()
+    expect(screen.getByText(/changing it also affects the nonlinear HB stage/)).toBeTruthy()
+  })
+
+  it('shows first-order guidance when all three truncations are 1', () => {
+    useAppStore.getState().updateComputation({ maxIntermodOrder: '1' })
+    render(<SetupScreen />)
+
+    expect(screen.getByText(/Linear-stage harmonic and intermodulation limits are set to first order/)).toBeTruthy()
+    expect(screen.queryByText(/For first-order linear simulations, set both linear harmonic counts/)).toBeNull()
+  })
+
+  it.each([
+    { linearStrongToneHarmonics: 2 },
+    { linearModulationHarmonics: 2 },
+  ])('warns when a linear harmonic count is increased (%o)', (patch) => {
+    useAppStore.getState().updateComputation({ maxIntermodOrder: '1', ...patch })
+    render(<SetupScreen />)
+    expect(screen.getByText(/For first-order linear simulations, set both linear harmonic counts/)).toBeTruthy()
+  })
+
+  it('updates the guidance when the shared intermodulation order changes', () => {
+    render(<SetupScreen />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Max intermodulation order' }), { target: { value: '1' } })
+    expect(screen.getByText(/Linear-stage harmonic and intermodulation limits are set to first order/)).toBeTruthy()
+  })
+})
