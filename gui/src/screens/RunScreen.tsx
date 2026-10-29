@@ -177,9 +177,9 @@ export function RunScreen({ desktop, cancelling, onRunRemaining, onRunStage, onS
         const fallbackEta = activeEta?.stageId === stage.id ? activeEta.seconds : null
         const etaSeconds = authoritativeEta ?? fallbackEta
         return <Stack key={stage.id} direction="row" sx={{ flex: 1, alignItems: 'center' }} spacing={1.2}>
-          <Paper variant="outlined" sx={{ flex: 1, minHeight: 218, p: 2.1, borderWidth: stage.status === 'running' ? 2 : 1, borderColor: stage.status === 'running' ? 'secondary.main' : 'divider', backgroundColor: stage.status === 'running' ? '#fffbf4' : '#fff' }}>
+          <Paper variant="outlined" sx={{ flex: 1, minHeight: 218, p: 2.1, borderWidth: stage.status === 'running' ? 2 : 1, borderColor: stage.status === 'running' ? 'secondary.main' : 'divider', backgroundColor: stage.status === 'running' ? 'action.hover' : 'background.paper' }}>
             <Stack spacing={1.5} sx={{ height: '100%' }}>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Box sx={{ width: 40, height: 40, borderRadius: 2, display: 'grid', placeItems: 'center', backgroundColor: stage.status === 'completed' ? '#e5f4ee' : stage.status === 'running' ? '#fff0d7' : '#edf2f6', color: stage.status === 'completed' ? 'success.main' : stage.status === 'running' ? 'secondary.dark' : 'primary.main', fontWeight: 800 }}>{stage.shortLabel}</Box><StatusChip status={stage.status} /></Stack>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Box sx={{ width: 40, height: 40, borderRadius: 2, display: 'grid', placeItems: 'center', backgroundColor: stage.status === 'completed' ? 'action.selected' : stage.status === 'running' ? 'action.hover' : 'background.default', color: stage.status === 'completed' ? 'success.main' : stage.status === 'running' ? 'secondary.dark' : 'primary.main', fontWeight: 800 }}>{stage.shortLabel}</Box><StatusChip status={stage.status} /></Stack>
               <Box><Typography variant="h6">{stage.label}</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, minHeight: 42 }}>{stage.detail}</Typography></Box>
               <Box sx={{ mt: 'auto !important' }}>
                 {stage.status === 'running' ? stage.progress > 0
