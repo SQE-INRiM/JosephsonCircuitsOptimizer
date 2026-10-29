@@ -3,6 +3,7 @@ import type { ResultTable } from '../types'
 import {
   convertHbAmplitudeTableForDisplay,
   convertHbFrequencyTableForDisplay,
+  runAmplitudeDisplay,
 } from './HarmonicBalanceResultsWithUnits'
 
 describe('HB display units', () => {
@@ -42,4 +43,39 @@ describe('HB display units', () => {
 
     expect(Number(converted.rows[0][2])).toBeCloseTo(-66.989700043, 9)
   })
+  it('uses each source input unit independently when stored in a run', () => {
+    const mixed: ResultTable = {
+      columns: ['point_id', 'source_1_amplitude', 'source_2_amplitude', 'performance'],
+      rows: [[1, 1e-6, 2e-6, 20]],
+      file: 'df_nonlinear_analysis.h5',
+    }
+    const config = runAmplitudeDisplay({
+      id: 'run', traces: [], setupSnapshot: {
+        sourceDisplay: {
+          source_1: { nonlinearAmplitudeUnit: 'dBm', impedanceOhm: 50 },
+          source_2: { nonlinearAmplitudeUnit: 'A', impedanceOhm: 100 },
+        },
+      },
+    })
+    expect(config.units).toEqual({ 1: 'dBm', 2: 'A' })
+    const display = convertHbAmplitudeTableForDisplay(mixed, config.units, config.impedancesOhm)
+    expect(Number(display.rows[0][1])).toBeCloseTo(-70, 8)
+    expect(display.rows[0][2]).toBe(2e-6)
+  })
+
+  it('defaults historical runs without unit snapshots to dBm, not A', () => {
+    const config = runAmplitudeDisplay({ id: 'old', traces: [], setupSnapshot: { sources: {} } })
+    const shown = convertHbAmplitudeTableForDisplay(table, config.units, config.impedancesOhm)
+    expect(Number(shown.rows[0][2])).toBeCloseTo(-70, 8)
+  })
+
+  it('binds results to stored run metadata rather than current Setup values', () => {
+    const config = runAmplitudeDisplay({
+      id: 'stored', traces: [], setupSnapshot: {
+        sourceDisplay: { source_1: { nonlinearAmplitudeUnit: 'A', impedanceOhm: 75 } },
+      },
+    })
+    expect(convertHbAmplitudeTableForDisplay(table, config.units, config.impedancesOhm).rows[0][2]).toBe(1e-6)
+  })
+
 })
