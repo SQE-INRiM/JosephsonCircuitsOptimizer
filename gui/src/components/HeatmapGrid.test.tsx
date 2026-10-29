@@ -35,4 +35,22 @@ describe('HeatmapGrid A/B selection', () => {
     fireEvent.click(cells[2])
     expect(onCellClick).not.toHaveBeenCalled()
   })
+  it('bounds the vertical data height even with many Y samples', () => {
+    const rows = Array.from({ length: 100 }, (_, i) => [i, i + 1])
+    const { container } = render(<HeatmapGrid
+      xLabels={[1, 2]} yLabels={rows.map((_, i) => i)}
+      values={rows} valueLabel="metric"
+    />)
+    const grid = container.querySelector<HTMLElement>('.heatmap-grid')
+    expect(grid?.style.height).toBe('596px') // 500px data + 96px X labels
+    expect(grid?.style.gridTemplateRows).toContain('repeat(100, minmax(0, 1fr))')
+  })
+  it('preserves readable cell heights for small Y grids', () => {
+    const { container } = render(<HeatmapGrid
+      xLabels={[1, 2]} yLabels={[1, 2]}
+      values={[[1, 2], [3, 4]]} valueLabel="metric"
+    />)
+    expect(container.querySelector<HTMLElement>('.heatmap-grid')?.style.height).toBe('148px')
+  })
+
 })
