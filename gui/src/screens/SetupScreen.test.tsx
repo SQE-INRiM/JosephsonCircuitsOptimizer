@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from '../store'
 import { SetupScreen } from './SetupScreen'
@@ -119,5 +119,68 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
     render(<SetupScreen />)
     fireEvent.change(screen.getByRole('textbox', { name: 'Max intermodulation order' }), { target: { value: '1' } })
     expect(screen.getByText(/Linear-stage harmonic and intermodulation limits are set to first order/)).toBeTruthy()
+  })
+})
+
+describe('Device parameter mode editor regression', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: {
+        ...structuredClone(originalProject),
+        parameters: [{
+          id: 'circuit-Cg', name: 'Cg', mode: 'Fixed',
+          value: '250', unit: 'fF', role: 'Fixed model', circuitStatus: 'configured',
+        }],
+      },
+      setupStep: 0,
+      setupPanel: 'parameters',
+      dirty: false,
+    })
+  })
+
+  afterEach(() => cleanup())
+
+  function selectMode(row: HTMLElement, mode: 'Fixed' | 'Range' | 'List') {
+    fireEvent.mouseDown(within(row).getByRole('combobox'))
+    fireEvent.click(screen.getByRole('option', { name: mode }))
+  }
+
+  it('allows typing a List immediately after changing Fixed to List', () => {
+    const { container } = render(<SetupScreen />)
+    const row = container.querySelector('tbody tr') as HTMLElement
+    selectMode(row, 'List')
+    const values = within(row).getByRole('textbox', { name: 'Values' }) as HTMLInputElement
+    expect(values.disabled).toBe(false)
+    fireEvent.change(values, { target: { value: '100, 150, 250' } })
+    expect(useAppStore.getState().project.parameters[0]).toMatchObject({
+      mode: 'List', values: '100, 150, 250',
+    })
+    expect((within(row).getByRole('textbox', { name: 'Values' }) as HTMLInputElement).value)
+      .toBe('100, 150, 250')
+  })
+
+  it('allows editing Start, Stop, Step after changing to Range', () => {
+    const { container } = render(<SetupScreen />)
+    const row = container.querySelector('tbody tr') as HTMLElement
+    selectMode(row, 'Range')
+    for (const [name, value] of [['Start', '100'], ['Stop', '350'], ['Step', '25']] as const) {
+      const input = within(row).getByRole('textbox', { name }) as HTMLInputElement
+      expect(input.disabled).toBe(false)
+      fireEvent.change(input, { target: { value } })
+    }
+    expect(useAppStore.getState().project.parameters[0]).toMatchObject({
+      mode: 'Range', start: '100', stop: '350', step: '25',
+    })
+  })
+
+  it('keeps Fixed editable after switching List then Fixed', () => {
+    const { container } = render(<SetupScreen />)
+    const row = container.querySelector('tbody tr') as HTMLElement
+    selectMode(row, 'List')
+    selectMode(row, 'Fixed')
+    const value = within(row).getByRole('textbox', { name: 'Value' }) as HTMLInputElement
+    expect(value.disabled).toBe(false)
+    fireEvent.change(value, { target: { value: '300' } })
+    expect(useAppStore.getState().project.parameters[0]).toMatchObject({ mode: 'Fixed', value: '300' })
   })
 })
