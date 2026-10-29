@@ -64,6 +64,16 @@ test('preserve numerical best metrics even without HDF5 arrays', (t) => {
   assert.equal(isProvablyEmptyRun(f.workspace, RUN_A), false)
 })
 
+test('zero-evaluation optimizer diagnostics may be removed but positive counts survive', (t) => {
+  const f = fixture()
+  t.after(() => fs.rmSync(f.workspace, { recursive: true, force: true }))
+  const file = path.join(f.run, 'simulation_info', 'optimization_persistence.json')
+  fs.writeFileSync(file, JSON.stringify({ total_cost_evaluations: 0, bo_evaluations: 0, hdf5_written: false }))
+  assert.equal(isProvablyEmptyRun(f.workspace, RUN_A), true)
+  fs.writeFileSync(file, JSON.stringify({ total_cost_evaluations: 2, bo_evaluations: 2, hdf5_written: false }))
+  assert.equal(isProvablyEmptyRun(f.workspace, RUN_A), false)
+})
+
 test('invalid metadata is not treated as evidence of emptiness', (t) => {
   const f = fixture()
   t.after(() => fs.rmSync(f.workspace, { recursive: true, force: true }))
