@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, Chip, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
 import { LineChart } from '@mui/x-charts/LineChart'
-import type { ResultTable, ResultsBundle, RunResults, SavedTraceData, SourceAmplitudeUnit } from '../types'
+import type { ResultTable, ResultsBundle, RunResults, SavedTraceData, SourceAmplitudeUnits } from '../types'
 import { getJcoAdapter } from '../services/jcoAdapter'
 import { sourceCoordinateLabel } from '../utils/resultUnits'
 import { HeatmapGrid } from './HeatmapGrid'
@@ -62,7 +62,7 @@ function StoredConfigurations({ table, pointId, onSelect }: { table: ResultTable
   return <TableContainer sx={{ maxHeight: 300, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}><Table stickyHeader size="small"><TableHead><TableRow>{table.columns.map((column) => <TableCell key={column}>{column}</TableCell>)}</TableRow></TableHead><TableBody>{table.rows.slice(0, 60).map((row, index) => { const id = pi >= 0 ? Number(row[pi]) : index + 1; return <TableRow key={id} hover selected={id === pointId} onClick={() => onSelect(id)} sx={{ cursor: 'pointer' }}>{row.map((value, ci) => { const n = Number(value); return <TableCell key={`${id}-${table.columns[ci]}`}>{Number.isFinite(n) ? formatNumber(n) : String(value)}</TableCell> })}</TableRow> })}</TableBody></Table></TableContainer>
 }
 
-function HbPointInspector({ run, table, pointId, amplitudeUnit }: { run: RunResults; table: ResultTable; pointId: number | null; amplitudeUnit: SourceAmplitudeUnit }) {
+function HbPointInspector({ run, table, pointId, amplitudeUnit }: { run: RunResults; table: ResultTable; pointId: number | null; amplitudeUnit: SourceAmplitudeUnits }) {
   const pi = table.columns.indexOf('point_id'); const row = pointId == null ? undefined : table.rows.find((candidate) => Number(candidate[pi]) === pointId); const savedPoint = pointId == null ? undefined : run.savedNonlinear?.points.find((point) => point.pointId === pointId)
   const [traces, setTraces] = useState<LoadedTrace[]>([]); const [xChoice, setXChoice] = useState('auto'); const [xSource, setXSource] = useState<AxisSource>(null); const [error, setError] = useState(''); const [loadingKey, setLoadingKey] = useState(''); const selectionRef = useRef<TraceSelection[]>([]); const xChoiceRef = useRef('auto')
   const catalog: CatalogItem[] = savedPoint?.quantities.flatMap((quantity) => quantity.arrays.map((array) => ({ key: `${quantity.name}/${array.name}`, quantityKey: quantity.name, quantityName: quantity.quantityName, arrayName: array.name, length: array.length }))) ?? []
@@ -86,7 +86,7 @@ function HbPointInspector({ run, table, pointId, amplitudeUnit }: { run: RunResu
   </Stack></Paper>
 }
 
-function HarmonicBalanceRun({ run, unitControl, amplitudeUnit }: { run: RunResults; unitControl?: React.ReactNode; amplitudeUnit: SourceAmplitudeUnit }) {
+function HarmonicBalanceRun({ run, unitControl, amplitudeUnit }: { run: RunResults; unitControl?: React.ReactNode; amplitudeUnit: SourceAmplitudeUnits }) {
   const table = run.nonlinear
   if (!table) return <Alert severity="info">This run does not contain a Harmonic Balance dataset.</Alert>
   const coordinates = sourceCoordinateColumns(table); const metrics = metricColumns(table); if (coordinates.length < 2 || !metrics.length) return <Alert severity="warning">The Harmonic Balance table does not contain enough source coordinates and scalar metrics.</Alert>
@@ -146,7 +146,7 @@ function HarmonicBalanceRun({ run, unitControl, amplitudeUnit }: { run: RunResul
   </Stack>
 }
 
-export function HarmonicBalanceResultsNormalized({ results, activeRunId, unitControl, amplitudeUnit = 'A' }: { results: ResultsBundle; activeRunId?: string | null; unitControl?: React.ReactNode; amplitudeUnit?: SourceAmplitudeUnit }) {
+export function HarmonicBalanceResultsNormalized({ results, activeRunId, unitControl, amplitudeUnit = 'A' }: { results: ResultsBundle; activeRunId?: string | null; unitControl?: React.ReactNode; amplitudeUnit?: SourceAmplitudeUnits }) {
   const [runId, setRunId] = useState(results.runs[0]?.id ?? '')
   useEffect(() => { if (!results.runs.some((run) => run.id === runId)) setRunId(results.runs[0]?.id ?? '') }, [results, runId])
   const run = results.runs.find((item) => item.id === runId) ?? results.runs[0]
