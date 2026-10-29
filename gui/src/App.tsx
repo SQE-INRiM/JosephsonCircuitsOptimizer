@@ -242,7 +242,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
               <Chip size="small" label={project.filename} sx={{ backgroundColor: 'rgba(255,255,255,.09)', color: 'rgba(255,255,255,.78)' }} />
             </Stack>
           </Box>
-          <Chip size="small" sx={{ display: { xs: 'none', xl: 'flex' } }} label={desktop ? 'Desktop bridge' : 'Browser preview'} color={desktop ? 'success' : 'warning'} variant="outlined" sx={{ color: desktop ? '#a9dec9' : '#f1c77b', borderColor: desktop ? '#4c8a73' : '#9b753a' }} />
+          <Chip size="small" label={desktop ? 'Desktop bridge' : 'Browser preview'} color={desktop ? 'success' : 'warning'} variant="outlined" sx={{ display: { xs: 'none', xl: 'flex' }, color: desktop ? '#a9dec9' : '#f1c77b', borderColor: desktop ? '#4c8a73' : '#9b753a' }} />
           <Chip size="small" label="Schema v1" sx={{ display: { xs: 'none', lg: 'flex' }, backgroundColor: 'rgba(255,255,255,.08)', color: '#d9e1e8' }} />
           {desktop && <Stack direction="row" spacing={0.2} sx={{ alignItems: 'center', border: '1px solid rgba(255,255,255,.2)', borderRadius: 2, px: 0.3 }}>
               <Tooltip title="Zoom out · Ctrl+−"><span><IconButton color="inherit" size="small" disabled={zoom <= 70} onClick={() => void applyZoom(zoom - 10)} aria-label="Zoom out"><ZoomOutRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
