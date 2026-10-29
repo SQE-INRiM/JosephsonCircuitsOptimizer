@@ -8,7 +8,7 @@ import { LineChart } from '@mui/x-charts/LineChart'
 import { getJcoAdapter } from '../services/jcoAdapter'
 import { useAppStore } from '../store'
 import type {
-  ResultTable, RunResults, SavedDataPointCatalog, SavedTraceData, SourceAmplitudeUnit,
+  ResultTable, RunResults, SavedDataPointCatalog, SavedTraceData, SourceAmplitudeUnits,
 } from '../types'
 import { parameterLabel, sourceCoordinateLabel } from '../utils/resultUnits'
 
@@ -105,7 +105,7 @@ export function PointComparisonPanel({
   table: ResultTable
   stage: ResultStage
   pointIds: number[]
-  amplitudeUnit?: SourceAmplitudeUnit
+  amplitudeUnit?: SourceAmplitudeUnits
   maskedIds?: Set<number>
 }) {
   const projectParameters = useAppStore((state) => state.project.parameters)
