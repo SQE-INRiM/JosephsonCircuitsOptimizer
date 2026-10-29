@@ -15,6 +15,7 @@ interface HeatmapGridProps {
   formatValue?: (value: number) => string
   onCellClick?: (rowIndex: number, columnIndex: number, value: number) => void
   selectedCell?: { rowIndex: number; columnIndex: number } | null
+  selectedCells?: Array<{ rowIndex: number; columnIndex: number }>
 }
 
 function interpolate(a: number, b: number, t: number) { return Math.round(a + (b - a) * t) }
@@ -29,7 +30,7 @@ function divergingColor(value: number) {
   return `rgb(${interpolate(neutral[0], end[0], t)},${interpolate(neutral[1], end[1], t)},${interpolate(neutral[2], end[2], t)})`
 }
 
-export function HeatmapGrid({ xLabels, yLabels, values, valueLabel, xAxisLabel, yAxisLabel, amplitudeUnit = 'A', diverging = false, formatValue, onCellClick, selectedCell }: HeatmapGridProps) {
+export function HeatmapGrid({ xLabels, yLabels, values, valueLabel, xAxisLabel, yAxisLabel, amplitudeUnit = 'A', diverging = false, formatValue, onCellClick, selectedCell, selectedCells }: HeatmapGridProps) {
   const projectParameters = useAppStore((state) => state.project.parameters)
   const axisLabel = (label?: string) => {
     if (!label) return ''
@@ -60,6 +61,10 @@ export function HeatmapGrid({ xLabels, yLabels, values, valueLabel, xAxisLabel, 
   const displayedSelected = selectedCell && !diverging
     ? { rowIndex: values.length - 1 - selectedCell.rowIndex, columnIndex: selectedCell.columnIndex }
     : selectedCell
+  const displayedPairs = (selectedCells ?? []).map((cell) => ({
+    rowIndex: diverging ? cell.rowIndex : values.length - 1 - cell.rowIndex,
+    columnIndex: cell.columnIndex,
+  }))
   const interactiveLandscape = Boolean(onCellClick) && !diverging
 
   return <Stack className={interactiveLandscape ? 'jco-interactive-landscape-heatmap' : undefined} spacing={1.1} sx={{ width: '100%', maxWidth: diverging ? undefined : 1240, mx: diverging ? undefined : 'auto', pb: 0.5 }}>
@@ -69,11 +74,12 @@ export function HeatmapGrid({ xLabels, yLabels, values, valueLabel, xAxisLabel, 
         {displayedRows.map(({ row, originalIndex, label }, displayRowIndex) => [
           <Typography key={`label-${label}-${displayRowIndex}`} variant="caption" color="text.secondary" sx={{ pr: 1, textAlign: 'right', alignSelf: 'center', whiteSpace: 'nowrap' }}>{axisValue(yAxisLabel, label)}</Typography>,
           ...row.map((value, columnIndex) => {
-            const selected = displayedSelected?.rowIndex === displayRowIndex && displayedSelected?.columnIndex === columnIndex
+            const pairIndex = displayedPairs.findIndex((cell) => cell.rowIndex === displayRowIndex && cell.columnIndex === columnIndex)
+            const selected = pairIndex >= 0 || (displayedSelected?.rowIndex === displayRowIndex && displayedSelected?.columnIndex === columnIndex)
             const masked = value === null || !Number.isFinite(value)
             const displayedY = axisValue(yAxisLabel, label)
             const displayedX = axisValue(xAxisLabel, xLabels[columnIndex])
-            return <Box key={`${displayRowIndex}-${columnIndex}`} className="heatmap-cell" title={masked ? `${displayedY} × ${displayedX} · ${valueLabel}: masked / unavailable` : `${displayedY} × ${displayedX} · ${valueLabel}: ${formatValue ? formatValue(value) : value}`} onClick={masked || !onCellClick ? undefined : () => onCellClick(originalIndex, columnIndex, value)} sx={{ backgroundColor: masked ? '#ffffff' : diverging ? divergingColor(value) : sequentialColor(value, min, max), cursor: masked || !onCellClick ? 'default' : 'pointer', outline: selected ? '3px solid' : undefined, outlineColor: selected ? 'text.primary' : undefined, outlineOffset: selected ? '-3px' : undefined }} />
+            return <Box key={`${displayRowIndex}-${columnIndex}`} className="heatmap-cell" title={masked ? `${displayedY} × ${displayedX} · ${valueLabel}: masked / unavailable` : `${displayedY} × ${displayedX} · ${valueLabel}: ${formatValue ? formatValue(value) : value}`} onClick={masked || !onCellClick ? undefined : () => onCellClick(originalIndex, columnIndex, value)} sx={{ backgroundColor: masked ? '#ffffff' : diverging ? divergingColor(value) : sequentialColor(value, min, max), cursor: masked || !onCellClick ? 'default' : 'pointer', outline: selected ? '3px solid' : undefined, outlineColor: selected ? (pairIndex === 0 ? '#2d6ca2' : pairIndex === 1 ? '#cf8a2f' : 'text.primary') : undefined, outlineOffset: selected ? '-3px' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pairIndex >= 0 && <Typography component="span" sx={{ fontSize: 12, fontWeight: 800, color: '#172231', backgroundColor: '#fff', borderRadius: '3px', px: 0.5 }}>{pairIndex === 0 ? 'A' : 'B'}</Typography>}</Box>
           }),
         ])}
         <Box />

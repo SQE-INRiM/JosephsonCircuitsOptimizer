@@ -5,6 +5,8 @@ import type { ResultTable, ResultsBundle, RunResults, SavedTraceData, SourceAmpl
 import { getJcoAdapter } from '../services/jcoAdapter'
 import { sourceCoordinateLabel } from '../utils/resultUnits'
 import { HeatmapGrid } from './HeatmapGrid'
+import { PointComparisonPanel, PointSelectionControls, updateComparisonSelection } from './PointComparison'
+import type { ResultSelectionMode } from './PointComparison'
 
 type HbView = 'landscape' | 'response'
 type ConvergenceFilter = 'all' | 'converged' | 'nonconverged'
@@ -90,11 +92,40 @@ function HarmonicBalanceRun({ run, unitControl, amplitudeUnit }: { run: RunResul
   const coordinates = sourceCoordinateColumns(table); const metrics = metricColumns(table); if (coordinates.length < 2 || !metrics.length) return <Alert severity="warning">The Harmonic Balance table does not contain enough source coordinates and scalar metrics.</Alert>
   const defaultX = coordinates.find((name) => /frequency$/i.test(name)) ?? coordinates[0]; const defaultY = coordinates.find((name) => /amplitude$/i.test(name) && name !== defaultX) ?? coordinates.find((name) => name !== defaultX) ?? coordinates[1]
   const [view, setView] = useState<HbView>('landscape'); const [metric, setMetric] = useState(metrics.includes('performance') ? 'performance' : metrics[0]); const [x, setX] = useState(defaultX); const [y, setY] = useState(defaultY); const [convergence, setConvergence] = useState<ConvergenceFilter>('all'); const [fixed, setFixed] = useState<Record<string, number>>({}); const [selectedPointId, setSelectedPointId] = useState<number | null>(null); const [showConfigurations, setShowConfigurations] = useState(false)
+  const [selectionMode, setSelectionMode] = useState<ResultSelectionMode>('single')
+  const [comparisonIds, setComparisonIds] = useState<number[]>([])
+  useEffect(() => { setSelectionMode('single'); setComparisonIds([]) }, [run.id])
   const amplitudes = amplitudeColumns(table); const [responseAmplitude, setResponseAmplitude] = useState(amplitudes[0] ?? ''); const [responseFixed, setResponseFixed] = useState<Record<string, number>>({})
   useEffect(() => { const next: Record<string, number> = {}; coordinates.filter((column) => column !== x && column !== y).forEach((column) => { const options = columnValues(table, column); next[column] = options.includes(fixed[column]) ? fixed[column] : options[0] }); setFixed(next) }, [table, x, y])
   useEffect(() => { const next: Record<string, number> = {}; coordinates.filter((column) => column !== responseAmplitude).forEach((column) => { const options = columnValues(table, column); next[column] = options.includes(responseFixed[column]) ? responseFixed[column] : options[0] }); setResponseFixed(next) }, [table, responseAmplitude])
   const grid = useMemo(() => x !== y ? buildHbGrid(table, x, y, metric, fixed, convergence) : null, [table, x, y, metric, fixed, convergence])
   useEffect(() => { const ids = grid?.pointIds.flat().filter((id): id is number => id != null) ?? []; if (selectedPointId == null || !ids.includes(selectedPointId)) setSelectedPointId(ids[0] ?? null) }, [grid, selectedPointId])
+  const comparisonCells = grid ? comparisonIds.flatMap((id) => {
+    for (let r = 0; r < grid.pointIds.length; r += 1) {
+      const c = grid.pointIds[r].findIndex((candidate) => candidate === id)
+      if (c >= 0) return [{ rowIndex: r, columnIndex: c }]
+    }
+    return []
+  }) : []
+  const singleCell = (() => {
+    if (!grid || selectedPointId == null) return null
+    for (let r = 0; r < grid.pointIds.length; r += 1) {
+      const c = grid.pointIds[r].findIndex((id) => id === selectedPointId)
+      if (c >= 0) return { rowIndex: r, columnIndex: c }
+    }
+    return null
+  })()
+  const selectPoint = (id: number) => {
+    if (selectionMode === 'compare') setComparisonIds((current) => updateComparisonSelection(current, id))
+    else setSelectedPointId(id)
+  }
+  const changeSelectionMode = (mode: ResultSelectionMode) => {
+    if (mode === 'compare' && selectionMode !== 'compare') {
+      setComparisonIds(selectedPointId == null ? [] : [selectedPointId])
+    }
+    if (mode === 'single' && comparisonIds.length) setSelectedPointId(comparisonIds[0])
+    setSelectionMode(mode)
+  }
   const fixedSummary = coordinates.filter((column) => column !== x && column !== y).map((column) => `${sourceCoordinateLabel(column, amplitudeUnit)}=${formatNumber(fixed[column])}`).join(', ')
   const responseRows = useMemo(() => { const ai = table.columns.indexOf(responseAmplitude); return responseAmplitude ? rowsAsNumbers(table).filter((row) => rowMatchesFixed(table, row, responseFixed) && convergenceMatches(table, row, convergence) && Number.isFinite(row[ai])).sort((a, b) => a[ai] - b[ai]) : [] }, [table, responseAmplitude, responseFixed, convergence])
   const ai = table.columns.indexOf(responseAmplitude); const pi = table.columns.indexOf('performance'); const di = table.columns.indexOf('delta_quantity')
@@ -108,7 +139,9 @@ function HarmonicBalanceRun({ run, unitControl, amplitudeUnit }: { run: RunResul
         {unitControl}
       </Stack>
     </Stack></Paper>
-    {view === 'landscape' && <Stack spacing={1.2}>{grid && grid.x.length > 0 && grid.y.length > 0 ? <Paper variant="outlined" sx={{ p: 1.7 }}><Typography variant="h6">{metric}</Typography><Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{x} × {y} · Harmonic Balance dataset{fixedSummary ? ` · fixed: ${fixedSummary}` : ''}.</Typography><Box sx={{ minHeight: 390, display: 'flex', alignItems: 'center' }}><HeatmapGrid xLabels={grid.x.map(formatNumber)} yLabels={grid.y.map(formatNumber)} values={grid.values} valueLabel={metric} xAxisLabel={x} yAxisLabel={y} amplitudeUnit={amplitudeUnit} formatValue={formatNumber} onCellClick={(r, c) => { const id = grid.pointIds[r]?.[c]; if (id != null) setSelectedPointId(id) }} /></Box></Paper> : <Alert severity="info">No stored Harmonic Balance points match the selected slice and convergence filter.</Alert>}<HbPointInspector run={run} table={table} pointId={selectedPointId} amplitudeUnit={amplitudeUnit} /><Box><Button size="small" variant="text" onClick={() => setShowConfigurations((current) => !current)}>{showConfigurations ? 'Hide stored configurations' : 'Show stored configurations'}</Button>{showConfigurations && <Box sx={{ mt: 0.7 }}><StoredConfigurations table={table} pointId={selectedPointId} onSelect={setSelectedPointId} /></Box>}</Box></Stack>}
+    {view === 'landscape' && <Stack spacing={1.2}>{grid && grid.x.length > 0 && grid.y.length > 0 ? <Paper variant="outlined" sx={{ p: 1.7 }}><Typography variant="h6">{metric}</Typography><Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{x} × {y} · Harmonic Balance dataset{fixedSummary ? ` · fixed: ${fixedSummary}` : ''}.</Typography><PointSelectionControls mode={selectionMode} onModeChange={changeSelectionMode} pointIds={comparisonIds} onClear={() => setComparisonIds([])} /><Box sx={{ minHeight: 390, display: 'flex', alignItems: 'center' }}><HeatmapGrid xLabels={grid.x.map(formatNumber)} yLabels={grid.y.map(formatNumber)} values={grid.values} valueLabel={metric} xAxisLabel={x} yAxisLabel={y} amplitudeUnit={amplitudeUnit} formatValue={formatNumber} selectedCell={selectionMode === 'single' ? singleCell : null} selectedCells={selectionMode === 'compare' ? comparisonCells : undefined} onCellClick={(r, c) => { const id = grid.pointIds[r]?.[c]; if (id != null) selectPoint(id) }} /></Box></Paper> : <Alert severity="info">No stored Harmonic Balance points match the selected slice and convergence filter.</Alert>}{selectionMode === 'compare'
+      ? <PointComparisonPanel run={run} table={table} stage="nonlinear" pointIds={comparisonIds} amplitudeUnit={amplitudeUnit} />
+      : <HbPointInspector run={run} table={table} pointId={selectedPointId} amplitudeUnit={amplitudeUnit} />}<Box><Button size="small" variant="text" onClick={() => setShowConfigurations((current) => !current)}>{showConfigurations ? 'Hide stored configurations' : 'Show stored configurations'}</Button>{showConfigurations && <Box sx={{ mt: 0.7 }}><StoredConfigurations table={table} pointId={selectionMode === 'compare' ? comparisonIds[0] ?? null : selectedPointId} onSelect={selectPoint} /></Box>}</Box></Stack>}
     {view === 'response' && <Stack spacing={1.2}>{!responseRows.length ? <Alert severity="info">No points match the selected amplitude-response slice.</Alert> : <>{pi >= 0 && <Paper variant="outlined" sx={{ p: 1.7 }}><Typography variant="h6">performance</Typography><LineChart height={340} xAxis={[{ data: responseRows.map((row) => row[ai]), label: sourceCoordinateLabel(responseAmplitude, amplitudeUnit), valueFormatter: (value: number | null) => formatNumber(value) }]} yAxis={[{ label: 'performance', valueFormatter: (value: number | null) => formatNumber(value) }]} series={[{ data: responseRows.map((row) => row[pi]), label: 'performance', showMark: true, valueFormatter: (value: number | null) => formatNumber(value) }]} grid={{ horizontal: true }} /></Paper>}{di >= 0 && <Paper variant="outlined" sx={{ p: 1.7 }}><Typography variant="h6">delta_quantity</Typography><LineChart height={340} xAxis={[{ data: responseRows.map((row) => row[ai]), label: sourceCoordinateLabel(responseAmplitude, amplitudeUnit), valueFormatter: (value: number | null) => formatNumber(value) }]} yAxis={[{ label: 'delta_quantity', valueFormatter: (value: number | null) => formatNumber(value) }]} series={[{ data: responseRows.map((row) => row[di]), label: 'delta_quantity', showMark: true, valueFormatter: (value: number | null) => formatNumber(value) }]} grid={{ horizontal: true }} /></Paper>}</>}</Stack>}
   </Stack>
 }
