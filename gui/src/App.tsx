@@ -83,6 +83,8 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
   const [draggingProject, setDraggingProject] = useState(false)
   const desktop = isDesktopBridgeAvailable()
   const startupInitialized = useRef(false)
+  const initialProjectLoad = useRef<Promise<void>>(Promise.resolve())
+  const fileDragActive = useRef(false)
 
   useEffect(() => {
     const adapter = getJcoAdapter()
@@ -126,7 +128,10 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
         setNotice('Julia environment setup failed: ' + (error instanceof Error ? error.message : String(error)))
       })
       .finally(() => setRuntimePreparing(false))
-    void Promise.all([adapter.newProject(), adapter.listExamples()])
+    // Serialize an early file drop with the startup project initialization.
+    // Otherwise a late 'newProject' response can overwrite a dropped project
+    // after the user has already started editing it.
+    initialProjectLoad.current = Promise.all([adapter.newProject(), adapter.listExamples()])
       .then(([loaded, listedExamples]) => {
         loadProject(loaded)
         setExamples(listedExamples)
@@ -166,24 +171,30 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
 
   useEffect(() => {
     if (!desktop) return
-    const hasFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files')
+    const hasFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files') || Boolean(event.dataTransfer?.files?.length)
+    const clearDrag = () => {
+      fileDragActive.current = false
+      setDraggingProject(false)
+    }
     const enter = (event: DragEvent) => {
       if (!hasFiles(event)) return
       event.preventDefault()
+      fileDragActive.current = true
       setDraggingProject(true)
     }
     const over = (event: DragEvent) => {
-      if (!hasFiles(event)) return
+      if (!hasFiles(event) && !fileDragActive.current) return
       event.preventDefault()
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
     }
     const leave = (event: DragEvent) => {
-      if (!event.relatedTarget) setDraggingProject(false)
+      if (!event.relatedTarget) clearDrag()
     }
     const drop = (event: DragEvent) => {
-      if (!hasFiles(event)) return
+      const wasFileDrag = hasFiles(event) || fileDragActive.current
+      clearDrag() // also clear if Chromium omits the file type on drop
+      if (!wasFileDrag) return
       event.preventDefault() // prevent Chromium from navigating away on file drops
-      setDraggingProject(false)
       const files = Array.from(event.dataTransfer?.files ?? [])
       if (files.length !== 1 || !files[0].name.toLowerCase().endsWith('.jco')) {
         setNotice('Drop exactly one .jco project file.')
@@ -195,6 +206,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
       }
       if (dirty && !window.confirm('Unsaved changes will be lost when you open another project. Continue?')) return
       void perform(async () => {
+        await initialProjectLoad.current
         const adapter = getJcoAdapter()
         if (!adapter?.openDroppedProject) throw new Error('Project file drop is unavailable in this desktop version.')
         const loaded = await adapter.openDroppedProject(files[0])
@@ -205,11 +217,15 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
     window.addEventListener('dragover', over)
     window.addEventListener('dragleave', leave)
     window.addEventListener('drop', drop)
+    window.addEventListener('dragend', clearDrag)
+    window.addEventListener('blur', clearDrag)
     return () => {
       window.removeEventListener('dragenter', enter)
       window.removeEventListener('dragover', over)
       window.removeEventListener('dragleave', leave)
       window.removeEventListener('drop', drop)
+      window.removeEventListener('dragend', clearDrag)
+      window.removeEventListener('blur', clearDrag)
     }
   }, [desktop, busy, running, dirty, loadProject, setResults])
 
