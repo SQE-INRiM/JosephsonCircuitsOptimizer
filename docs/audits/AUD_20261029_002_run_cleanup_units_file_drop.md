@@ -10,18 +10,19 @@
 
 ## Scope
 
-Review the conservative post-run cleanup, per-run display metadata and Open-equivalent `.jco` drag/drop. A related parameter editor usability regression was addressed while reviewing the file-drop change: List values now use an explicitly labeled editable field instead of a disabled primary cell. The default deletion policy is deliberately conservative; any uncertain output is retained.
+Review the conservative post-run cleanup, per-run display metadata and Open-equivalent `.jco` drag/drop. A related parameter editor usability regression was addressed while reviewing the file-drop change: List values now use an explicitly labeled editable field instead of a disabled primary cell. A concurrent startup New project initialization could also overwrite a project dropped immediately after the app opened; startup project creation and file opening are now serialized. The default deletion policy is deliberately conservative; any uncertain output is retained.
 
 ## Intended safeguards
 
 - Only the output of the just-finished run can be automatically removed, after the Julia process finishes and before durable repacking.
 - HDF5, user-saved arrays, optimizer metric history, figures and unexpected files prevent deletion even when the run failed/cancelled.
 - New runs copy the GUI metadata into `inputs_snapshot/`; historical runs without it default to dBm with assumed 50 Ω for **display only**.
-- Invalid file drops cannot change the current project; active runs and unsaved changes are protected.
+- Invalid file drops cannot change the current project; active runs and unsaved changes are protected. The file-drop overlay is cleared even when Chromium omits `Files` on the final drop event, and early drops cannot be overwritten by the startup New project response.
+- Switching device parameter modes clears obsolete values at the Zustand state level, so disabled fields do not retain Range Stop/Step or get unexpectedly serialized.
 
 ## Automated evidence
 
-Targeted unit tests are committed under `gui/desktop/empty-run-cleanup.node-test.cjs`, `gui/src/components/HarmonicBalanceResultsWithUnits.test.ts`, and interactive parameter mode tests in `gui/src/screens/SetupScreen.test.tsx`. GitHub Actions CI status will be the authoritative evidence for whether these tests and the TypeScript build actually passed.
+Targeted unit tests are committed under `gui/desktop/empty-run-cleanup.node-test.cjs`, `gui/src/components/HarmonicBalanceResultsWithUnits.test.ts`, interactive parameter mode tests in `gui/src/screens/SetupScreen.test.tsx`, state tests in `gui/src/store.test.ts`, and file-drop/startup integration tests in `gui/src/App.file-drop.test.tsx`. GitHub Actions CI status will be the authoritative evidence for whether these tests and the TypeScript build actually passed.
 
 ## Limitations
 
