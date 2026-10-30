@@ -97,7 +97,7 @@ Governance remains lightweight and advisory:
 - ADR 007 remains authoritative for Circuit Preview execution/topology boundaries;
 - `WI_20260911_001_example_project_workflow.md` / `AUD_20260911_001_example_project_workflow.md` retain the example/background-preview record;
 - `WI_20260911_002_installable_desktop_packages.md` / `AUD_20260911_002_installable_desktop_packages.md` track the T3 packaging change;
-- `CHANGELOG.md` keeps desktop-packaging and October GUI changes under `Unreleased` until a new version is published.
+- `CHANGELOG.md` now records the October GUI and desktop improvements under `0.4.2 - 2026-10-30`; the release remains a candidate until the matching tag is published.
 - PR documentation decisions are checked automatically for code/configuration changes; repository branch-protection settings control whether the status is mandatory for merging.
 
 ## Recovery rule
@@ -106,7 +106,7 @@ For multi-session work, record only what is needed to resume safely: last verifi
 
 ## Next safe action
 
-1. Confirm the new PR documentation-review workflow on a PR changing code and by editing the PR description; enable the **Governance check / governance** required status in GitHub branch protection/rulesets if unconditional blocking is desired.
-2. Perform targeted real-data GUI checks for A/B retained-trace overlays, dense heatmaps at 50% zoom and theme switching, recording actual platform/input evidence if performed.
-3. Update the user manual source/PDF with the installer-first workflow once the manual source is available; optionally validate Linux AppImage launch on Linux.
-4. Select the next release version, update version/changelog files as needed, then create the matching `v*` tag. Preserve pending qualifications until independently verified.
+1. Merge the v0.4.2 release-note documentation branch after checking its diff.
+2. Create and push the annotated `v0.4.2` tag on the final `main` merge commit; do not tag a stale release-preparation commit.
+3. Verify that the **Publish desktop release** tag-driven GitHub Actions workflow completes and the GitHub Release contains Windows Setup, Windows Portable and Linux AppImage assets.
+4. After publication, retarget the draft nonlinear feedback PR #24 toward v0.4.3. Keep real-data/installed-desktop scientific validation qualifications explicit.
