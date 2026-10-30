@@ -4,6 +4,13 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Nonlinear feedback setup — v0.4.2 candidate (October 2026)
+- Expose optional nonlinear correction cycles and one fixed HB reference current per source in Setup; keep the feature disabled by default.
+- Show the user-defined `user_nonlinear_correction(S_linear, sol, device_params_set)` hook alongside cost/performance editing, clarifying that `user_cost` decides how to apply its returned scalar.
+- Preserve feedback inputs in existing JCO simulation/source JSON fields without changing the `.jco` schema; validate that enabled feedback has finite reference currents for every source.
+- Include the feedback hook in new-project placeholder code and demonstrate explicit use of the correction in the default Julia metric template.
+- Prepare synchronized Julia, Electron and npm-lock versions for v0.4.2; a GitHub release and independent HB validation remain pending.
+
 ### October 2026 — JCO visual identity
 - Adopt the JCO Josephson-junction logo in the desktop application's About dialog and repository README; replace the placeholder lightning-bolt header icon with the final JCO icon.
 - Add vector branding assets under `docs/images/` and `gui/public/`, use the icon as the GUI favicon, and configure Electron Builder to generate Windows/Linux application icons from the SVG master in `gui/build/`.
