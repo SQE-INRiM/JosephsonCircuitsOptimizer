@@ -6,6 +6,8 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## 0.4.2 - 2026-10-30
 
+[Complete release notes](docs/releases/v0.4.2.md) · Windows installer/portable and Linux AppImage are published by the tag-driven GitHub Actions workflow.
+
 ### GUI and maintenance updates since 0.4.1
 
 This release collects the integrated October 2026 GUI improvements and maintenance updates. Nonlinear-feedback UI changes under draft PR #24 are **not** included.
