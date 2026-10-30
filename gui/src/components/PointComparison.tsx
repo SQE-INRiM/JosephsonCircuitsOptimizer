@@ -11,6 +11,7 @@ import type {
   ResultTable, RunResults, SavedDataPointCatalog, SavedTraceData, SourceAmplitudeUnits,
 } from '../types'
 import { parameterLabel, sourceCoordinateLabel } from '../utils/resultUnits'
+import { exportPlotCsv } from '../utils/plotCsv'
 
 export type ResultSelectionMode = 'single' | 'compare'
 type ResultStage = 'linear' | 'nonlinear'
@@ -300,6 +301,16 @@ export function PointComparisonPanel({
                     {options.map((item) => <MenuItem value={item} key={item}>{item}</MenuItem>)}
                   </Select>
                 </FormControl>}
+                {compatible && <Button size="small" variant="outlined" sx={{ ml: 'auto' }}
+                  onClick={() => exportPlotCsv({
+                    x: pair.a.x,
+                    xLabel: pair.a.xKind === 'frequency_hz' ? 'frequency_hz' : 'index',
+                    series: [
+                      { label: `A · Point ${ids[0]} · ${label} (${component})`, values: a },
+                      { label: `B · Point ${ids[1]} · ${label} (${component})`, values: b },
+                    ],
+                  }, `${run.id}_${stage}_A${ids[0]}_B${ids[1]}_${pair.key}_${component}`)}
+                >Export CSV</Button>}
               </Stack>
               {compatible
                 ? <LineChart height={310}

@@ -64,6 +64,13 @@ Branch: `feat/empty-run-cleanup-stored-units-file-drop`. The branch adds conserv
 - PR #24 nonlinear feedback remains separate and excluded from v0.4.2. No Julia numerical or .jco schema changes are part of the polish.
 - GUI regression tests and GitHub Actions CI are the intended verification; visual desktop zoom checks remain desirable before distribution.
 
+## Candidate pre-tag Results CSV consistency (2026-10-30)
+
+- Branch `feat/v0.4.2-results-plot-csv` adds plotted-data CSV for the Linear/HB single-point and A/B overlays, plus Linear 1D and HB amplitude response charts.
+- Uses shared CSV formatting with unmodified frequency samples in Hz for retained arrays and distinct labeled A/B series; mismatched physical X grids remain non-comparable and cannot be exported as an overlay.
+- Add focused unit/integration tests for CSV precision, escaping, incompatible axes and HB trace/response output; numerical Julia simulation and persisted `.jco` inputs remain unchanged.
+- `v0.4.2` remains untagged until these pre-release GUI changes are reviewed, CI passes and the final merged main SHA is used.
+
 ## Packaging validation state
 
 PR #6 final CI evidence:
