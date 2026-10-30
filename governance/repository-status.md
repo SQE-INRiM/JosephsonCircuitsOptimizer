@@ -1,6 +1,6 @@
 # Repository Status
 
-Last governance refresh: 2026-10-29
+Last governance refresh: 2026-10-30
 
 ## Current development baseline
 
@@ -49,6 +49,13 @@ No packaging change intentionally modifies JCO numerical algorithms, scientific 
 ## Next candidate GUI changes (pending PR integration, 2026-10-29)
 
 Branch: `feat/empty-run-cleanup-stored-units-file-drop`. The branch adds conservative just-finished empty-run cleanup, saved per-run source display units, and `.jco` drag/drop. See `docs/work-items/WI_20261029_001_run_cleanup_units_drag_drop.md` and the **qualified** `docs/audits/AUD_20261029_002_run_cleanup_units_file_drop.md`. These are candidate changes, **not the verified main baseline** until merged and checked.
+
+## October GUI release candidate: v0.4.2
+
+- Release preparation branch: `release/v0.4.2-october-gui`, based on `main` at `7ad1f41`; this release contains only October improvements already integrated in `main`, with no nonlinear feedback changes.
+- Previous published release: `v0.4.1`. Version metadata and dated changelog are prepared on the release branch for `v0.4.2`; tag creation, release packaging and publication are pending until merge and tag push.
+- New nonlinear feedback UI work is isolated in **draft PR #24** (`feat/nonlinear-feedback-v0.4.2`), not merged into the release; that work must be retargeted to **v0.4.3** after this release.
+- Relative to `v0.4.1`, the current `main` is 27 commits ahead (GitHub compare at preparation time). No separate Julia/HB scientific reference validation is claimed.
 
 ## Packaging validation state
 
