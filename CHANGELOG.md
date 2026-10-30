@@ -4,6 +4,12 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+## 0.4.2 - 2026-10-30
+
+### GUI and maintenance updates since 0.4.1
+
+This release collects the integrated October 2026 GUI improvements and maintenance updates. Nonlinear-feedback UI changes under draft PR #24 are **not** included.
+
 ### October 2026 — JCO visual identity
 - Adopt the JCO Josephson-junction logo in the desktop application's About dialog and repository README; replace the placeholder lightning-bolt header icon with the final JCO icon.
 - Add vector branding assets under `docs/images/` and `gui/public/`, use the icon as the GUI favicon, and configure Electron Builder to generate Windows/Linux application icons from the SVG master in `gui/build/`.
