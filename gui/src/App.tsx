@@ -364,9 +364,9 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
                 key={item.id}
                 selected={section === item.id}
                 onClick={() => setSection(item.id)}
-                sx={{ borderRadius: 2, mb: 0.6, alignItems: 'flex-start', py: 1.2, '&.Mui-selected': { backgroundColor: 'primary.light', color: 'primary.main' } }}
+                sx={{ borderRadius: 2, mb: 0.6, alignItems: 'center', py: 1.2, '&.Mui-selected': { backgroundColor: 'primary.light', color: 'primary.main' } }}
               >
-                <ListItemIcon sx={{ minWidth: 40, color: 'inherit', mt: 0.2 }}>{item.icon}</ListItemIcon>
+                <ListItemIcon sx={{ minWidth: 44, width: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit' }}>{item.icon}</ListItemIcon>
                 <ListItemText
                   primary={item.label}
                   secondary={item.description}
@@ -404,21 +404,23 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
               Start from this new project, or open a bundled example from the ⋮ menu.
             </Alert>
           )}
-          {section === 'setup' && <SetupScreen />}
+          {section === 'setup' && <SetupScreen onRunRemaining={() => run()} onStop={stop} running={running} />}
           {section === 'run' && <RunScreen desktop={desktop} cancelling={cancelling} onRunRemaining={() => run()} onRunStage={(stage) => run([stage])} onStop={stop} />}
           {section === 'results' && <ResultsScreen />}
         </Box>
       </Box>
 
-      <Button
-        variant="contained"
-        color={running ? 'error' : 'primary'}
-        startIcon={running ? undefined : <PlayArrowRoundedIcon />}
-        onClick={running ? stop : () => run()}
-        sx={{ position: 'fixed', right: 28, bottom: 24, zIndex: 1200, borderRadius: 99, px: 2.4, py: 1.15, boxShadow: '0 8px 24px rgba(16,43,74,.26)' }}
-      >
-        {running ? 'Stop run' : 'Run remaining'}
-      </Button>
+      {section !== 'setup' && (
+        <Button
+          variant="contained"
+          color={running ? 'error' : 'primary'}
+          startIcon={running ? undefined : <PlayArrowRoundedIcon />}
+          onClick={running ? stop : () => run()}
+          sx={{ position: 'fixed', right: 28, bottom: 24, zIndex: 1200, borderRadius: 99, px: 2.4, py: 1.15, boxShadow: '0 8px 24px rgba(16,43,74,.26)' }}
+        >
+          {running ? 'Stop run' : 'Run remaining'}
+        </Button>
+      )}
       {draggingProject && <Box role="status" aria-label="Drop .jco project" sx={{ position: 'fixed', inset: 0, zIndex: 1600, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(13,29,49,.72)', border: '4px dashed', borderColor: 'secondary.main' }}>
         <Box sx={{ backgroundColor: 'background.paper', color: 'text.primary', borderRadius: 3, p: 5, textAlign: 'center', boxShadow: 8 }}>
           <Typography variant="h5">Drop your .jco project here</Typography>
