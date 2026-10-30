@@ -57,6 +57,13 @@ Branch: `feat/empty-run-cleanup-stored-units-file-drop`. The branch adds conserv
 - New nonlinear feedback UI work is isolated in **draft PR #24** (`feat/nonlinear-feedback-v0.4.2`), not merged into the release; that work must be retargeted to **v0.4.3** after this release.
 - Relative to `v0.4.1`, the current `main` is 27 commits ahead (GitHub compare at preparation time). No separate Julia/HB scientific reference validation is claimed.
 
+## v0.4.2 final visual polish (2026-10-30)
+
+- Candidate branch `fix/v0.4.2-final-ui-polish` builds on the already merged release preparation PR #25; this is a pre-tag fix for README presentation, workspace icon alignment and the Setup footer Run remaining overlay.
+- The fixed Run remaining action is removed only from the Setup floating position and preserved within its responsive footer; on Run/Results screens the existing floating action is unchanged.
+- PR #24 nonlinear feedback remains separate and excluded from v0.4.2. No Julia numerical or .jco schema changes are part of the polish.
+- GUI regression tests and GitHub Actions CI are the intended verification; visual desktop zoom checks remain desirable before distribution.
+
 ## Packaging validation state
 
 PR #6 final CI evidence:
