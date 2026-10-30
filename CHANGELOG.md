@@ -17,7 +17,7 @@ This changelog records completed user-relevant and development-process changes. 
 - Keep Fixed, Range and List parameter fields editable after importing a `.jco`; switching modes clears obsolete values (including Range stop/step) rather than leaving disabled fields populated. Serialize early drag-and-drop opening with startup initialization and clear the drop overlay on all exit paths, with interactive regression tests.
 
 ### October 2026 — GUI usability, results and display
-- Add Julia syntax colors, line numbers and synchronized scrolling to all four editable Setup code dialogs while preserving native text editing and exact project source; no new dependencies (Issue #4).
+- Add Julia syntax colors, line numbers, synchronized scrolling, and Tab/Shift+Tab four-space indentation (including selected lines) to all four editable Setup code dialogs while preserving the exact project source; no new dependencies (Issue #4).
 - Replace the Setup AC/DC source selector with exclusive buttons and retain the previous AC frequency only during GUI editing; export DC frequency as zero without persisting temporary AC history (PR #15).
 - Fix duplicate desktop scrolling and explain the shared intermodulation limit needed for first-order Linear-stage harmonic settings, without changing solver defaults (PRs #15–16).
 - Add two-point A/B comparison for Linear and Harmonic Balance landscapes, including compact parameter/metric differences and on-demand overlays of matching retained arrays without hidden X-axis resampling (PR #17).
