@@ -526,11 +526,7 @@ function MetricsStep() {
   )
 }
 
-export function SetupScreen({ onRunRemaining, onStop, running = false }: {
-  onRunRemaining?: () => void
-  onStop?: () => void
-  running?: boolean
-} = {}) {
+export function SetupScreen() {
   const step = useAppStore((state) => state.setupStep)
   const setStep = useAppStore((state) => state.setSetupStep)
   const project = useAppStore((state) => state.project)
@@ -556,12 +552,7 @@ export function SetupScreen({ onRunRemaining, onStop, running = false }: {
           </Stack>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: { xs: 'flex-start', lg: 'flex-end' }, gap: 1 }}>
             <Button startIcon={<ArrowBackRoundedIcon />} disabled={step === 0} onClick={() => go(step - 1)}>Back</Button>
-            <Button variant="outlined" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={() => go(step + 1)}>Next</Button>
-            {onRunRemaining && (
-              <Button variant="contained" color={running ? 'error' : 'primary'} startIcon={running ? undefined : <ElectricBoltRoundedIcon />} onClick={running ? onStop : onRunRemaining}>
-                {running ? 'Stop run' : 'Run remaining'}
-              </Button>
-            )}
+            <Button variant="contained" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={() => go(step + 1)}>Next</Button>
           </Box>
         </Stack>
       </Paper>
