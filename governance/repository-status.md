@@ -50,6 +50,14 @@ No packaging change intentionally modifies JCO numerical algorithms, scientific 
 
 Branch: `feat/empty-run-cleanup-stored-units-file-drop`. The branch adds conservative just-finished empty-run cleanup, saved per-run source display units, and `.jco` drag/drop. See `docs/work-items/WI_20261029_001_run_cleanup_units_drag_drop.md` and the **qualified** `docs/audits/AUD_20261029_002_run_cleanup_units_file_drop.md`. These are candidate changes, **not the verified main baseline** until merged and checked.
 
+## Candidate v0.4.2 — nonlinear feedback GUI (2026-10-30)
+
+- In-progress branch: `feat/nonlinear-feedback-v0.4.2` (not merged, not tagged, not published).
+- Last published release remains `v0.4.1`. `Project.toml`, `gui/package.json` and `gui/package-lock.json` are prepared for 0.4.2 on the feature branch only.
+- The GUI exposes existing backend correction-cycle and per-source fixed-reference-current inputs, while editing the existing Julia cost/performance source file for `user_nonlinear_correction`.
+- The feedback algorithm, correction formula and semantics have **not** been independently validated or changed. Existing projects remain eligible for import using the same input names; a real Julia/HB validation and release-tag workflow are still pending.
+- Work item: `docs/work-items/WI_20261030_001_nonlinear_feedback_gui.md`.
+
 ## Packaging validation state
 
 PR #6 final CI evidence:
