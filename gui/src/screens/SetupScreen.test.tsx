@@ -230,3 +230,29 @@ describe('Nonlinear feedback setup', () => {
     expect(screen.getByText(/S_linear contains the linear S-parameters/)).toBeTruthy()
   })
 })
+
+describe('Setup footer navigation', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: structuredClone(originalProject),
+      setupStep: 2,
+      dirty: false,
+    })
+  })
+  afterEach(() => cleanup())
+
+  it('contains Back and Next without a simulation action', () => {
+    render(<SetupScreen />)
+
+    const back = screen.getByRole('button', { name: 'Back' })
+    const next = screen.getByRole('button', { name: 'Next' })
+    const footer = next.closest('.MuiPaper-root')
+    expect(footer).not.toBeNull()
+    expect(footer?.contains(back)).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Run remaining' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Stop run' })).toBeNull()
+
+    fireEvent.click(back)
+    expect(useAppStore.getState().setupStep).toBe(1)
+  })
+})

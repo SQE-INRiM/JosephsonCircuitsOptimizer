@@ -7,6 +7,8 @@ import {
 } from './PointComparison'
 
 const readSavedTrace = vi.hoisted(() => vi.fn())
+const exportPlotCsv = vi.hoisted(() => vi.fn())
+vi.mock('../utils/plotCsv', () => ({ exportPlotCsv }))
 vi.mock('../services/jcoAdapter', () => ({
   getJcoAdapter: () => ({ readSavedTrace }),
 }))
@@ -74,6 +76,7 @@ describe('A/B selection', () => {
 describe('shared A/B result inspector', () => {
   beforeEach(() => {
     readSavedTrace.mockReset()
+    exportPlotCsv.mockReset()
     readSavedTrace.mockImplementation(async ({ stage, pointId }: { stage: string; pointId: number }) =>
       trace(pointId, stage))
   })
@@ -91,6 +94,15 @@ describe('shared A/B result inspector', () => {
     expect(readSavedTrace).toHaveBeenCalledTimes(2)
     expect(readSavedTrace).toHaveBeenCalledWith(expect.objectContaining({ runId: 'run-demo', stage, pointId: 1 }))
     expect(readSavedTrace).toHaveBeenCalledWith(expect.objectContaining({ runId: 'run-demo', stage, pointId: 2 }))
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
+    expect(exportPlotCsv).toHaveBeenCalledWith({
+      x: [5e9, 6e9, 7e9],
+      xLabel: 'frequency_hz',
+      series: [
+        { label: 'A · Point 1 · S21 · S21 (values)', values: [1, 2, 3] },
+        { label: 'B · Point 2 · S21 · S21 (values)', values: [2, 3, 4] },
+      ],
+    }, expect.stringMatching(new RegExp(`_${stage}_A1_B2_`)))
   })
 
   it('refuses to overlay mismatched frequency grids without resampling', async () => {
@@ -100,6 +112,8 @@ describe('shared A/B result inspector', () => {
     fireEvent.click(screen.getByRole('button', { name: 'S21' }))
     await waitFor(() => expect(screen.getByText(/different X samples/)).toBeTruthy())
     expect(screen.queryByTestId('overlay-chart')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull()
+    expect(exportPlotCsv).not.toHaveBeenCalled()
   })
 
   it('does not try to read retained arrays before B is selected', () => {

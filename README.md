@@ -1,9 +1,5 @@
 # JosephsonCircuitsOptimizer.jl (JCO)
 
-<p align="center">
-  <img src="docs/images/jco-logo.svg" alt="JCO — Josephson Circuits Optimizer" width="390">
-</p>
-
 **JosephsonCircuitsOptimizer.jl (JCO)** is a Julia framework for the automated exploration and optimization of superconducting Josephson circuits. It is built on [JosephsonCircuits.jl](https://josephsoncircuits.org/), which performs the circuit simulations, while JCO organizes them into a structured workflow for parameter exploration, optimization, and nonlinear analysis.
 
 JCO combines three levels of analysis:
@@ -228,3 +224,8 @@ https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer
 ## License
 
 JosephsonCircuitsOptimizer.jl is released under the [MIT License](LICENSE.md).
+
+<p align="center">
+  <img src="docs/images/jco-logo.svg" alt="JCO — Josephson Circuits Optimizer" width="320">
+</p>
+

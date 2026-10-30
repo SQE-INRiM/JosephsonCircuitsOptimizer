@@ -4,12 +4,13 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
-### Nonlinear feedback setup — v0.4.2 candidate (October 2026)
-- Expose optional nonlinear correction cycles and one fixed HB reference current per source in Setup; keep the feature disabled by default.
-- Show the user-defined `user_nonlinear_correction(S_linear, sol, device_params_set)` hook alongside cost/performance editing, clarifying that `user_cost` decides how to apply its returned scalar.
-- Preserve feedback inputs in existing JCO simulation/source JSON fields without changing the `.jco` schema; validate that enabled feedback has finite reference currents for every source.
-- Include the feedback hook in new-project placeholder code and demonstrate explicit use of the correction in the default Julia metric template.
-- Prepare synchronized Julia, Electron and npm-lock versions for v0.4.2; a GitHub release and independent HB validation remain pending.
+## 0.4.2 - 2026-10-30
+
+[Complete release notes](docs/releases/v0.4.2.md) · Windows installer/portable and Linux AppImage are published by the tag-driven GitHub Actions workflow.
+
+### GUI and maintenance updates since 0.4.1
+
+This release collects the integrated October 2026 GUI improvements and maintenance updates. Nonlinear-feedback UI changes under draft PR #24 are **not** included.
 
 ### October 2026 — JCO visual identity
 - Adopt the JCO Josephson-junction logo in the desktop application's About dialog and repository README; replace the placeholder lightning-bolt header icon with the final JCO icon.
@@ -24,6 +25,11 @@ This changelog records completed user-relevant and development-process changes. 
 - Keep Fixed, Range and List parameter fields editable after importing a `.jco`; switching modes clears obsolete values (including Range stop/step) rather than leaving disabled fields populated. Serialize early drag-and-drop opening with startup initialization and clear the drop overlay on all exit paths, with interactive regression tests.
 
 ### October 2026 — GUI usability, results and display
+- Export the currently plotted CSV traces consistently in Linear and Harmonic Balance, for single configuration and A/B overlays; preserve original Hz samples, the chosen real/imaginary/magnitude/phase component, and separate labeled columns for A/B without interpolation.
+- Extend plotted CSV export to Linear one-parameter metric curves and HB amplitude-response charts, preserving their displayed axis units.
+- Put the README's JCO branding logo after the scientific content and reference information and center Workspace navigation icons in their column.
+- Remove the global floating Run remaining action and restore a navigation-only Setup footer; retain Run/Stop controls exclusively within the Run screen.
+- Show a lightweight five-second completion notification for finished, failed or cancelled desktop simulations, with no persistent cross-screen status bar.
 - Add Julia syntax colors, line numbers, synchronized scrolling, and Tab/Shift+Tab four-space indentation (including selected lines) to all four editable Setup code dialogs while preserving the exact project source; no new dependencies (Issue #4).
 - Replace the Setup AC/DC source selector with exclusive buttons and retain the previous AC frequency only during GUI editing; export DC frequency as zero without persisting temporary AC history (PR #15).
 - Fix duplicate desktop scrolling and explain the shared intermodulation limit needed for first-order Linear-stage harmonic settings, without changing solver defaults (PRs #15–16).

@@ -615,7 +615,21 @@ export function SetupScreen() {
       {step === 0 && <ModelStep />}
       {step === 1 && <ComputationStep />}
       {step === 2 && <MetricsStep />}
-      <Paper variant="outlined" sx={{ p: 1.5 }}><Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}><CheckCircleOutlineRoundedIcon color={missingParameterCount ? 'warning' : 'success'} /><Box sx={{ flex: 1 }}><Typography variant="subtitle2">{missingParameterCount ? `${missingParameterCount} parameter${missingParameterCount === 1 ? '' : 's'} still need values` : 'Project setup complete'}</Typography><Typography variant="caption" color="text.secondary">{project.parameters.length} parameters · {project.sources.length} sources · {project.metrics.length} named metrics · schema {project.schemaVersion}</Typography></Box><Button startIcon={<ArrowBackRoundedIcon />} disabled={step === 0} onClick={() => go(step - 1)}>Back</Button><Button variant="contained" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={() => go(step + 1)}>Next</Button></Stack></Paper>
+      <Paper variant="outlined" sx={{ p: 1.5 }}>
+        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} sx={{ alignItems: { xs: 'stretch', lg: 'center' } }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
+            <CheckCircleOutlineRoundedIcon color={missingParameterCount ? 'warning' : 'success'} />
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle2">{missingParameterCount ? `${missingParameterCount} parameter${missingParameterCount === 1 ? '' : 's'} still need values` : 'Project setup complete'}</Typography>
+              <Typography variant="caption" color="text.secondary">{project.parameters.length} parameters · {project.sources.length} sources · {project.metrics.length} named metrics · schema {project.schemaVersion}</Typography>
+            </Box>
+          </Stack>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: { xs: 'flex-start', lg: 'flex-end' }, gap: 1 }}>
+            <Button startIcon={<ArrowBackRoundedIcon />} disabled={step === 0} onClick={() => go(step - 1)}>Back</Button>
+            <Button variant="contained" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={() => go(step + 1)}>Next</Button>
+          </Box>
+        </Stack>
+      </Paper>
     </Stack>
   )
 }

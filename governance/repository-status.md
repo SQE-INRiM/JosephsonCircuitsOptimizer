@@ -1,6 +1,6 @@
 # Repository Status
 
-Last governance refresh: 2026-10-29
+Last governance refresh: 2026-10-30
 
 ## Current development baseline
 
@@ -46,17 +46,32 @@ No packaging change intentionally modifies JCO numerical algorithms, scientific 
 - A retrospective T2 audit is recorded at `docs/audits/AUD_20261029_001_october_gui_prs.md`; status remains **qualified** because no new independent scientific reference or reproducible full OS/runtime test is claimed.
 - New code PRs use `.github/PULL_REQUEST_TEMPLATE.md`; the GitHub Governance check verifies five explicit documentation review decisions, rather than only file existence. ADR and audit documents remain conditional on impact.
 
-## Next candidate GUI changes (pending PR integration, 2026-10-29)
+## Integrated October run and Results improvements
 
-Branch: `feat/empty-run-cleanup-stored-units-file-drop`. The branch adds conservative just-finished empty-run cleanup, saved per-run source display units, and `.jco` drag/drop. See `docs/work-items/WI_20261029_001_run_cleanup_units_drag_drop.md` and the **qualified** `docs/audits/AUD_20261029_002_run_cleanup_units_file_drop.md`. These are candidate changes, **not the verified main baseline** until merged and checked.
+Conservative just-finished empty-run cleanup, saved per-run source display units and `.jco` drag/drop were merged before the v0.4.2 preparation. See `docs/work-items/WI_20261029_001_run_cleanup_units_drag_drop.md` and the **qualified** `docs/audits/AUD_20261029_002_run_cleanup_units_file_drop.md`. The work is included in `main`, not a pending baseline.
 
-## Candidate v0.4.2 — nonlinear feedback GUI (2026-10-30)
+## October GUI release candidate: v0.4.2
 
-- In-progress branch: `feat/nonlinear-feedback-v0.4.2` (not merged, not tagged, not published).
-- Last published release remains `v0.4.1`. `Project.toml`, `gui/package.json` and `gui/package-lock.json` are prepared for 0.4.2 on the feature branch only.
-- The GUI exposes existing backend correction-cycle and per-source fixed-reference-current inputs, while editing the existing Julia cost/performance source file for `user_nonlinear_correction`.
-- The feedback algorithm, correction formula and semantics have **not** been independently validated or changed. Existing projects remain eligible for import using the same input names; a real Julia/HB validation and release-tag workflow are still pending.
-- Work item: `docs/work-items/WI_20261030_001_nonlinear_feedback_gui.md`.
+- The release preparation PR #25, final visual polish PR #26, simplified Run-controls PR #27 and full plotted CSV exports PR #28 have **all merged into `main`**, through the last code merge `c066cb4` (2026-10-30).
+- The existing release branch `release/v0.4.2-october-gui` was **fast-forwarded to `main`** after PR #28, then used for the final documentation/notes changes. See `docs/releases/v0.4.2.md` and `CHANGELOG.md`.
+- Both root Julia `Project.toml` and Electron GUI `package.json` (plus npm lockfile) declare `0.4.2`.
+- Previous published GitHub release is **v0.4.1**. Publication of v0.4.2 is triggered by creating and pushing a `v0.4.2` tag on the **final merged `main` commit**; the existing `.github/workflows/release-desktop.yml` will build Windows Setup/Portable and Linux AppImage and publish the GitHub Release.
+- The new nonlinear feedback GUI remains isolated in **draft PR #24** and is **excluded** from v0.4.2; update it for **v0.4.3** after publication.
+- The final plot CSV PR #28 had **four successful PR-level checks**: governance, tests/renderer build, Windows package build and Linux AppImage. Separate installed-desktop scientific/HB reference validation is not claimed.
+
+## v0.4.2 final visual polish (2026-10-30)
+
+- PR #26 merged the README/logo positioning, Workspace icon alignment, and initial Setup footer changes. PR #27 subsequently removed the floating Run control and restored a navigation-only Setup footer.
+- Final decision: remove Run remaining from Setup footer and all floating page overlays; keep primary Run/Stop controls solely on the Run screen. A five-second notification reports completed, failed or cancelled runs from desktop run-finished events, with no persistent status indicator.
+- PR #24 nonlinear feedback remains separate and excluded from v0.4.2. No Julia numerical or .jco schema changes are part of the polish.
+- GUI regression tests and GitHub Actions CI are the intended verification; visual desktop zoom checks remain desirable before distribution.
+
+## Integrated Results CSV consistency (2026-10-30)
+
+- Merged PR #28 adds plotted-data CSV for the Linear/HB single-point and A/B overlays, plus Linear 1D and HB amplitude response charts.
+- Uses shared CSV formatting with unmodified frequency samples in Hz for retained arrays and distinct labeled A/B series; mismatched physical X grids remain non-comparable and cannot be exported as an overlay.
+- Focused unit/integration tests for CSV precision, escaping, incompatible axes and HB trace/response output passed in PR #28; numerical Julia simulation and persisted `.jco` inputs remain unchanged.
+- `v0.4.2` was still untagged at the time these release notes were prepared. Do not use an earlier SHA (such as `b4bb509` or `50f2df6`) for the release tag; choose the final merged `main` after the release-notes PR.
 
 ## Packaging validation state
 
@@ -82,7 +97,7 @@ Governance remains lightweight and advisory:
 - ADR 007 remains authoritative for Circuit Preview execution/topology boundaries;
 - `WI_20260911_001_example_project_workflow.md` / `AUD_20260911_001_example_project_workflow.md` retain the example/background-preview record;
 - `WI_20260911_002_installable_desktop_packages.md` / `AUD_20260911_002_installable_desktop_packages.md` track the T3 packaging change;
-- `CHANGELOG.md` keeps desktop-packaging and October GUI changes under `Unreleased` until a new version is published.
+- `CHANGELOG.md` now records the October GUI and desktop improvements under `0.4.2 - 2026-10-30`; the release remains a candidate until the matching tag is published.
 - PR documentation decisions are checked automatically for code/configuration changes; repository branch-protection settings control whether the status is mandatory for merging.
 
 ## Recovery rule
@@ -91,7 +106,7 @@ For multi-session work, record only what is needed to resume safely: last verifi
 
 ## Next safe action
 
-1. Confirm the new PR documentation-review workflow on a PR changing code and by editing the PR description; enable the **Governance check / governance** required status in GitHub branch protection/rulesets if unconditional blocking is desired.
-2. Perform targeted real-data GUI checks for A/B retained-trace overlays, dense heatmaps at 50% zoom and theme switching, recording actual platform/input evidence if performed.
-3. Update the user manual source/PDF with the installer-first workflow once the manual source is available; optionally validate Linux AppImage launch on Linux.
-4. Select the next release version, update version/changelog files as needed, then create the matching `v*` tag. Preserve pending qualifications until independently verified.
+1. Merge the v0.4.2 release-note documentation branch after checking its diff.
+2. Create and push the annotated `v0.4.2` tag on the final `main` merge commit; do not tag a stale release-preparation commit.
+3. Verify that the **Publish desktop release** tag-driven GitHub Actions workflow completes and the GitHub Release contains Windows Setup, Windows Portable and Linux AppImage assets.
+4. After publication, retarget the draft nonlinear feedback PR #24 toward v0.4.3. Keep real-data/installed-desktop scientific validation qualifications explicit.
