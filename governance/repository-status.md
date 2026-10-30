@@ -60,7 +60,7 @@ Branch: `feat/empty-run-cleanup-stored-units-file-drop`. The branch adds conserv
 ## v0.4.2 final visual polish (2026-10-30)
 
 - Candidate branch `fix/v0.4.2-final-ui-polish` builds on the already merged release preparation PR #25; this is a pre-tag fix for README presentation, workspace icon alignment and the Setup footer Run remaining overlay.
-- The fixed Run remaining action is removed only from the Setup floating position and preserved within its responsive footer; on Run/Results screens the existing floating action is unchanged.
+- Final decision: remove Run remaining from Setup footer and all floating page overlays; keep primary Run/Stop controls solely on the Run screen. A five-second notification reports completed, failed or cancelled runs from desktop run-finished events, with no persistent status indicator.
 - PR #24 nonlinear feedback remains separate and excluded from v0.4.2. No Julia numerical or .jco schema changes are part of the polish.
 - GUI regression tests and GitHub Actions CI are the intended verification; visual desktop zoom checks remain desirable before distribution.
 
