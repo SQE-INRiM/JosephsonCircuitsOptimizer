@@ -4,6 +4,9 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Windows desktop packaging
+- Recreate the `JCO GUI` Windows desktop shortcut when reinstalling/upgrading through the NSIS installer so legacy Electron shortcuts no longer retain their original icon. Preserve the configured native JCO `.ico` and the installer/portable target names. Existing published v0.4.2 downloads are unchanged.
+
 ## 0.4.2 - 2026-10-30
 
 [Complete release notes](docs/releases/v0.4.2.md) · Windows installer/portable and Linux AppImage are published by the tag-driven GitHub Actions workflow.
