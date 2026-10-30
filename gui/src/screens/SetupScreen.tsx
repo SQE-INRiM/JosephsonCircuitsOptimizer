@@ -46,6 +46,7 @@ import FunctionsRoundedIcon from '@mui/icons-material/FunctionsRounded'
 import MemoryRoundedIcon from '@mui/icons-material/MemoryRounded'
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
 import { CircuitPreviewSection } from '../components/CircuitPreviewSection'
+import { JuliaCodeEditor } from '../components/JuliaCodeEditor'
 import { useAppStore } from '../store'
 import type { ParameterMode, SetupStep, SourceAmplitudeUnit, SourceValueSpec } from '../types'
 import { convertSourceValueSpec, DEFAULT_SOURCE_IMPEDANCE_OHM } from '../utils/sourceUnits'
@@ -92,16 +93,7 @@ function CodeDialog({ open, onClose, title, filename, value, onChange }: {
         </Stack>
       </DialogTitle>
       <DialogContent sx={{ pt: '8px !important' }}>
-        <TextField
-          className="code-editor"
-          fullWidth
-          multiline
-          minRows={24}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          spellCheck={false}
-          sx={{ '& .MuiOutlinedInput-root': { alignItems: 'flex-start', backgroundColor: '#101826', color: '#dce7f3' } }}
-        />
+        <JuliaCodeEditor label={filename} value={value} onChange={onChange} />
       </DialogContent>
     </Dialog>
   )
