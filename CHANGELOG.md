@@ -23,6 +23,8 @@ This release collects the integrated October 2026 GUI improvements and maintenan
 - Keep Fixed, Range and List parameter fields editable after importing a `.jco`; switching modes clears obsolete values (including Range stop/step) rather than leaving disabled fields populated. Serialize early drag-and-drop opening with startup initialization and clear the drop overlay on all exit paths, with interactive regression tests.
 
 ### October 2026 — GUI usability, results and display
+- Export the currently plotted CSV traces consistently in Linear and Harmonic Balance, for single configuration and A/B overlays; preserve original Hz samples, the chosen real/imaginary/magnitude/phase component, and separate labeled columns for A/B without interpolation.
+- Extend plotted CSV export to Linear one-parameter metric curves and HB amplitude-response charts, preserving their displayed axis units.
 - Put the README's JCO branding logo after the scientific content and reference information and center Workspace navigation icons in their column.
 - Remove the global floating Run remaining action and restore a navigation-only Setup footer; retain Run/Stop controls exclusively within the Run screen.
 - Show a lightweight five-second completion notification for finished, failed or cancelled desktop simulations, with no persistent cross-screen status bar.
