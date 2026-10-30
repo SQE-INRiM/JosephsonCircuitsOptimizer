@@ -414,6 +414,12 @@ function ComputationStep() {
   const project = useAppStore((state) => state.project)
   const config = project.computation
   const update = useAppStore((state) => state.updateComputation)
+  const updateSource = useAppStore((state) => state.updateSource)
+  const feedbackEnabled = config.nonlinearCorrectionCycles > 0
+  const invalidFeedbackSources = project.sources.filter((source) => {
+    const value = source.extras?.non_linear_amplitude_for_delta_correction
+    return value === undefined || value === null || String(value).trim() === '' || !Number.isFinite(Number(value))
+  })
   const frequencyPoints = Math.floor(((config.frequencyStopGHz - config.frequencyStartGHz) * 1000) / config.frequencyStepMHz) + 1
   const variableParameterCount = project.parameters.filter((parameter) => parameter.mode !== 'Fixed').length
   const linearFirstOrder = config.linearStrongToneHarmonics === 1
@@ -446,6 +452,57 @@ function ComputationStep() {
           </Stack>
         </CardContent></Card>
       </Stack>
+
+      <Card variant="outlined"><CardContent>
+        <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear feedback" description="Optional iterative correction of the linear objective using pumped HB results." />
+        <Stack spacing={2} sx={{ mt: 2.5 }}>
+          <FormControlLabel
+            control={<Checkbox checked={feedbackEnabled} onChange={(event) => update({ nonlinearCorrectionCycles: event.target.checked ? 1 : 0 })} />}
+            label="Enable nonlinear feedback (full runs only)"
+          />
+          {feedbackEnabled && (
+            <>
+              <Box sx={{ maxWidth: 260 }}>
+                <NumberField
+                  label="Correction cycles"
+                  value={config.nonlinearCorrectionCycles}
+                  onChange={(value) => update({ nonlinearCorrectionCycles: Math.max(1, Math.floor(value || 1)) })}
+                />
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                Specify one fixed reference amplitude for each source. These are separate from the nonlinear sweep values and are passed to the HB correction calculation in amperes.
+              </Typography>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                {project.sources.map((source) => (
+                  <TextField
+                    key={source.id}
+                    size="small"
+                    label={source.name + ' reference amplitude (A)'}
+                    value={String(source.extras?.non_linear_amplitude_for_delta_correction ?? '')}
+                    onChange={(event) => {
+                      const extras = { ...source.extras }
+                      const value = event.target.value.trim()
+                      if (value === '') delete extras.non_linear_amplitude_for_delta_correction
+                      else extras.non_linear_amplitude_for_delta_correction = event.target.value
+                      updateSource(source.id, { extras })
+                    }}
+                    error={invalidFeedbackSources.some((item) => item.id === source.id)}
+                    helperText={source.isDc ? 'DC bias current in A' : 'Pump current in A (not dBm)'}
+                    sx={{ flex: 1 }}
+                  />
+                ))}
+              </Stack>
+              {invalidFeedbackSources.length > 0 && (
+                <Alert severity="warning">Every source needs a finite reference amplitude (in A) before a feedback run can be saved and executed.</Alert>
+              )}
+              {variableParameterCount === 0 && (
+                <Alert severity="warning">Feedback cycles are skipped for a single fixed device configuration. At least one design parameter must vary.</Alert>
+              )}
+              <Alert severity="info">The correction is computed by <code>user_nonlinear_correction</code> and passed to <code>user_cost</code>. The user-defined cost function decides how to apply it. You can edit both functions under Metrics &amp; constraints.</Alert>
+            </>
+          )}
+        </Stack>
+      </CardContent></Card>
 
       <Card variant="outlined"><CardContent>
         <SectionHeading icon={<MemoryRoundedIcon />} title="Harmonic and solver settings" description="Stage-specific harmonic truncation and shared JosephsonCircuits hbsolve controls." />
@@ -493,7 +550,10 @@ function MetricsStep() {
   const project = useAppStore((state) => state.project)
   const updateMetricsCode = useAppStore((state) => state.updateMetricsCode)
   const [metricsOpen, setMetricsOpen] = useState(false)
+  const [metricsEditorTitle, setMetricsEditorTitle] = useState('Cost & performance')
   const [helpersOpen, setHelpersOpen] = useState(false)
+  const hasCorrection = /\bfunction\s+user_nonlinear_correction\s*\(/.test(project.metricsCode.replace(/#=[\s\S]*?=#/g, '').replace(/#.*$/gm, ''))
+  const feedbackEnabled = project.computation.nonlinearCorrectionCycles > 0
   const hasCost = project.metrics.some((metric) => metric.source === 'user_cost')
   const hasPerformance = project.metrics.some((metric) => metric.source === 'user_performance')
   const updateHelpersCode = (helpersCode: string) => {
@@ -509,7 +569,7 @@ function MetricsStep() {
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
           <SectionHeading icon={<FunctionsRoundedIcon />} title="Cost & performance outputs" description="The list is generated from the named values returned by the two Julia functions." />
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" startIcon={<CodeRoundedIcon />} onClick={() => setMetricsOpen(true)}>Cost & performance</Button>
+            <Button variant="outlined" startIcon={<CodeRoundedIcon />} onClick={() => { setMetricsEditorTitle('Cost & performance'); setMetricsOpen(true) }}>Cost & performance</Button>
             <Button variant="outlined" startIcon={<CodeRoundedIcon />} onClick={() => setHelpersOpen(true)}>Metric helpers</Button>
           </Stack>
         </Stack>
@@ -520,7 +580,21 @@ function MetricsStep() {
         </TableContainer>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>Constraints and masks remain conditions inside <code>user_cost</code>. Return their measured quantities as additional named values when you also want them in the saved analysis dataset.</Typography>
       </Paper>
-      <CodeDialog open={metricsOpen} onClose={() => setMetricsOpen(false)} title="Cost & performance" filename="user_cost_and_performance.jl" value={project.metricsCode} onChange={updateMetricsCode} />
+      <Paper variant="outlined" sx={{ p: 2.5 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: { md: 'center' }, justifyContent: 'space-between' }}>
+          <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear feedback function" description="The optional correction is defined in the same user_cost_and_performance.jl file." />
+          <Button variant="outlined" startIcon={<CodeRoundedIcon />} onClick={() => { setMetricsEditorTitle('Nonlinear feedback'); setMetricsOpen(true) }}>Edit feedback function</Button>
+        </Stack>
+        <Typography variant="body2" sx={{ mt: 2, fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
+          user_nonlinear_correction(S_linear, sol, device_params_set)
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          S_linear contains the linear S-parameters; sol is the complete nonlinear HB solution. The returned correction is supplied as the third argument of user_cost. It is not added to the metric automatically.
+        </Typography>
+        {feedbackEnabled && !hasCorrection && <Alert severity="warning" sx={{ mt: 2 }}>Nonlinear feedback is enabled, but <code>user_nonlinear_correction</code> is not defined.</Alert>}
+        {!hasCorrection && !feedbackEnabled && <Alert severity="info" sx={{ mt: 2 }}>Define <code>user_nonlinear_correction</code> before enabling feedback. The nonlinear sweep also expects this hook to exist.</Alert>}
+      </Paper>
+      <CodeDialog open={metricsOpen} onClose={() => setMetricsOpen(false)} title={metricsEditorTitle} filename="user_cost_and_performance.jl" value={project.metricsCode} onChange={updateMetricsCode} />
       <CodeDialog open={helpersOpen} onClose={() => setHelpersOpen(false)} title="Metric helper functions" filename="user_metric_utils.jl" value={project.helpersCode ?? ''} onChange={updateHelpersCode} />
     </Stack>
   )
