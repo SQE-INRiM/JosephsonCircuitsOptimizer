@@ -9,10 +9,10 @@ const guiRoot = path.resolve(__dirname, '..')
 const builderConfig = fs.readFileSync(path.join(guiRoot, 'electron-builder.yml'), 'utf8')
 
 test('Windows NSIS updates the desktop shortcut instead of preserving the old icon', () => {
-  const nsisMatch = builderConfig.match(/^nsis:\r?\n([\s\S]*?)(?=^[a-zA-Z][\w-]*:|\s*$)/m)
-  assert.ok(nsisMatch, 'NSIS config section must exist')
-  assert.match(nsisMatch[1], /^  createDesktopShortcut: always\s*$/m)
-  assert.match(nsisMatch[1], /^  shortcutName: JCO GUI\s*$/m)
+  const nsisBlock = builderConfig.split(/\r?\nnsis:\r?\n/)[1]?.split(/\r?\n(?=[a-zA-Z][\w-]*:)/)[0]
+  assert.ok(nsisBlock, 'NSIS config section must exist')
+  assert.match(nsisBlock, /^  createDesktopShortcut: always\s*$/m)
+  assert.match(nsisBlock, /^  shortcutName: JCO GUI\s*$/m)
   assert.match(builderConfig, /^win:\r?\n  icon: build\/icon\.ico\s*$/m)
 })
 
