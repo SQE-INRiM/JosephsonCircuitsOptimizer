@@ -46,30 +46,32 @@ No packaging change intentionally modifies JCO numerical algorithms, scientific 
 - A retrospective T2 audit is recorded at `docs/audits/AUD_20261029_001_october_gui_prs.md`; status remains **qualified** because no new independent scientific reference or reproducible full OS/runtime test is claimed.
 - New code PRs use `.github/PULL_REQUEST_TEMPLATE.md`; the GitHub Governance check verifies five explicit documentation review decisions, rather than only file existence. ADR and audit documents remain conditional on impact.
 
-## Next candidate GUI changes (pending PR integration, 2026-10-29)
+## Integrated October run and Results improvements
 
-Branch: `feat/empty-run-cleanup-stored-units-file-drop`. The branch adds conservative just-finished empty-run cleanup, saved per-run source display units, and `.jco` drag/drop. See `docs/work-items/WI_20261029_001_run_cleanup_units_drag_drop.md` and the **qualified** `docs/audits/AUD_20261029_002_run_cleanup_units_file_drop.md`. These are candidate changes, **not the verified main baseline** until merged and checked.
+Conservative just-finished empty-run cleanup, saved per-run source display units and `.jco` drag/drop were merged before the v0.4.2 preparation. See `docs/work-items/WI_20261029_001_run_cleanup_units_drag_drop.md` and the **qualified** `docs/audits/AUD_20261029_002_run_cleanup_units_file_drop.md`. The work is included in `main`, not a pending baseline.
 
 ## October GUI release candidate: v0.4.2
 
-- Release preparation branch: `release/v0.4.2-october-gui`, based on `main` at `7ad1f41`; this release contains only October improvements already integrated in `main`, with no nonlinear feedback changes.
-- Previous published release: `v0.4.1`. Version metadata and dated changelog are prepared on the release branch for `v0.4.2`; tag creation, release packaging and publication are pending until merge and tag push.
-- New nonlinear feedback UI work is isolated in **draft PR #24** (`feat/nonlinear-feedback-v0.4.2`), not merged into the release; that work must be retargeted to **v0.4.3** after this release.
-- Relative to `v0.4.1`, the current `main` is 27 commits ahead (GitHub compare at preparation time). No separate Julia/HB scientific reference validation is claimed.
+- The release preparation PR #25, final visual polish PR #26, simplified Run-controls PR #27 and full plotted CSV exports PR #28 have **all merged into `main`**, through the last code merge `c066cb4` (2026-10-30).
+- The existing release branch `release/v0.4.2-october-gui` was **fast-forwarded to `main`** after PR #28, then used for the final documentation/notes changes. See `docs/releases/v0.4.2.md` and `CHANGELOG.md`.
+- Both root Julia `Project.toml` and Electron GUI `package.json` (plus npm lockfile) declare `0.4.2`.
+- Previous published GitHub release is **v0.4.1**. Publication of v0.4.2 is triggered by creating and pushing a `v0.4.2` tag on the **final merged `main` commit**; the existing `.github/workflows/release-desktop.yml` will build Windows Setup/Portable and Linux AppImage and publish the GitHub Release.
+- The new nonlinear feedback GUI remains isolated in **draft PR #24** and is **excluded** from v0.4.2; update it for **v0.4.3** after publication.
+- The final plot CSV PR #28 had **four successful PR-level checks**: governance, tests/renderer build, Windows package build and Linux AppImage. Separate installed-desktop scientific/HB reference validation is not claimed.
 
 ## v0.4.2 final visual polish (2026-10-30)
 
-- Candidate branch `fix/v0.4.2-final-ui-polish` builds on the already merged release preparation PR #25; this is a pre-tag fix for README presentation, workspace icon alignment and the Setup footer Run remaining overlay.
+- PR #26 merged the README/logo positioning, Workspace icon alignment, and initial Setup footer changes. PR #27 subsequently removed the floating Run control and restored a navigation-only Setup footer.
 - Final decision: remove Run remaining from Setup footer and all floating page overlays; keep primary Run/Stop controls solely on the Run screen. A five-second notification reports completed, failed or cancelled runs from desktop run-finished events, with no persistent status indicator.
 - PR #24 nonlinear feedback remains separate and excluded from v0.4.2. No Julia numerical or .jco schema changes are part of the polish.
 - GUI regression tests and GitHub Actions CI are the intended verification; visual desktop zoom checks remain desirable before distribution.
 
-## Candidate pre-tag Results CSV consistency (2026-10-30)
+## Integrated Results CSV consistency (2026-10-30)
 
-- Branch `feat/v0.4.2-results-plot-csv` adds plotted-data CSV for the Linear/HB single-point and A/B overlays, plus Linear 1D and HB amplitude response charts.
+- Merged PR #28 adds plotted-data CSV for the Linear/HB single-point and A/B overlays, plus Linear 1D and HB amplitude response charts.
 - Uses shared CSV formatting with unmodified frequency samples in Hz for retained arrays and distinct labeled A/B series; mismatched physical X grids remain non-comparable and cannot be exported as an overlay.
-- Add focused unit/integration tests for CSV precision, escaping, incompatible axes and HB trace/response output; numerical Julia simulation and persisted `.jco` inputs remain unchanged.
-- `v0.4.2` remains untagged until these pre-release GUI changes are reviewed, CI passes and the final merged main SHA is used.
+- Focused unit/integration tests for CSV precision, escaping, incompatible axes and HB trace/response output passed in PR #28; numerical Julia simulation and persisted `.jco` inputs remain unchanged.
+- `v0.4.2` was still untagged at the time these release notes were prepared. Do not use an earlier SHA (such as `b4bb509` or `50f2df6`) for the release tag; choose the final merged `main` after the release-notes PR.
 
 ## Packaging validation state
 
