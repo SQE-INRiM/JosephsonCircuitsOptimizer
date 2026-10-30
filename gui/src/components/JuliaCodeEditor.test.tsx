@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { JuliaCodeEditor } from './JuliaCodeEditor'
 
@@ -40,5 +41,41 @@ describe('JuliaCodeEditor', () => {
     const { container } = render(<JuliaCodeEditor value={source} onChange={() => {}} label="Julia source" />)
     expect(container.querySelector('.jco-julia-highlight')?.textContent).toBe(source)
     expect(container.querySelector('.jco-julia-highlight img')).toBeNull()
+  })
+})
+
+
+function ControlledEditor({ initial }: { initial: string }) {
+  const [value, setValue] = useState(initial)
+  return <JuliaCodeEditor value={value} onChange={setValue} label="Editable Julia" />
+}
+
+describe('JuliaCodeEditor indentation keys', () => {
+  it('inserts four real spaces on Tab and restores the caret after React rerenders', () => {
+    render(<ControlledEditor initial="foo" />)
+    const editor = screen.getByRole('textbox', { name: 'Editable Julia' }) as HTMLTextAreaElement
+    editor.focus()
+    editor.setSelectionRange(2, 2)
+    fireEvent.keyDown(editor, { key: 'Tab', code: 'Tab' })
+    expect(editor.value).toBe('fo    o')
+    expect(editor.selectionStart).toBe(6)
+    expect(editor.selectionEnd).toBe(6)
+    expect(document.activeElement).toBe(editor)
+  })
+
+  it('indents selected Julia lines and reverses the indentation with Shift+Tab', () => {
+    const { container } = render(<ControlledEditor initial={'one\ntwo'} />)
+    const editor = screen.getByRole('textbox', { name: 'Editable Julia' }) as HTMLTextAreaElement
+    editor.setSelectionRange(0, editor.value.length)
+    fireEvent.keyDown(editor, { key: 'Tab', code: 'Tab' })
+    expect(editor.value).toBe('    one\n    two')
+    expect(editor.selectionStart).toBe(0)
+    expect(editor.selectionEnd).toBe(editor.value.length)
+    expect(container.querySelector('.jco-julia-highlight')?.textContent).toBe(editor.value)
+
+    fireEvent.keyDown(editor, { key: 'Tab', code: 'Tab', shiftKey: true })
+    expect(editor.value).toBe('one\ntwo')
+    expect(editor.selectionStart).toBe(0)
+    expect(editor.selectionEnd).toBe(editor.value.length)
   })
 })
