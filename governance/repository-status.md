@@ -73,6 +73,13 @@ Conservative just-finished empty-run cleanup, saved per-run source display units
 - Focused unit/integration tests for CSV precision, escaping, incompatible axes and HB trace/response output passed in PR #28; numerical Julia simulation and persisted `.jco` inputs remain unchanged.
 - `v0.4.2` was still untagged at the time these release notes were prepared. Do not use an earlier SHA (such as `b4bb509` or `50f2df6`) for the release tag; choose the final merged `main` after the release-notes PR.
 
+## Published baseline and draft nonlinear feedback candidate (2026-10-30)
+
+- **v0.4.2 published** on GitHub at `abd2663380e1e8853605d1a6482dc3294a942d38` with three desktop assets: Windows installer/portable and Linux AppImage.
+- Existing draft PR **#24**, with the historical branch name `feat/nonlinear-feedback-v0.4.2`, is now reconciled with the complete published `main` tree and targets **v0.4.3**.
+- This candidate exposes existing nonlinear correction hooks and serializes feedback input through the established project keys. It does not establish scientific validity of multicycle HB corrections or guarantee optimization improvement.
+- Check merged branch npm/desktop CI, editable source hooks, serialized `.jco` roundtrips and real Julia feedback output before moving the PR out of draft. No version 0.4.3 release has been issued.
+
 ## Packaging validation state
 
 PR #6 final CI evidence:
@@ -97,7 +104,7 @@ Governance remains lightweight and advisory:
 - ADR 007 remains authoritative for Circuit Preview execution/topology boundaries;
 - `WI_20260911_001_example_project_workflow.md` / `AUD_20260911_001_example_project_workflow.md` retain the example/background-preview record;
 - `WI_20260911_002_installable_desktop_packages.md` / `AUD_20260911_002_installable_desktop_packages.md` track the T3 packaging change;
-- `CHANGELOG.md` now records the October GUI and desktop improvements under `0.4.2 - 2026-10-30`; the release remains a candidate until the matching tag is published.
+- `CHANGELOG.md` records the published October GUI improvements under `0.4.2 - 2026-10-30` and the proposed feedback GUI under `Unreleased`.
 - PR documentation decisions are checked automatically for code/configuration changes; repository branch-protection settings control whether the status is mandatory for merging.
 
 ## Recovery rule
@@ -106,7 +113,6 @@ For multi-session work, record only what is needed to resume safely: last verifi
 
 ## Next safe action
 
-1. Merge the v0.4.2 release-note documentation branch after checking its diff.
-2. Create and push the annotated `v0.4.2` tag on the final `main` merge commit; do not tag a stale release-preparation commit.
-3. Verify that the **Publish desktop release** tag-driven GitHub Actions workflow completes and the GitHub Release contains Windows Setup, Windows Portable and Linux AppImage assets.
-4. After publication, retarget the draft nonlinear feedback PR #24 toward v0.4.3. Keep real-data/installed-desktop scientific validation qualifications explicit.
+1. Review draft PR #24 Setup feedback controls and serialization on a representative multi-source `.jco`.
+2. Verify a real Julia full-workflow correction cycle; validate `user_cost` and `user_nonlinear_correction` semantics and selected HB working points, with explicit reference outputs.
+3. Keep PR #24 in draft until GUI and numerical behavior have been reviewed; then merge and prepare v0.4.3 separately.
