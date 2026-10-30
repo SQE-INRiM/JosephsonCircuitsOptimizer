@@ -52,7 +52,7 @@ const placeholderCode = `function create_user_circuit(device_params_set)
 end`
 
 const placeholderMetrics = `function user_cost(S, device_params_set, nonlinear_correction)
-    metric = 0.0
+    metric = 0.0 + nonlinear_correction
     reflection = 0.0
     phase_mismatch = 0.0
     return (metric = metric, reflection = reflection, phase_mismatch = phase_mismatch)
@@ -62,6 +62,11 @@ function user_performance(sol, device_params_set, source_amps, source_freqs)
     performance = 0.0
     gain_ripple = 0.0
     return (performance = performance, gain_ripple = gain_ripple)
+end
+
+function user_nonlinear_correction(S_linear, sol, device_params_set)
+    # Optional nonlinear feedback hook. Return a scalar correction.
+    return 0.0
 end`
 
 const initialProject: ProjectModel = {

@@ -383,6 +383,19 @@ function saveProjectModel(workspace, project) {
   const parameters = Object.fromEntries(project.parameters.map((parameter) => [parameter.name, parameterToJson(parameter)]))
   const parameterUnits = Object.fromEntries(project.parameters.map((parameter) => [parameter.name, String(parameter.unit ?? '—')]))
   const c = project.computation
+  const feedbackCycles = Number(c.nonlinearCorrectionCycles ?? 0)
+  if (!Number.isInteger(feedbackCycles) || feedbackCycles < 0) {
+    throw new Error('Nonlinear feedback cycles must be a nonnegative integer.')
+  }
+  if (feedbackCycles > 0) {
+    if (!project.sources.length) throw new Error('Nonlinear feedback requires at least one configured source.')
+    for (const source of project.sources) {
+      const value = source.extras?.non_linear_amplitude_for_delta_correction
+      if (value === undefined || value === null || String(value).trim() === '' || !Number.isFinite(Number(value))) {
+        throw new Error('Nonlinear feedback requires a finite reference amplitude (A) for ' + source.name + '.')
+      }
+    }
+  }
   existingDrives.frequency_range = { start: c.frequencyStartGHz * 1e9, step: c.frequencyStepMHz * 1e6, stop: c.frequencyStopGHz * 1e9 }
   for (const key of Object.keys(existingDrives)) {
     if (/^source_\d+_/.test(key)) delete existingDrives[key]
@@ -404,7 +417,16 @@ function saveProjectModel(workspace, project) {
       linearAmplitude: source.linearAmplitude,
       nonlinearAmplitude: source.nonlinearAmplitude,
     }
-    for (const [suffix, value] of Object.entries(source.extras || {})) existingDrives[`source_${id}_${suffix}`] = value
+    for (const [suffix, value] of Object.entries(source.extras || {})) {
+      if (suffix === 'non_linear_amplitude_for_delta_correction') {
+        if (value === undefined || value === null || String(value).trim() === '') continue
+        const currentA = Number(value)
+        if (!Number.isFinite(currentA)) throw new Error('Invalid nonlinear feedback reference amplitude (A) for ' + source.name + '.')
+        existingDrives[`source_${id}_${suffix}`] = currentA
+      } else {
+        existingDrives[`source_${id}_${suffix}`] = value
+      }
+    }
   }
   Object.assign(existingSim, {
     linear_strong_tone_harmonics: c.linearStrongToneHarmonics,

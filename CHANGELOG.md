@@ -4,6 +4,13 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### v0.4.3 candidate — Nonlinear feedback GUI (draft PR #24)
+
+- Add optional nonlinear-feedback controls in the Setup computation panel: enable/disable, correction-cycle count, and per-source fixed reference current in amperes, independent from the swept nonlinear pump amplitudes.
+- Make `user_nonlinear_correction(S_linear, sol, device_params_set)` discoverable from the Metrics editor. The third argument of `user_cost` continues to receive the correction; no numerical scientific definition is changed by the GUI.
+- Store cycles and reference currents in the existing `.jco` input keys; default feedback to off (0 cycles) for new projects and validate numeric source values when enabled.
+- Add renderer/serialization regression tests. Real multi-cycle Julia harmonic-balance runs and scientific correction behavior remain to be validated before a v0.4.3 release.
+
 ## 0.4.2 - 2026-10-30
 
 [Complete release notes](docs/releases/v0.4.2.md) · Windows installer/portable and Linux AppImage are published by the tag-driven GitHub Actions workflow.

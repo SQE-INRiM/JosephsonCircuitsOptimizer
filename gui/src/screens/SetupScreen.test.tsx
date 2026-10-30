@@ -186,6 +186,51 @@ describe('Device parameter mode editor regression', () => {
   })
 })
 
+describe('Nonlinear feedback setup', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: structuredClone(originalProject),
+      setupStep: 1,
+      dirty: false,
+    })
+  })
+
+  afterEach(() => cleanup())
+
+  it('is disabled by default and preserves per-source reference currents when toggled', () => {
+    render(<SetupScreen />)
+    const enable = screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ })
+    expect((enable as HTMLInputElement).checked).toBe(false)
+    expect(screen.queryByRole('spinbutton', { name: 'Correction cycles' })).toBeNull()
+
+    fireEvent.click(enable)
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(1)
+    expect(screen.getByText(/Every source needs a finite reference amplitude/)).toBeTruthy()
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Correction cycles' }), { target: { value: '3' } })
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(3)
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Source 1 reference amplitude (A)' }), { target: { value: '1e-6' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Source 2 reference amplitude (A)' }), { target: { value: '-0.0001' } })
+    expect(useAppStore.getState().project.sources.map((source) => source.extras?.non_linear_amplitude_for_delta_correction))
+      .toEqual(['1e-6', '-0.0001'])
+    expect(screen.queryByText(/Every source needs a finite reference amplitude/)).toBeNull()
+
+    fireEvent.click(enable)
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(0)
+    fireEvent.click(enable)
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(1)
+    expect((screen.getByRole('textbox', { name: 'Source 1 reference amplitude (A)' }) as HTMLInputElement).value).toBe('1e-6')
+  })
+
+  it('shows where to edit the Julia feedback function without changing its meaning', () => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    expect(screen.getByRole('button', { name: 'Edit feedback function' })).toBeTruthy()
+    expect(screen.getByText(/S_linear contains the linear S-parameters/)).toBeTruthy()
+  })
+})
+
 describe('Setup footer navigation', () => {
   beforeEach(() => {
     useAppStore.setState({

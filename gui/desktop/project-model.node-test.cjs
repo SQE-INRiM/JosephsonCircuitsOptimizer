@@ -136,3 +136,43 @@ test('AC source editing history is not persisted in the .jco metadata', () => {
     fs.rmSync(workspace, { recursive: true, force: true })
   }
 })
+
+test('round-trips nonlinear feedback cycles and numeric per-source HB reference amplitudes', () => {
+  const workspace = makeWorkspace()
+  try {
+    const project = loadProjectModel(workspace, null, { name: 'Feedback setup test' })
+    project.computation.nonlinearCorrectionCycles = 2
+    project.sources[0].extras = { ...project.sources[0].extras, non_linear_amplitude_for_delta_correction: '1e-6' }
+
+    saveProjectModel(workspace, project)
+    const drives = JSON.parse(fs.readFileSync(path.join(workspace, 'user_inputs', 'drive_physical_quantities.json'), 'utf8'))
+    const sim = JSON.parse(fs.readFileSync(path.join(workspace, 'user_inputs', 'simulation_config.json'), 'utf8'))
+    assert.equal(drives.source_1_non_linear_amplitude_for_delta_correction, 1e-6)
+    assert.equal(sim.n_iterations_nonlinear_correction, 2)
+
+    const reloaded = loadProjectModel(workspace, null, { name: 'Feedback setup test' })
+    assert.equal(reloaded.computation.nonlinearCorrectionCycles, 2)
+    assert.equal(reloaded.sources[0].extras.non_linear_amplitude_for_delta_correction, 1e-6)
+  } finally {
+    fs.rmSync(workspace, { recursive: true, force: true })
+  }
+})
+
+test('rejects feedback-enabled saves with missing or nonnumeric reference currents', () => {
+  const workspace = makeWorkspace()
+  try {
+    const project = loadProjectModel(workspace, null, { name: 'Feedback validation test' })
+    project.computation.nonlinearCorrectionCycles = 1
+    assert.throws(() => saveProjectModel(workspace, project), /requires a finite reference amplitude/)
+
+    project.sources[0].extras = { non_linear_amplitude_for_delta_correction: 'not-a-current' }
+    assert.throws(() => saveProjectModel(workspace, project), /requires a finite reference amplitude/)
+
+    project.sources[0].extras = { non_linear_amplitude_for_delta_correction: '0' }
+    assert.doesNotThrow(() => saveProjectModel(workspace, project))
+    const drives = JSON.parse(fs.readFileSync(path.join(workspace, 'user_inputs', 'drive_physical_quantities.json'), 'utf8'))
+    assert.equal(drives.source_1_non_linear_amplitude_for_delta_correction, 0)
+  } finally {
+    fs.rmSync(workspace, { recursive: true, force: true })
+  }
+})

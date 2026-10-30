@@ -1,7 +1,7 @@
 {
   "name": "jco-gui-prototype",
   "private": true,
-  "version": "0.4.2",
+  "version": "0.4.3",
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {

@@ -13,5 +13,5 @@
   "trace_storage_mode": "selected",
   "threewavemixing": false,
   "fourwavemixing": true,
-  "n_iterations_nonlinear_correction": 5
+  "n_iterations_nonlinear_correction": 0
 }
