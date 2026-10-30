@@ -80,6 +80,8 @@ JCO-GUI-<version>-Windows-Setup.exe
 
 and run the installer. It installs JCO-GUI as a normal per-user Windows application with Start Menu and desktop shortcuts.
 
+If an existing **JCO GUI** desktop shortcut still shows the old Electron icon after an upgrade, delete **only the shortcut** (not the installed app) and create a new shortcut from the installed **JCO GUI** application via the Start Menu or its executable. Windows may briefly keep the previous icon in its Explorer cache. New installer builds also recreate the desktop shortcut on reinstall.
+
 A portable build is also provided:
 
 ```text

@@ -39,7 +39,9 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  createDesktopShortcut: true
+  # Rebuild the .lnk also on reinstall so it picks up the current JCO exe/icon.
+  # Electron Builder's default true may preserve a shortcut made by older versions.
+  createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: JCO GUI
   artifactName: JCO-GUI-${version}-Windows-Setup.${ext}

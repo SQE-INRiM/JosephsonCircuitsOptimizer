@@ -73,6 +73,12 @@ Conservative just-finished empty-run cleanup, saved per-run source display units
 - Focused unit/integration tests for CSV precision, escaping, incompatible axes and HB trace/response output passed in PR #28; numerical Julia simulation and persisted `.jco` inputs remain unchanged.
 - `v0.4.2` was still untagged at the time these release notes were prepared. Do not use an earlier SHA (such as `b4bb509` or `50f2df6`) for the release tag; choose the final merged `main` after the release-notes PR.
 
+## Windows desktop shortcut icon refresh — separate packaging fix
+
+- A dedicated packaging PR changes the NSIS setting `createDesktopShortcut` from `true` to `always` so a reinstall replaces a desktop shortcut made by earlier Electron-based JCO versions; `win.icon: build/icon.ico` continues to point to the existing JCO icon.
+- The update affects **future Windows installers** (not the published v0.4.2 files), and it does not alter Julia/GUI runtime behavior or the nonlinear feedback draft PR #24.
+- The packaging regression test checks the NSIS configuration and that the committed ICO is a structurally valid multi-image Windows icon. A real Windows upgrade/Explorer icon-cache check remains desirable.
+
 ## Packaging validation state
 
 PR #6 final CI evidence:
