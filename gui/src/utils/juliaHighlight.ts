@@ -13,6 +13,7 @@ const LITERALS = new Set(['true', 'false', 'nothing', 'missing', 'Inf', 'NaN', '
 const IDENTIFIER = /[\p{L}_][\p{L}\p{N}_!?]*/uy
 const MACRO = /@[\p{L}_][\p{L}\p{N}_!?]*/uy
 const NUMBER = /(?:0x[0-9a-fA-F_]+|0b[01_]+|0o[0-7_]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eEfF][+-]?\d+)?)/y
+const FUNCTION_CALL = /[ \t]*\(/y
 
 function quotedEnd(source: string, start: number, delimiter: string): number {
   let pos = start + delimiter.length
@@ -26,6 +27,11 @@ function quotedEnd(source: string, start: number, delimiter: string): number {
     }
   }
   return source.length
+}
+
+function isFunctionCall(source: string, position: number): boolean {
+  FUNCTION_CALL.lastIndex = position
+  return FUNCTION_CALL.test(source)
 }
 
 /**
@@ -85,7 +91,7 @@ export function highlightJulia(source: string): JuliaToken[] {
       const name = identifier[0]
       const kind: JuliaTokenKind = KEYWORDS.has(name) ? 'keyword'
         : LITERALS.has(name) ? 'literal'
-        : /^[ \t]*\(/.test(source.slice(pos)) ? 'function'
+        : isFunctionCall(source, pos) ? 'function'
         : 'plain'
       push(kind, name)
       continue
