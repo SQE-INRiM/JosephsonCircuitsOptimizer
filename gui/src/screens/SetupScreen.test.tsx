@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from '../store'
 import { SetupScreen } from './SetupScreen'
 
@@ -186,7 +186,7 @@ describe('Device parameter mode editor regression', () => {
   })
 })
 
-describe('Setup footer run action', () => {
+describe('Setup footer navigation', () => {
   beforeEach(() => {
     useAppStore.setState({
       project: structuredClone(originalProject),
@@ -196,23 +196,18 @@ describe('Setup footer run action', () => {
   })
   afterEach(() => cleanup())
 
-  it('keeps the run action in the Setup footer alongside navigation, with no floating overlay', () => {
-    const onRunRemaining = vi.fn()
-    const { rerender } = render(<SetupScreen onRunRemaining={onRunRemaining} />)
-    const action = screen.getByRole('button', { name: 'Run remaining' })
+  it('contains Back and Next without a simulation action', () => {
+    render(<SetupScreen />)
+
+    const back = screen.getByRole('button', { name: 'Back' })
     const next = screen.getByRole('button', { name: 'Next' })
-    const footer = action.closest('.MuiPaper-root')
-
+    const footer = next.closest('.MuiPaper-root')
     expect(footer).not.toBeNull()
-    expect(footer?.contains(next)).toBe(true)
-    expect(screen.getAllByRole('button', { name: 'Run remaining' })).toHaveLength(1)
-    fireEvent.click(action)
-    expect(onRunRemaining).toHaveBeenCalledTimes(1)
-
-    const onStop = vi.fn()
-    rerender(<SetupScreen onRunRemaining={onRunRemaining} onStop={onStop} running />)
+    expect(footer?.contains(back)).toBe(true)
     expect(screen.queryByRole('button', { name: 'Run remaining' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Stop run' }))
-    expect(onStop).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: 'Stop run' })).toBeNull()
+
+    fireEvent.click(back)
+    expect(useAppStore.getState().setupStep).toBe(1)
   })
 })
