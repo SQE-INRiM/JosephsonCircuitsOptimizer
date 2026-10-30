@@ -45,6 +45,7 @@ import { getJcoAdapter, isDesktopBridgeAvailable } from './services/jcoAdapter'
 import type { ExampleDescriptor } from './services/jcoAdapter'
 import type { NavigationSection, StageId } from './types'
 import type { ThemePreference } from './theme'
+import { notificationForRunOutcome } from './utils/runNotifications'
 
 const navigation: Array<{ id: NavigationSection; label: string; description: string; icon: React.ReactElement }> = [
   { id: 'setup', label: 'Setup', description: 'Model, computation, metrics', icon: <SettingsInputComponentRoundedIcon /> },
@@ -71,6 +72,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [examples, setExamples] = useState<ExampleDescriptor[]>([])
   const [notice, setNotice] = useState('')
+  const [runNotification, setRunNotification] = useState<ReturnType<typeof notificationForRunOutcome> | null>(null)
   const [runtimePreparing, setRuntimePreparing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -108,10 +110,18 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
     if (!adapter) return
     return adapter.onRunEvent(async (event) => {
       applyRunEvent(event)
-      if (event.type === 'run-started') setCancelling(false)
-      if (event.type === 'run-finished') setCancelling(false)
+      if (event.type === 'run-started') {
+        setCancelling(false)
+        setRunNotification(null)
+      }
       if (event.type === 'run-finished') {
-        try { setResults(await adapter.readResults()) } catch (error) { setNotice(`Run completed, but results could not be indexed: ${String(error)}`) }
+        setCancelling(false)
+        setRunNotification(notificationForRunOutcome(event.outcome))
+        try {
+          setResults(await adapter.readResults())
+        } catch (error) {
+          setNotice(`Run finished, but results could not be indexed: ${String(error)}`)
+        }
       }
     })
   }, [applyRunEvent, setResults])
@@ -404,23 +414,12 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
               Start from this new project, or open a bundled example from the ⋮ menu.
             </Alert>
           )}
-          {section === 'setup' && <SetupScreen onRunRemaining={() => run()} onStop={stop} running={running} />}
+          {section === 'setup' && <SetupScreen />}
           {section === 'run' && <RunScreen desktop={desktop} cancelling={cancelling} onRunRemaining={() => run()} onRunStage={(stage) => run([stage])} onStop={stop} />}
           {section === 'results' && <ResultsScreen />}
         </Box>
       </Box>
 
-      {section !== 'setup' && (
-        <Button
-          variant="contained"
-          color={running ? 'error' : 'primary'}
-          startIcon={running ? undefined : <PlayArrowRoundedIcon />}
-          onClick={running ? stop : () => run()}
-          sx={{ position: 'fixed', right: 28, bottom: 24, zIndex: 1200, borderRadius: 99, px: 2.4, py: 1.15, boxShadow: '0 8px 24px rgba(16,43,74,.26)' }}
-        >
-          {running ? 'Stop run' : 'Run remaining'}
-        </Button>
-      )}
       {draggingProject && <Box role="status" aria-label="Drop .jco project" sx={{ position: 'fixed', inset: 0, zIndex: 1600, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(13,29,49,.72)', border: '4px dashed', borderColor: 'secondary.main' }}>
         <Box sx={{ backgroundColor: 'background.paper', color: 'text.primary', borderRadius: 3, p: 5, textAlign: 'center', boxShadow: 8 }}>
           <Typography variant="h5">Drop your .jco project here</Typography>
@@ -428,6 +427,16 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
         </Box>
       </Box>}
       <Snackbar open={Boolean(notice)} autoHideDuration={3600} onClose={() => setNotice('')} message={notice} />
+      <Snackbar
+        open={Boolean(runNotification)}
+        autoHideDuration={5000}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        onClose={(_, reason) => { if (reason !== 'clickaway') setRunNotification(null) }}
+      >
+        <Alert severity={runNotification?.severity ?? 'info'} variant="filled" onClose={() => setRunNotification(null)} sx={{ width: '100%' }}>
+          {runNotification?.message}
+        </Alert>
+      </Snackbar>
 
       <Dialog open={aboutOpen} onClose={() => setAboutOpen(false)} fullWidth maxWidth="sm" aria-labelledby="jco-about-title">
         <DialogTitle id="jco-about-title">About JCO</DialogTitle>
