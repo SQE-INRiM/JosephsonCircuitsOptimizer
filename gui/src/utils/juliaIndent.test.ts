@@ -41,7 +41,7 @@ describe('Julia code indentation', () => {
   it('preserves blank lines, symbols and nested Julia expressions', () => {
     const original = 'function f(φ)\n\n  return φ\nend'
     const changed = editJuliaIndent(original, 0, original.length)
-    expect(changed.text).toBe('    function f(φ)\n\n    return φ\n    end')
+    expect(changed.text).toBe('    function f(φ)\n\n      return φ\n    end')
     expect(editJuliaIndent(changed.text, 0, changed.text.length, true).text).toBe(original)
   })
 })
