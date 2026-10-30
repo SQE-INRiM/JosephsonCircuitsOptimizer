@@ -1,8 +1,10 @@
-# Work item: nonlinear feedback GUI setup (v0.4.2 candidate)
+# Work item: nonlinear feedback GUI setup (v0.4.3 candidate)
 
 Date: 2026-10-30
-Branch: `feat/nonlinear-feedback-v0.4.2`
+Branch: `feat/nonlinear-feedback-v0.4.2` (historical branch name retained for draft PR #24; planned release v0.4.3)
 Classification: T2 GUI/serialized-input work, with T3 scientific-validation follow-up.
+
+The **v0.4.2** release was published on 2026-10-30. The original PR #24 is now reconciled to the published `main` baseline while retaining its history; nonlinear feedback targets **v0.4.3** and is not part of the published v0.4.2 artifacts.
 
 ## Goal
 
@@ -29,8 +31,8 @@ Make the existing JCO nonlinear correction hook configurable through GUI Setup w
 
 - Added targeted GUI editor tests for cycles, enable state, current editing and hook visibility.
 - Added Node serialization tests for round-trip and invalid-source-current rejection.
-- Automated full npm tests, build, GUI interaction, and real Julia HB runs still require independent execution; do not claim them completed until performed.
-- Before a v0.4.2 release, confirm the packaging workflow and correction-cycle results with a representative .jco.
+- The original branch's npm checks passed before reconciliation. Re-run automated npm tests/build and desktop packaging on the v0.4.3 head; real Julia HB and scientific feedback-loop validation still require independent execution. Do not claim them completed until performed.
+- Before a v0.4.3 release, confirm the packaging workflow and correction-cycle results with a representative .jco.
 
 ## Follow-ups / known legacy risks
 
