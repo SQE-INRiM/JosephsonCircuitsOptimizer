@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '../store'
 import { SetupScreen } from './SetupScreen'
 
@@ -183,5 +183,36 @@ describe('Device parameter mode editor regression', () => {
     expect(value.disabled).toBe(false)
     fireEvent.change(value, { target: { value: '300' } })
     expect(useAppStore.getState().project.parameters[0]).toMatchObject({ mode: 'Fixed', value: '300' })
+  })
+})
+
+describe('Setup footer run action', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: structuredClone(originalProject),
+      setupStep: 2,
+      dirty: false,
+    })
+  })
+  afterEach(() => cleanup())
+
+  it('keeps the run action in the Setup footer alongside navigation, with no floating overlay', () => {
+    const onRunRemaining = vi.fn()
+    const { rerender } = render(<SetupScreen onRunRemaining={onRunRemaining} />)
+    const action = screen.getByRole('button', { name: 'Run remaining' })
+    const next = screen.getByRole('button', { name: 'Next' })
+    const footer = action.closest('.MuiPaper-root')
+
+    expect(footer).not.toBeNull()
+    expect(footer?.contains(next)).toBe(true)
+    expect(screen.getAllByRole('button', { name: 'Run remaining' })).toHaveLength(1)
+    fireEvent.click(action)
+    expect(onRunRemaining).toHaveBeenCalledTimes(1)
+
+    const onStop = vi.fn()
+    rerender(<SetupScreen onRunRemaining={onRunRemaining} onStop={onStop} running />)
+    expect(screen.queryByRole('button', { name: 'Run remaining' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Stop run' }))
+    expect(onStop).toHaveBeenCalledTimes(1)
   })
 })
