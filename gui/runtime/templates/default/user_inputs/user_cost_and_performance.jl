@@ -12,7 +12,8 @@ function user_cost(sol, device_params_set, nonlinear_correction)
     gain_db = gain_db_from_S11(s11)
     peak_gain = maximum(gain_db)
     mean_gain = mean(gain_db)
-    metric = -peak_gain
+    # The user-defined cost decides how the pumped correction enters the objective.
+    metric = -peak_gain + nonlinear_correction
 
     return (
         metric = metric,
@@ -33,8 +34,8 @@ function user_performance(sol, device_params_set, source_amps, source_freqs)
     )
 end
 
-# Nonlinear correction is intentionally disabled for now, but JCO expects the
-# hook to exist while running the nonlinear stage.
+# Default scalar correction; replace this function to define a physical feedback term.
+# JCO calls it during the nonlinear sweep even if feedback cycles are disabled.
 function user_nonlinear_correction(S_linear, sol, device_params_set)
     return 0.0
 end
