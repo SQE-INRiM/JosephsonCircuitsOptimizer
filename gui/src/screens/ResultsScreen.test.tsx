@@ -99,6 +99,8 @@ describe('Shared Results run navigation', () => {
     const linearTab = screen.getByRole('tab', { name: 'Linear' })
     expect(selector.compareDocumentPosition(linearTab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getAllByRole('combobox', { name: 'Run' })).toHaveLength(1)
+    expect(screen.queryByText('Stored JCO data')).toBeNull()
+    expect(screen.queryByText(/retained-data points/)).toBeNull()
     fireEvent.mouseDown(selector)
     fireEvent.click(screen.getByRole('option', { name: 'older' }))
     expect(useAppStore.getState().selectedResultsRunId).toBe('older')
