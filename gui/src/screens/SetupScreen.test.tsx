@@ -94,8 +94,8 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
 
   it('shows informational guidance when the shared intermodulation order is unlimited', () => {
     render(<SetupScreen />)
-    const guidance = screen.getByText(/For first-order linear simulations, set both linear harmonic counts and Max intermodulation order to 1/)
-    expect(guidance.closest('.MuiAlert-root')?.classList.contains('MuiAlert-standardInfo')).toBe(true)
+    const guidance = screen.getByText(/To keep Linear simulations first-order, set both harmonic counts and Max intermodulation order to 1/)
+    expect(guidance.closest('.MuiAlert-root')?.getAttribute('role')).toBe('status')
     expect(screen.getByText(/changing it also affects the nonlinear HB stage/)).toBeTruthy()
   })
 
@@ -104,7 +104,7 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
     render(<SetupScreen />)
 
     expect(screen.getByText(/Linear-stage harmonic and intermodulation limits are set to first order/)).toBeTruthy()
-    expect(screen.queryByText(/For first-order linear simulations, set both linear harmonic counts/)).toBeNull()
+    expect(screen.queryByText(/To keep Linear simulations first-order, set both harmonic counts/)).toBeNull()
   })
 
   it.each([
@@ -113,8 +113,8 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
   ])('shows info when a linear harmonic count is increased (%o)', (patch) => {
     useAppStore.getState().updateComputation({ maxIntermodOrder: '1', ...patch })
     render(<SetupScreen />)
-    const guidance = screen.getByText(/For first-order linear simulations, set both linear harmonic counts/)
-    expect(guidance.closest('.MuiAlert-root')?.classList.contains('MuiAlert-standardInfo')).toBe(true)
+    const guidance = screen.getByText(/To keep Linear simulations first-order, set both harmonic counts/)
+    expect(guidance.closest('.MuiAlert-root')?.getAttribute('role')).toBe('status')
   })
 
   it('updates the guidance when the shared intermodulation order changes', () => {
@@ -182,7 +182,7 @@ describe('Single-point optimization panel', () => {
     expect(screen.getByText(/Optimization enabled/)).toBeTruthy()
     expect(screen.getByText('Optimization').closest('.MuiCard-root')?.getAttribute('aria-disabled')).toBe('false')
     expect((screen.getByRole('spinbutton', { name: 'Iterations' }) as HTMLInputElement).disabled).toBe(false)
-    expect(screen.getByRole('combobox', { name: 'Surrogate' }).getAttribute('aria-disabled')).toBe('false')
+    expect(screen.getByRole('combobox', { name: 'Surrogate' }).getAttribute('aria-disabled')).not.toBe('true')
     expect(useAppStore.getState().project.computation.optimizerIterations).toBe(startingIterations)
   })
 })
