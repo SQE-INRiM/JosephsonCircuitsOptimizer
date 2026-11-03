@@ -5,6 +5,7 @@ import { ResultsRunManager } from '../components/ResultsRunManager'
 import { RunSetupSnapshot } from '../components/RunSetupSnapshot'
 import { getJcoAdapter } from '../services/jcoAdapter'
 import { useAppStore } from '../store'
+import { hasVaryingDeviceParameters } from '../utils/runSummary'
 import type { RunResults, StageId } from '../types'
 
 function optimizerHistoryCount(run: RunResults | undefined) {
@@ -16,6 +17,7 @@ function runStatus(run: RunResults | undefined) { const value = run?.status?.sta
 
 export function ResultsScreen() {
   const stage = useAppStore((state) => state.resultsStage)
+  const project = useAppStore((state) => state.project)
   const setStage = useAppStore((state) => state.setResultsStage)
   const results = useAppStore((state) => state.results)
   const setResults = useAppStore((state) => state.setResults)
@@ -23,10 +25,18 @@ export function ResultsScreen() {
   const currentRunId = useAppStore((state) => state.currentRunId)
   const [refreshError, setRefreshError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  const stageIndex = stage === 'linear' ? 0 : stage === 'optimization' ? 1 : 2
+  // Keep historical optimizer results accessible even after editing a single-point setup.
+  const hasStoredOptimization = results?.runs.some((run) => Boolean(run.optimization?.rows.length) || optimizerHistoryCount(run) > 0) ?? false
+  const optimizationDisabled = !hasVaryingDeviceParameters(project) && !hasStoredOptimization
+  const visibleStage = optimizationDisabled && stage === 'optimization' ? 'linear' : stage
+  const stageIndex = visibleStage === 'linear' ? 0 : visibleStage === 'optimization' ? 1 : 2
   const hasResults = Boolean(results?.runs.length)
   const latestRun = results?.runs[0]
   const latestHistoryCount = optimizerHistoryCount(latestRun)
+
+  useEffect(() => {
+    if (optimizationDisabled && stage === 'optimization') setStage('linear')
+  }, [optimizationDisabled, stage, setStage])
 
   const refresh = async (cancelled?: () => boolean) => {
     const adapter = getJcoAdapter(); if (!adapter) return
@@ -45,7 +55,7 @@ export function ResultsScreen() {
     </Stack>
 
     <Paper variant="outlined" sx={{ px: 2 }}><Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-      <Tabs value={stageIndex} onChange={(_, index) => setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)} sx={{ flex: 1 }}><Tab label="Linear" /><Tab label="Optimization" /><Tab label="Harmonic balance" /></Tabs>
+      <Tabs value={stageIndex} onChange={(_, index) => setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)} sx={{ flex: 1 }}><Tab label="Linear" /><Tab label="Optimization" disabled={optimizationDisabled} /><Tab label="Harmonic balance" /></Tabs>
       <Chip label={hasResults ? `${results!.runs.length} stored runs` : running ? 'Waiting for stored results' : 'No stored results'} color={hasResults ? 'success' : running ? 'info' : 'default'} variant="outlined" />
       {hasResults && <RunSetupSnapshot runs={results!.runs} />}
       {hasResults && <ResultsRunManager results={results!} activeRunId={running ? currentRunId : null} onResultsChanged={setResults} />}
@@ -53,7 +63,7 @@ export function ResultsScreen() {
 
     {running && <Alert severity="info">A new simulation is running. Previously stored runs remain available below. The active run is refreshed when its run state changes rather than continuously re-indexing all stored data.</Alert>}
     {refreshError && <Alert severity="warning">Stored Results could not be refreshed: {refreshError}. The last successfully indexed runs remain visible.</Alert>}
-    {stage === 'optimization' && latestRun && !latestRun.optimization && <Alert severity={latestHistoryCount > 0 ? 'warning' : 'info'}><strong>Latest-run Optimization diagnostic:</strong> {latestRun.id} · status {runStatus(latestRun)} · Linear table {latestRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {latestHistoryCount} evaluations.{latestHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>}
-    {hasResults ? <ConnectedResults results={results!} stage={stage} onResultsChanged={setResults} activeRunId={running ? currentRunId : null} /> : <Alert severity="info">{running ? 'No completed numerical dataset is available yet for this project.' : 'Run a simulation to populate the Result explorer.'}</Alert>}
+    {visibleStage === 'optimization' && latestRun && !latestRun.optimization && <Alert severity={latestHistoryCount > 0 ? 'warning' : 'info'}><strong>Latest-run Optimization diagnostic:</strong> {latestRun.id} · status {runStatus(latestRun)} · Linear table {latestRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {latestHistoryCount} evaluations.{latestHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>}
+    {hasResults ? <ConnectedResults results={results!} stage={visibleStage} onResultsChanged={setResults} activeRunId={running ? currentRunId : null} /> : <Alert severity="info">{running ? 'No completed numerical dataset is available yet for this project.' : 'Run a simulation to populate the Result explorer.'}</Alert>}
   </Stack>
 }
