@@ -23,9 +23,10 @@ elseif mode == "sweep_only"
     JCO.run_sweep_only(; workspace)
     # A fixed-device Linear-only run has no BO stage. Materialize its exact
     # device point as the HB input, just as JCO.run does in single-point mode.
-    if JCO.is_single_point_parameter_space(JCO.device_parameters_space)
-        pointer = joinpath(workspace, "outputs", "LATEST.txt")
-        run_dir = strip(read(pointer, String))
+    pointer = joinpath(workspace, "outputs", "LATEST.txt")
+    run_dir = strip(read(pointer, String))
+    if isfile(joinpath(run_dir, "df_uniform_analysis.h5")) &&
+       JCO.is_single_point_parameter_space(JCO.device_parameters_space)
         params = JCO.single_point_params(JCO.device_parameters_space)
         header = Dict(
             "optimal_metric" => NaN,
