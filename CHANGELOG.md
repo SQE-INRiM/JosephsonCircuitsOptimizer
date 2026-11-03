@@ -4,6 +4,11 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Simulation Run controls
+- Replace Run remaining/Run all and manual stage selection with one fresh **Run** and a context-sensitive **Run Linear / Run Optimization / Run Nonlinear** action.
+- Invalidate only dependent stages when Setup changes; retain Linear data for optimizer-only and nonlinear-only changes where valid. Prevent a Results refresh from revalidating stages marked stale.
+- Before reusing earlier stage files, compare current inputs with the saved scientific input snapshot; reject incompatible datasets. Materialize the exact fixed-device optimum after Linear-only runs so Nonlinear can follow when Optimization is skipped.
+
 ### Windows desktop packaging
 - Recreate the `JCO GUI` Windows desktop shortcut when reinstalling/upgrading through the NSIS installer so legacy Electron shortcuts no longer retain their original icon. Preserve the configured native JCO `.ico` and the installer/portable target names. Existing published v0.4.2 downloads are unchanged.
 
