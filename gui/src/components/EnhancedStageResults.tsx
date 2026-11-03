@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Button, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography } from '@mui/material'
 import { LineChart } from '@mui/x-charts/LineChart'
-import type { ResultTable, ResultsBundle, RunResults, SavedDataCatalog, SavedTraceData, StageId } from '../types'
+import type { ResultTable, ResultsBundle, RunResults, SavedDataCatalog, SavedTraceData } from '../types'
 import { getJcoAdapter } from '../services/jcoAdapter'
 import { useAppStore } from '../store'
 import { parameterLabel } from '../utils/resultUnits'
