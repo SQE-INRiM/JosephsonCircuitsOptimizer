@@ -30,6 +30,7 @@ Do not include nonlinear-feedback iterations.
   HB-only JCO modes copy their input Linear dataset into their new output.
 - After a cancelled partial run, `LATEST.txt` can point to an unfinished folder. Scan prior run folders from newest to oldest for an existing compatible, snapshot-validated dataset and (for HB) optimum; pass their exact paths to Julia instead of changing the latest-run pointer or rerunning Linear.
 - Stage-only restarts require a complete compatible prior artifact. Never use incomplete optimizer history to authorize HB.
+- Results indexing can overlap with cleanup of provably empty runs. The Julia indexer checks each discovered directory before reading and skips it if deleted during the read, while preserving exceptions for paths that still exist. This does not require disabling the existing safe cleanup or changing the .jco persistence format.
 
 ## Verification
 
@@ -37,6 +38,7 @@ Do not include nonlinear-feedback iterations.
 - Node: current-vs-saved input comparison, optimizer-only versus HB-only reuse,
   changed Linear inputs, missing data, single-point skip.
 - CI: `npm test` and `npm run build` in `gui/` and governance check.
+- Additional Julia regression test (manual until added to a Julia CI workflow): `julia --project=. gui/runtime/bridge/results-race-test.jl`. It deletes a discovered output directory before indexing, checks that surviving runs remain indexed, and checks corrupt HDF5 is not silently swallowed.
 - Pending real desktop acceptance: full Run, Linear→Optimization→HB, single-point
   Linear→HB, changed optimizer configuration (reuse Linear), changed pump amplitude
   (reuse Linear/Optimization), changed device parameter (force Linear), cancel/restore
