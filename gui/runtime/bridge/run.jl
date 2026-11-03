@@ -21,6 +21,18 @@ if mode == "run"
     JCO.run(; workspace)
 elseif mode == "sweep_only"
     JCO.run_sweep_only(; workspace)
+    # A fixed-device Linear-only run has no BO stage. Materialize its exact
+    # device point as the HB input, just as JCO.run does in single-point mode.
+    if JCO.is_single_point_parameter_space(JCO.device_parameters_space)
+        pointer = joinpath(workspace, "outputs", "LATEST.txt")
+        run_dir = strip(read(pointer, String))
+        params = JCO.single_point_params(JCO.device_parameters_space)
+        header = Dict(
+            "optimal_metric" => NaN,
+            "description" => "Single-point Linear run: no optimization required."
+        )
+        JCO.save_output_file(header, params, joinpath(run_dir, "optimal_device_parameters.json"))
+    end
 elseif mode == "optimization_only"
     JCO.run_optimization_only(; workspace)
 elseif mode == "nonlinear_only"
