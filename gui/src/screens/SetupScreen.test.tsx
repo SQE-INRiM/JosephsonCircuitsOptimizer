@@ -251,28 +251,75 @@ describe('Device parameter mode editor regression', () => {
   })
 })
 
-describe('Setup footer navigation', () => {
+describe('Setup navigation across Model & inputs substeps', () => {
   beforeEach(() => {
     useAppStore.setState({
       project: structuredClone(originalProject),
-      setupStep: 2,
+      setupStep: 0,
+      setupPanel: 'circuit',
       dirty: false,
     })
   })
   afterEach(() => cleanup())
 
-  it('contains Back and Next without a simulation action', () => {
+  it('walks through Circuit, Device parameters and Sources before Computation', () => {
     render(<SetupScreen />)
-
-    const back = screen.getByRole('button', { name: 'Back' })
     const next = screen.getByRole('button', { name: 'Next' })
-    const footer = next.closest('.MuiPaper-root')
-    expect(footer).not.toBeNull()
-    expect(footer?.contains(back)).toBe(true)
+    const back = screen.getByRole('button', { name: 'Back' })
+
+    const title = screen.getByText('Project setup')
+    expect(title.parentElement?.parentElement?.contains(next)).toBe(true)
+    expect(title.parentElement?.parentElement?.contains(back)).toBe(true)
     expect(screen.queryByRole('button', { name: 'Run remaining' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Stop run' })).toBeNull()
 
+    expect(back.hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('tab', { name: 'Circuit' }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(next)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'parameters' })
+    expect(screen.getByRole('tab', { name: /Device parameters/ }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(next)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
+    expect(screen.getByRole('tab', { name: /Sources/ }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(next)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 1, setupPanel: 'sources' })
+    expect(screen.getByText('Harmonic and solver settings')).toBeTruthy()
+
+    fireEvent.click(next)
+    expect(useAppStore.getState().setupStep).toBe(2)
+    expect(next.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('traverses the same substeps backwards from Metrics to Circuit', () => {
+    useAppStore.setState({ setupStep: 2, setupPanel: 'circuit' })
+    render(<SetupScreen />)
+    const back = screen.getByRole('button', { name: 'Back' })
+
     fireEvent.click(back)
     expect(useAppStore.getState().setupStep).toBe(1)
+
+    fireEvent.click(back)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
+
+    fireEvent.click(back)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'parameters' })
+
+    fireEvent.click(back)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'circuit' })
+    expect(back.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('respects manually selected sub-tabs when using Next and Back', () => {
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('tab', { name: /Sources/ }))
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(useAppStore.getState().setupStep).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
   })
 })
