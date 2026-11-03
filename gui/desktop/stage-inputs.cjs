@@ -44,36 +44,58 @@ function isSinglePointDeviceSpace(parameters) {
     return true
   })
 }
-function validatePartialRunInputs(workspace, mode) {
-  if (!['optimization_only', 'nonlinear_only'].includes(mode)) return
-  const outputRoot = path.resolve(workspace, 'outputs')
-  const latestPointer = path.join(outputRoot, 'LATEST.txt')
-  if (!fs.existsSync(latestPointer)) throw new Error('No saved Linear dataset. Run Linear first.')
-  const latest = path.resolve(fs.readFileSync(latestPointer, 'utf8').trim())
-  // LATEST is an archive-controlled pointer: never read outside this workspace's outputs.
-  if (!latest.startsWith(outputRoot + path.sep)) throw new Error('Invalid latest-run path. Run Linear first.')
-  const required = mode === 'optimization_only' ? 'df_uniform_analysis.h5' : 'optimal_device_parameters.json'
-  if (!fs.existsSync(path.join(latest, 'df_uniform_analysis.h5')) || !fs.existsSync(path.join(latest, required))) {
-    throw new Error('Latest run is missing prerequisites for ' + mode + '. Run Linear' +
-      (mode === 'nonlinear_only' ? ' and Optimization (unless skipped)' : '') + ' first.')
-  }
+function assertMatchingSnapshot(workspace, runPath, mode) {
   const input = path.join(workspace, 'user_inputs')
-  const snapshot = path.join(latest, 'inputs_snapshot')
-  if (!fs.existsSync(snapshot)) throw new Error('Saved run has no inputs snapshot. Run Linear first.')
+  const snapshot = path.join(runPath, 'inputs_snapshot')
+  if (!fs.existsSync(snapshot)) throw new Error('Saved run has no inputs snapshot.')
 
   assertSameInput(input, snapshot, 'device_parameters_space.json')
   assertSameInput(input, snapshot, 'drive_physical_quantities.json', linearDrives)
   assertSameInput(input, snapshot, 'simulation_config.json', linearSimulation)
   const currentAux = auxiliaryFiles(input)
   const savedAux = auxiliaryFiles(snapshot)
-  if (!equal(currentAux, savedAux)) throw new Error('Julia or calibration input files changed. Run Linear first.')
+  if (!equal(currentAux, savedAux)) throw new Error('Julia or calibration input files changed.')
   for (const name of currentAux) assertSameInput(input, snapshot, name)
 
-  // Only HB depends on the selected optimizer output. Changes to BO settings
-  // may reuse the Linear sweep, but not an old optimum.
   if (mode === 'nonlinear_only' && !isSinglePointDeviceSpace(parseJson(path.join(input, 'device_parameters_space.json')))) {
     assertSameInput(input, snapshot, 'optimizer_config.json')
   }
+}
+
+/** Return explicit paths for a compatible *completed stage artifact*. A cancelled
+ * optimization can leave partial history in LATEST, so never rely on that pointer
+ * alone or borrow an optimum from an incompatible run. */
+function validatePartialRunInputs(workspace, mode) {
+  if (!['optimization_only', 'nonlinear_only'].includes(mode)) return {}
+  const outputRoot = path.resolve(workspace, 'outputs')
+  const candidates = fs.existsSync(outputRoot)
+    ? fs.readdirSync(outputRoot, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && /^output_\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}/.test(entry.name))
+        .map((entry) => path.join(outputRoot, entry.name))
+        .sort().reverse()
+    : []
+  const errors = []
+  for (const run of candidates) {
+    const datasetPath = path.join(run, 'df_uniform_analysis.h5')
+    const optimalParamsPath = path.join(run, 'optimal_device_parameters.json')
+    if (!fs.existsSync(datasetPath)) continue
+    if (mode === 'nonlinear_only' && !fs.existsSync(optimalParamsPath)) continue
+    try {
+      assertMatchingSnapshot(workspace, run, mode)
+    } catch (error) {
+      errors.push(error.message)
+      continue
+    }
+    return { datasetPath, optimalParamsPath: mode === 'nonlinear_only' ? optimalParamsPath : undefined }
+  }
+
+  if (errors.length) {
+    throw new Error('No compatible saved stage found for ' + mode +
+      '. Run Linear' + (mode === 'nonlinear_only' ? ' and Optimization' : '') +
+      ' first. Most recent mismatch: ' + errors[0])
+  }
+  throw new Error('No completed saved stage found for ' + mode +
+    '. Run Linear' + (mode === 'nonlinear_only' ? ' and Optimization' : '') + ' first.')
 }
 
 module.exports = { validatePartialRunInputs }
