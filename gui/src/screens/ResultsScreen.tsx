@@ -25,9 +25,8 @@ export function ResultsScreen() {
   const currentRunId = useAppStore((state) => state.currentRunId)
   const [refreshError, setRefreshError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  // Keep historical optimizer results accessible even after editing a single-point setup.
-  const hasStoredOptimization = results?.runs.some((run) => Boolean(run.optimization?.rows.length) || optimizerHistoryCount(run) > 0) ?? false
-  const optimizationDisabled = !hasVaryingDeviceParameters(project) && !hasStoredOptimization
+  // Results navigation follows the current setup, even when older runs contain optimizer data.
+  const optimizationDisabled = !hasVaryingDeviceParameters(project)
   const visibleStage = optimizationDisabled && stage === 'optimization' ? 'linear' : stage
   const stageIndex = visibleStage === 'linear' ? 0 : visibleStage === 'optimization' ? 1 : 2
   const hasResults = Boolean(results?.runs.length)
