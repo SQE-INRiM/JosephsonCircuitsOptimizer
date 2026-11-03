@@ -146,7 +146,7 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
     <Stack direction="row" sx={{ alignItems: 'flex-end', justifyContent: 'space-between' }}>
       <Box><Typography variant="h4">Simulation run</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Run starts a fresh Linear → Optimization → Harmonic balance pipeline. Run next step advances only when earlier stages are valid.</Typography></Box>
       <Stack direction="row" spacing={1.2}>
-        {nextStage && <Button variant="outlined" disabled={running || cancelling || !desktop} onClick={() => onRunStage(nextStage)}>Run {nextStageState?.label ?? 'next step'}</Button>}
+        {nextStage && <Button variant="outlined" disabled={running || cancelling || !desktop} onClick={() => onRunStage(nextStage)}>Run {nextStage === 'hb' ? 'Nonlinear' : nextStageState?.label ?? 'next step'}</Button>}
         <Button variant="contained" color={running ? 'error' : 'primary'} disabled={cancelling || (!running && !desktop)} startIcon={running ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon />} onClick={running ? onStop : onRunAll}>{cancelling ? 'Stopping Julia…' : running ? 'Stop simulation' : 'Run'}</Button>
       </Stack>
     </Stack>
