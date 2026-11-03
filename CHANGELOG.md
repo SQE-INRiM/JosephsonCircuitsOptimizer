@@ -6,6 +6,7 @@ This changelog records completed user-relevant and development-process changes. 
 
 ### Application header
 - Show one inline-editable project title in the top bar instead of a separate filename badge and Setup project-name field. Keep underlying .jco filename handling unchanged and remove the Desktop bridge / Schema v1 developer labels.
+- Move Setup Back/Next into the upper header, and navigate through Circuit → Device parameters → Sources before Computation and Metrics. Start new/opened projects at Circuit and keep Back symmetric.
 
 ### Setup computation usability
 - Present the first-order Linear harmonic/intermodulation guidance as information rather than a warning when higher-order mixing remains enabled.
