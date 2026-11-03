@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from './store'
+import { nextRunStage } from './utils/runStages'
 
 const originalProject = structuredClone(useAppStore.getState().project)
 
@@ -126,6 +127,57 @@ describe('GUI device parameter workflow', () => {
       runs: [{ id: 'output_old', linear: { columns: ['metric'], rows: [[1]], file: 'old.h5' }, traces: [] }],
     })
     expect(useAppStore.getState().stages[0].status).toBe('stale')
+  })
+
+  it('does not unlock Nonlinear when Optimization is cancelled midway', () => {
+    const store = useAppStore.getState()
+    const project = structuredClone(originalProject)
+    project.parameters[0] = { ...project.parameters[0], mode: 'Range', start: '1', stop: '2', step: '1' }
+    store.loadProject(project)
+    const runId = 'output_2026-11-03_16-00-00-000Z'
+    const timestamp = '2026-11-03T16:00:00.000Z'
+    const stages = ['linear', 'optimization', 'hb'] as const
+    store.applyRunEvent({ type: 'run-started', runId, stages: [...stages], timestamp })
+    store.applyRunEvent({ type: 'stage-status', runId, stage: 'linear', status: 'running', timestamp })
+    store.applyRunEvent({ type: 'stage-status', runId, stage: 'linear', status: 'completed', timestamp })
+    store.applyRunEvent({ type: 'stage-status', runId, stage: 'optimization', status: 'running', timestamp })
+    store.applyRunEvent({ type: 'progress', runId, stage: 'optimization', completed: 3, total: 10, timestamp })
+    store.applyRunEvent({ type: 'run-finished', runId, outcome: 'cancelled', timestamp })
+    expect(useAppStore.getState().stages.map((stage) => stage.status))
+      .toEqual(['completed', 'cancelled', 'stale'])
+    expect(nextRunStage(useAppStore.getState().stages)).toBe('optimization')
+    // A canceled run with no data may be pruned, exposing an older fully
+    // completed run as latest. Reading it must not resurrect the canceled BO.
+    store.setResults({
+      schemaVersion: 'jco.results/4', workspace: 'test',
+      runs: [{
+        id: 'output_older', status: { status: 'completed' },
+        linear: { columns: ['metric'], rows: [[1]], file: 'linear.h5' },
+        optimalParameters: { data: { Cg: 250 } },
+        nonlinear: { columns: ['performance'], rows: [[20]], file: 'hb.h5' },
+        traces: [],
+      }],
+    })
+    expect(useAppStore.getState().stages.map((stage) => stage.status))
+      .toEqual(['completed', 'cancelled', 'stale'])
+    expect(nextRunStage(useAppStore.getState().stages)).toBe('optimization')
+  })
+
+  it('cancels a repeated Optimization even when no stage event arrived', () => {
+    const project = structuredClone(originalProject)
+    project.parameters[0] = { ...project.parameters[0], mode: 'Range', start: '1', stop: '2', step: '1' }
+    useAppStore.getState().loadProject(project)
+    useAppStore.setState((state) => ({
+      stages: state.stages.map((stage) => ({ ...stage, status: 'completed' as const })),
+    }))
+    const runId = 'output_2026-11-03_16-20-00-000Z'
+    const timestamp = '2026-11-03T16:20:00.000Z'
+    useAppStore.getState().applyRunEvent({ type: 'run-started', runId, stages: ['optimization'], timestamp })
+    expect(useAppStore.getState().stages.map((stage) => stage.status))
+      .toEqual(['completed', 'ready', 'stale'])
+    useAppStore.getState().applyRunEvent({ type: 'run-finished', runId, outcome: 'cancelled', timestamp })
+    expect(useAppStore.getState().stages.map((stage) => stage.status))
+      .toEqual(['completed', 'cancelled', 'stale'])
   })
 
   it('uses backend stage completion time instead of a demo duration', () => {
