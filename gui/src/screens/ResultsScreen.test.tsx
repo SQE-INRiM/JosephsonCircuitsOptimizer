@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResultsBundle, StageId } from '../types'
 import { useAppStore } from '../store'
@@ -115,13 +115,15 @@ describe('Shared Results run navigation', () => {
 
   it('keeps the selected run on refresh and page re-entry, falling back only if deleted', () => {
     const { unmount } = render(<ResultsScreen />)
-    useAppStore.getState().setSelectedResultsRunId('older')
-    useAppStore.getState().setResults({ ...multiRun, runs: [{ id: 'newer', linear: onePoint, traces: [] }, ...multiRun.runs] })
+    act(() => {
+      useAppStore.getState().setSelectedResultsRunId('older')
+      useAppStore.getState().setResults({ ...multiRun, runs: [{ id: 'newer', linear: onePoint, traces: [] }, ...multiRun.runs] })
+    })
     expect(screen.getByTestId('selected-results-run').textContent).toBe('older')
     unmount()
     render(<ResultsScreen />)
     expect(screen.getByTestId('selected-results-run').textContent).toBe('older')
-    useAppStore.getState().setResults({ ...multiRun, runs: [multiRun.runs[0]] })
+    act(() => useAppStore.getState().setResults({ ...multiRun, runs: [multiRun.runs[0]] }))
     expect(screen.getByTestId('selected-results-run').textContent).toBe('newest')
   })
 })
