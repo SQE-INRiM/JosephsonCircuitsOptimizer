@@ -4,6 +4,10 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Results navigation
+- Place one shared Run selector and its run-specific actions above the Linear / Optimization / Harmonic balance tabs.
+- Keep the selected historical run across stage changes, page navigation and Results refresh; fall back to the latest surviving run only when the selected run disappears. Keep CSV export, deletion and Simulation info aligned with the selected run.
+
 ### Setup computation usability
 - Present the first-order Linear harmonic/intermodulation guidance as information rather than a warning when higher-order mixing remains enabled.
 - Grey out and disable Optimization settings when Linear has a single device configuration, while retaining saved settings and re-enabling controls when a multi-point parameter sweep is configured.
