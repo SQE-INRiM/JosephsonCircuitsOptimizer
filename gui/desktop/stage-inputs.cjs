@@ -70,7 +70,7 @@ function validatePartialRunInputs(workspace, mode) {
   const outputRoot = path.resolve(workspace, 'outputs')
   const candidates = fs.existsSync(outputRoot)
     ? fs.readdirSync(outputRoot, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory() && /^output_\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}/.test(entry.name))
+        .filter((entry) => entry.isDirectory() && /^output_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}/.test(entry.name))
         .map((entry) => path.join(outputRoot, entry.name))
         .sort().reverse()
     : []
