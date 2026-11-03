@@ -280,7 +280,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
   const run = async (requestedStages?: StageId[]) => {
     const adapter = getJcoAdapter()
     if (!adapter) return startDemoRun()
-    const selected = requestedStages ?? stages.filter((stage) => ['ready', 'stale', 'failed', 'cancelled'].includes(stage.status)).map((stage) => stage.id)
+    const selected = requestedStages ?? stages.filter((stage) => stage.status !== 'skipped').map((stage) => stage.id)
     if (!selected.length) return setNotice('No stage needs to be run.')
     try { await adapter.startRun({ project, stages: selected }) } catch (error) { setNotice(error instanceof Error ? error.message : String(error)) }
   }
@@ -415,7 +415,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
             </Alert>
           )}
           {section === 'setup' && <SetupScreen />}
-          {section === 'run' && <RunScreen desktop={desktop} cancelling={cancelling} onRunRemaining={() => run()} onRunStage={(stage) => run([stage])} onStop={stop} />}
+          {section === 'run' && <RunScreen desktop={desktop} cancelling={cancelling} onRunAll={() => run()} onRunStage={(stage) => run([stage])} onStop={stop} />}
           {section === 'results' && <ResultsScreen />}
         </Box>
       </Box>
