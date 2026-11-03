@@ -131,13 +131,6 @@ interface AppStore {
 
 let timer: ReturnType<typeof setInterval> | null = null
 
-function staleStages(stages: StageState[]): StageState[] {
-  return stages.map((stage) => {
-    if (stage.id === 'optimization' && stage.status === 'skipped') return stage
-    return { ...stage, status: stage.status === 'running' ? stage.status : 'stale', progress: 0 }
-  })
-}
-
 export const useAppStore = create<AppStore>((set, get) => ({
   section: 'setup',
   setupStep: 0,
@@ -182,11 +175,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
     }),
   addParameter: () =>
-    set((state) => ({
-      dirty: true,
-      project: { ...state.project, parameters: [...state.project.parameters, nextManualParameter(state.project.parameters)] },
-      stages: invalidateFrom(state.stages, { ...state.project, parameters: [...state.project.parameters, nextManualParameter(state.project.parameters)] }, 'linear'),
-    })),
+    set((state) => {
+      const project = { ...state.project, parameters: [...state.project.parameters, nextManualParameter(state.project.parameters)] }
+      return { dirty: true, project, stages: invalidateFrom(state.stages, project, 'linear') }
+    }),
   removeParameter: (id) =>
     set((state) => {
       const parameter = state.project.parameters.find((item) => item.id === id)
