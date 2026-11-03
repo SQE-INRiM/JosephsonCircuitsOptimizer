@@ -4,7 +4,6 @@ import {
   AppBar,
   Box,
   Button,
-  Chip,
   Divider,
   Dialog,
   DialogActions,
