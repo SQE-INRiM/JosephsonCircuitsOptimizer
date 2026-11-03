@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { carthagoParameters, carthagoSources, initialStages } from './data/carthago'
 import { nextManualParameter, reconcileDeviceParameters } from './utils/deviceParameters'
 import { metricsFromCode } from './utils/metrics'
+import { affectedComputationStage, affectedSourceStage, invalidateFrom } from './utils/runStages'
 import type {
   ComputationConfig,
   LogEntry,
@@ -177,14 +178,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return {
         dirty: true,
         project: { ...state.project, parameters: reconcileDeviceParameters(state.project.circuitCode, parameters) },
-        stages: staleStages(state.stages),
+        stages: invalidateFrom(state.stages, { ...state.project, parameters: reconcileDeviceParameters(state.project.circuitCode, parameters) }, 'linear'),
       }
     }),
   addParameter: () =>
     set((state) => ({
       dirty: true,
       project: { ...state.project, parameters: [...state.project.parameters, nextManualParameter(state.project.parameters)] },
-      stages: staleStages(state.stages),
+      stages: invalidateFrom(state.stages, { ...state.project, parameters: [...state.project.parameters, nextManualParameter(state.project.parameters)] }, 'linear'),
     })),
   removeParameter: (id) =>
     set((state) => {
@@ -193,15 +194,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return {
         dirty: true,
         project: { ...state.project, parameters: state.project.parameters.filter((item) => item.id !== id) },
-        stages: staleStages(state.stages),
+        stages: invalidateFrom(state.stages, { ...state.project, parameters: state.project.parameters.filter((item) => item.id !== id) }, 'linear'),
       }
     }),
   updateSource: (id, patch) =>
-    set((state) => ({
-      dirty: true,
-      project: { ...state.project, sources: state.project.sources.map((source) => source.id === id ? { ...source, ...patch } : source) },
-      stages: state.stages.map((stage) => stage.status === 'running' ? stage : { ...stage, status: stage.id === 'optimization' && stage.status === 'skipped' ? 'skipped' : 'stale', progress: 0 }),
-    })),
+    set((state) => {
+      const current = state.project.sources.find((source) => source.id === id)
+      if (!current) return state
+      const affected = affectedSourceStage(current, { ...current, ...patch })
+      const project = { ...state.project, sources: state.project.sources.map((source) => source.id === id ? { ...source, ...patch } : source) }
+      return {
+        dirty: true,
+        project,
+        stages: affected ? invalidateFrom(state.stages, project, affected) : state.stages,
+      }
+    }),
   addSource: () =>
     set((state) => {
       const number = state.project.sources.length + 1
@@ -218,7 +225,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return {
         dirty: true,
         project: { ...state.project, sources: [...state.project.sources, source] },
-        stages: staleStages(state.stages),
+        stages: invalidateFrom(state.stages, state.project, 'linear'),
       }
     }),
   removeSource: (id) =>
@@ -232,32 +239,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
           name: `Source ${index + 1}`,
         })),
       },
-      stages: staleStages(state.stages),
+      stages: invalidateFrom(state.stages, state.project, 'linear'),
     })),
   updateCircuitCode: (circuitCode) =>
     set((state) => ({
       dirty: true,
       project: { ...state.project, circuitCode, parameters: reconcileDeviceParameters(circuitCode, state.project.parameters, false) },
-      stages: staleStages(state.stages),
+      stages: invalidateFrom(state.stages, { ...state.project, circuitCode, parameters: reconcileDeviceParameters(circuitCode, state.project.parameters, false) }, 'linear'),
     })),
   updateMetricsCode: (metricsCode) =>
     set((state) => ({
       dirty: true,
       project: { ...state.project, metricsCode, metrics: metricsFromCode(metricsCode) },
-      stages: state.stages.map((stage) => stage.status === 'running' ? stage : { ...stage, status: stage.id === 'optimization' && stage.status === 'skipped' ? 'skipped' : 'stale', progress: 0 }),
+      stages: invalidateFrom(state.stages, state.project, 'linear'),
     })),
   updateParametricSourcesCode: (parametricSourcesCode) =>
     set((state) => ({
       dirty: true,
       project: { ...state.project, parametricSourcesCode },
-      stages: state.stages.map((stage) => stage.status === 'running' ? stage : { ...stage, status: stage.id === 'optimization' && stage.status === 'skipped' ? 'skipped' : 'stale', progress: 0 }),
+      stages: invalidateFrom(state.stages, state.project, 'linear'),
     })),
   updateComputation: (patch) =>
-    set((state) => ({
-      dirty: true,
-      project: { ...state.project, computation: { ...state.project.computation, ...patch } },
-      stages: state.stages.map((stage) => stage.id === 'hb' ? { ...stage, status: 'stale', progress: 0 } : stage),
-    })),
+    set((state) => {
+      const affected = affectedComputationStage(state.project.computation, patch)
+      if (!affected) return state
+      const project = { ...state.project, computation: { ...state.project.computation, ...patch } }
+      return { dirty: true, project, stages: invalidateFrom(state.stages, project, affected) }
+    }),
   markSaved: () => set({ dirty: false }),
   resetProject: () => set({ project: initialProject, dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null }),
   setStage: (id, patch) => set((state) => ({ stages: state.stages.map((stage) => (stage.id === id ? { ...stage, ...patch } : stage)) })),
@@ -291,8 +299,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     return {
       results,
       stages: state.stages.map((stage) => {
+        // A Results refresh must not silently revalidate a setup-dependent stale stage.
+        if (stage.status === 'stale') return stage
         if ((stage.id === 'linear' && failedStage === 'lin') || (stage.id === 'optimization' && failedStage === 'bo') || (stage.id === 'hb' && failedStage === 'hb')) return { ...stage, status: 'failed' }
         if (stage.id === 'linear' && latest.linear) return { ...stage, status: 'completed', progress: 100, completedAt: latest.id.replace('output_', '').replace('_', ' · ') }
+        if (stage.id === 'optimization' && stage.status !== 'skipped' && latest.optimalParameters) return { ...stage, status: 'completed', progress: 100, completedAt: latest.id.replace('output_', '').replace('_', ' · ') }
         if (stage.id === 'hb' && latest.nonlinear) return { ...stage, status: 'completed', progress: 100, completedAt: latest.id.replace('output_', '').replace('_', ' · ') }
         return stage
       }),
