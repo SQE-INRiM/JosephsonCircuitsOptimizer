@@ -28,6 +28,8 @@ Do not include nonlinear-feedback iterations.
   `optimal_device_parameters.json` in the desktop bridge, not in the upstream engine.
 - Every stage continues to produce its own output folder. Optimization-only and
   HB-only JCO modes copy their input Linear dataset into their new output.
+- After a cancelled partial run, `LATEST.txt` can point to an unfinished folder. Scan prior run folders from newest to oldest for an existing compatible, snapshot-validated dataset and (for HB) optimum; pass their exact paths to Julia instead of changing the latest-run pointer or rerunning Linear.
+- Stage-only restarts require a complete compatible prior artifact. Never use incomplete optimizer history to authorize HB.
 
 ## Verification
 
