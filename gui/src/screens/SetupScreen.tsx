@@ -548,13 +548,12 @@ export function SetupScreen() {
   const step = useAppStore((state) => state.setupStep)
   const setStep = useAppStore((state) => state.setSetupStep)
   const project = useAppStore((state) => state.project)
-  const updateProjectName = useAppStore((state) => state.updateProjectName)
   const missingParameterCount = project.parameters.filter((parameter) => parameter.circuitStatus === 'missing').length
   const go = (next: number) => setStep(Math.max(0, Math.min(2, next)) as SetupStep)
 
   return (
     <Stack spacing={2.5}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: { md: 'center' }, justifyContent: 'space-between' }}><Box><Typography variant="h4">Project setup</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Build the complete simulation input before starting expensive calculations.</Typography></Box><TextField label="Project name" value={project.name} onChange={(event) => updateProjectName(event.target.value)} sx={{ width: { xs: '100%', md: 360 } }} /></Stack>
+      <Box><Typography variant="h4">Project setup</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Build the complete simulation input before starting expensive calculations.</Typography></Box>
       <Paper variant="outlined" sx={{ p: 2.2 }}><Stepper nonLinear activeStep={step} alternativeLabel>{steps.map((label, index) => <Step key={label} completed={index < step}><StepButton color="inherit" onClick={() => setStep(index as SetupStep)}>{label}</StepButton></Step>)}</Stepper></Paper>
       {step === 0 && <ModelStep />}
       {step === 1 && <ComputationStep />}
@@ -565,7 +564,7 @@ export function SetupScreen() {
             <CheckCircleOutlineRoundedIcon color={missingParameterCount ? 'warning' : 'success'} />
             <Box sx={{ minWidth: 0 }}>
               <Typography variant="subtitle2">{missingParameterCount ? `${missingParameterCount} parameter${missingParameterCount === 1 ? '' : 's'} still need values` : 'Project setup complete'}</Typography>
-              <Typography variant="caption" color="text.secondary">{project.parameters.length} parameters · {project.sources.length} sources · {project.metrics.length} named metrics · schema {project.schemaVersion}</Typography>
+              <Typography variant="caption" color="text.secondary">{project.parameters.length} parameters · {project.sources.length} sources · {project.metrics.length} named metrics</Typography>
             </Box>
           </Stack>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: { xs: 'flex-start', lg: 'flex-end' }, gap: 1 }}>
