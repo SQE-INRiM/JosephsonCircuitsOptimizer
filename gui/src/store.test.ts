@@ -182,6 +182,12 @@ describe('GUI device parameter workflow', () => {
 
   it('uses backend stage completion time instead of a demo duration', () => {
     useAppStore.getState().applyRunEvent({
+      type: 'run-started',
+      runId: 'output_2026-08-27_15-00-00-000Z',
+      stages: ['linear'],
+      timestamp: '2026-08-27T13:00:00.000Z',
+    })
+    useAppStore.getState().applyRunEvent({
       type: 'stage-status',
       runId: 'output_2026-08-27_15-00-00-000Z',
       stage: 'linear',
