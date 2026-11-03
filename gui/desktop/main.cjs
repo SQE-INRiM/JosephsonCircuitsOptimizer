@@ -9,6 +9,7 @@ const readline = require('readline')
 const { copyWorkspace, findWorkspaceRoot, packProject, packWorkspaceZip, unpackProject, validateWorkspace } = require('./archive.cjs')
 const { loadProjectModel, saveProjectModel } = require('./project-model.cjs')
 const { modeForStages } = require('./run-mode.cjs')
+const { validatePartialRunInputs } = require('./stage-inputs.cjs')
 const { createRunId, outcomeForClose, requireDurableProject, terminateProcessTree } = require('./run-process.cjs')
 const { assertProcessIdle, captureRunSession } = require('./run-session.cjs')
 const { normalizeZoom, stepZoom, zoomShortcut } = require('./zoom.cjs')
@@ -251,6 +252,8 @@ async function startRun(request) {
   saveProjectModel(session.workspace, request.project)
   const validation = validateWorkspace(session.workspace)
   if (!validation.valid) throw new Error(`Missing inputs: ${validation.missing.join(', ')}`)
+  const mode = modeForStages(request.stages)
+  validatePartialRunInputs(session.workspace, mode)
   await ensureRuntimePrepared()
   if (juliaProcess) throw new Error('A simulation is already running.')
   const settings = getSettings()
@@ -261,7 +264,6 @@ async function startRun(request) {
   const displayMetadataPath = path.join(runSession.workspace, 'jco_gui_metadata.json')
   const displayMetadata = fs.existsSync(displayMetadataPath) ? fs.readFileSync(displayMetadataPath) : null
   const bootstrap = path.join(resourcesRoot(), 'bridge', 'run.jl')
-  const mode = modeForStages(request.stages)
   const args = ['--startup-file=no', '--color=no', `--project=${jcoRoot()}`, bootstrap]
   juliaProcess = spawn(settings.juliaPath || 'julia', args, {
     cwd: jcoRoot(),
