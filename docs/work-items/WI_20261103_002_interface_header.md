@@ -19,9 +19,18 @@
 - Loading a different project updates the displayed title.
 - The filename remains stored but is never shown in the header, and Setup has no duplicate project-name field.
 
+## Setup navigation extension
+
+- Move **Back / Next** from the Setup footer to the upper Setup header, near the section title and the three-step progress indicator.
+- Treat `Model & inputs` as three navigable substeps: `Circuit → Device parameters → Sources`; then `Computation → Metrics & constraints`.
+- `Back` follows the reverse order, including returning from Computation to Sources. Keep direct clicks on the Stepper and tabs functional, with navigation relative to the currently selected substep.
+- New/opened projects start on Circuit (first substep). The bottom footer continues to show parameter/source/metric readiness, without navigation buttons.
+- Add regression tests for all forward/back transitions, disabled endpoints and manual tab choice.
+
+
 ## Verification
 
-- Added targeted React/Vitest tests for title display, rename/filename persistence, Escape and blank names.
+- Added targeted React/Vitest tests for title display, rename/filename persistence, Escape and blank names, plus Setup substep navigation.
 - Pending: GitHub Actions tests, renderer build, Windows/Linux packaging and manual visual review in the Windows desktop GUI.
 
 ## Impact
