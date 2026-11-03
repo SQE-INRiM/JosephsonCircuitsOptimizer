@@ -438,7 +438,7 @@ function ComputationStep() {
           aria-disabled={optimizationSkipped}
           sx={{
             flex: 1,
-            bgcolor: optimizationSkipped ? 'action.hover' : 'background.paper',
+            bgcolor: optimizationSkipped ? 'action.disabledBackground' : 'background.paper',
             borderColor: optimizationSkipped ? 'action.disabled' : 'divider',
           }}
         >
