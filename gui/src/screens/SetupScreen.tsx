@@ -475,7 +475,7 @@ function ComputationStep() {
                 <NumberField label="Strong-tone harmonics" value={config.linearStrongToneHarmonics} onChange={(value) => update({ linearStrongToneHarmonics: value })} />
                 <NumberField label="Modulation harmonics" value={config.linearModulationHarmonics} onChange={(value) => update({ linearModulationHarmonics: value })} />
               </Stack>
-              <Alert severity={linearFirstOrder ? 'success' : 'info'} sx={{ mt: 1.5 }}>
+              <Alert severity={linearFirstOrder ? 'success' : 'info'} role="status" sx={{ mt: 1.5 }}>
                 {linearFirstOrder
                   ? 'Linear-stage harmonic and intermodulation limits are set to first order (1).'
                   : 'To keep Linear simulations first-order, set both harmonic counts and Max intermodulation order to 1. Higher values may include higher-order mixing.'}
