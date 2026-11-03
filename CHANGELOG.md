@@ -4,6 +4,11 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Setup computation usability
+- Present the first-order Linear harmonic/intermodulation guidance as information rather than a warning when higher-order mixing remains enabled.
+- Grey out and disable Optimization settings when Linear has a single device configuration, while retaining saved settings and re-enabling controls when a multi-point parameter sweep is configured.
+- Simplify the first-order Linear guidance text. In Results, always disable the Optimization tab for single-point setups (including when older runs contain optimizer data); disable Correlation and 1D density views when the selected Linear dataset contains no parameter sweep while keeping its point data accessible.
+
 ### Simulation Run controls
 - Replace Run remaining/Run all and manual stage selection with one fresh **Run** and a context-sensitive **Run Linear / Run Optimization / Run Nonlinear** action.
 - Invalidate only dependent stages when Setup changes; retain Linear data for optimizer-only and nonlinear-only changes where valid. Prevent a Results refresh from revalidating stages marked stale.

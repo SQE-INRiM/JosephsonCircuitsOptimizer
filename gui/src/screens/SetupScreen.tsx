@@ -50,6 +50,7 @@ import { JuliaCodeEditor } from '../components/JuliaCodeEditor'
 import { useAppStore } from '../store'
 import type { ParameterMode, SetupStep, SourceAmplitudeUnit, SourceValueSpec } from '../types'
 import { convertSourceValueSpec, DEFAULT_SOURCE_IMPEDANCE_OHM } from '../utils/sourceUnits'
+import { hasVaryingDeviceParameters } from '../utils/runSummary'
 
 const steps = ['Model & inputs', 'Computation', 'Metrics & constraints']
 type AmplitudeMode = ParameterMode | 'Parametric'
@@ -406,8 +407,8 @@ function ModelStep() {
   )
 }
 
-function NumberField({ label, value, suffix, onChange }: { label: string; value: number; suffix?: string; onChange: (value: number) => void }) {
-  return <TextField fullWidth label={label} type="number" value={value} onChange={(event) => onChange(Number(event.target.value))} slotProps={suffix ? { input: { endAdornment: <Typography variant="caption" color="text.secondary">{suffix}</Typography> } } : undefined} />
+function NumberField({ label, value, suffix, disabled = false, onChange }: { label: string; value: number; suffix?: string; disabled?: boolean; onChange: (value: number) => void }) {
+  return <TextField fullWidth label={label} type="number" value={value} disabled={disabled} onChange={(event) => onChange(Number(event.target.value))} slotProps={suffix ? { input: { endAdornment: <Typography variant="caption" color="text.secondary">{suffix}</Typography> } } : undefined} />
 }
 
 function ComputationStep() {
@@ -416,6 +417,7 @@ function ComputationStep() {
   const update = useAppStore((state) => state.updateComputation)
   const frequencyPoints = Math.floor(((config.frequencyStopGHz - config.frequencyStartGHz) * 1000) / config.frequencyStepMHz) + 1
   const variableParameterCount = project.parameters.filter((parameter) => parameter.mode !== 'Fixed').length
+  const optimizationSkipped = !hasVaryingDeviceParameters(project)
   const linearFirstOrder = config.linearStrongToneHarmonics === 1
     && config.linearModulationHarmonics === 1
     && Number(config.maxIntermodOrder) === 1
@@ -431,20 +433,36 @@ function ComputationStep() {
           </Stack>
         </CardContent></Card>
 
-        <Card variant="outlined" sx={{ flex: 1 }}><CardContent>
-          <SectionHeading icon={<FunctionsRoundedIcon />} title="Optimization" description="Surrogate model and acquisition strategy." />
-          <Stack spacing={2} sx={{ mt: 2.5 }}>
-            <Stack direction="row" spacing={1.5}><NumberField label="Iterations" value={config.optimizerIterations} onChange={(value) => update({ optimizerIterations: value })} /><NumberField label="Samples / iteration" value={config.samplesPerIteration} onChange={(value) => update({ samplesPerIteration: value })} /><NumberField label="Random seed" value={config.randomSeed} onChange={(value) => update({ randomSeed: value })} /></Stack>
-            <Stack direction="row" spacing={1.5}>
-              <TextField select label="Surrogate" value={config.surrogate} onChange={(event) => update({ surrogate: event.target.value })} fullWidth><MenuItem value="Kriging">Kriging</MenuItem><MenuItem value="RadialBasis">Radial basis</MenuItem><MenuItem value="SecondOrderPolynomial">Second-order polynomial</MenuItem></TextField>
-              <TextField select label="Strategy" value={config.strategy} onChange={(event) => update({ strategy: event.target.value })} fullWidth><MenuItem value="SRBF">SRBF</MenuItem><MenuItem value="EI">Expected improvement</MenuItem><MenuItem value="LCBS">Lower confidence bound</MenuItem></TextField>
-              <TextField select label="Sampler" value={config.sampler} onChange={(event) => update({ sampler: event.target.value })} fullWidth><MenuItem value="RandomSample">Random</MenuItem><MenuItem value="SobolSample">Sobol</MenuItem><MenuItem value="LatinHypercubeSample">Latin hypercube</MenuItem></TextField>
+        <Card
+          variant="outlined"
+          aria-disabled={optimizationSkipped}
+          sx={{
+            flex: 1,
+            bgcolor: optimizationSkipped ? 'action.disabledBackground' : 'background.paper',
+            borderColor: optimizationSkipped ? 'action.disabled' : 'divider',
+          }}
+        >
+          <CardContent>
+            <Box sx={{ opacity: optimizationSkipped ? 0.55 : 1 }}>
+              <SectionHeading icon={<FunctionsRoundedIcon />} title="Optimization" description="Surrogate model and acquisition strategy." />
+            </Box>
+            <Stack spacing={2} sx={{ mt: 2.5 }}>
+              <Stack direction="row" spacing={1.5}>
+                <NumberField label="Iterations" value={config.optimizerIterations} disabled={optimizationSkipped} onChange={(value) => update({ optimizerIterations: value })} />
+                <NumberField label="Samples / iteration" value={config.samplesPerIteration} disabled={optimizationSkipped} onChange={(value) => update({ samplesPerIteration: value })} />
+                <NumberField label="Random seed" value={config.randomSeed} disabled={optimizationSkipped} onChange={(value) => update({ randomSeed: value })} />
+              </Stack>
+              <Stack direction="row" spacing={1.5}>
+                <TextField select label="Surrogate" value={config.surrogate} disabled={optimizationSkipped} onChange={(event) => update({ surrogate: event.target.value })} fullWidth><MenuItem value="Kriging">Kriging</MenuItem><MenuItem value="RadialBasis">Radial basis</MenuItem><MenuItem value="SecondOrderPolynomial">Second-order polynomial</MenuItem></TextField>
+                <TextField select label="Strategy" value={config.strategy} disabled={optimizationSkipped} onChange={(event) => update({ strategy: event.target.value })} fullWidth><MenuItem value="SRBF">SRBF</MenuItem><MenuItem value="EI">Expected improvement</MenuItem><MenuItem value="LCBS">Lower confidence bound</MenuItem></TextField>
+                <TextField select label="Sampler" value={config.sampler} disabled={optimizationSkipped} onChange={(event) => update({ sampler: event.target.value })} fullWidth><MenuItem value="RandomSample">Random</MenuItem><MenuItem value="SobolSample">Sobol</MenuItem><MenuItem value="LatinHypercubeSample">Latin hypercube</MenuItem></TextField>
+              </Stack>
+              {optimizationSkipped
+                ? <Alert severity="info">Optimization skipped — only one device configuration in Linear; no optimization is needed.</Alert>
+                : <Alert severity="success">Optimization enabled · {variableParameterCount} variable device parameter{variableParameterCount === 1 ? '' : 's'}.</Alert>}
             </Stack>
-            {variableParameterCount === 0
-              ? <Alert severity="warning">Optimization is skipped because all device parameters are fixed.</Alert>
-              : <Alert severity="success">Optimization enabled · {variableParameterCount} variable device parameter{variableParameterCount === 1 ? '' : 's'}.</Alert>}
-          </Stack>
-        </CardContent></Card>
+          </CardContent>
+        </Card>
       </Stack>
 
       <Card variant="outlined"><CardContent>
@@ -457,10 +475,10 @@ function ComputationStep() {
                 <NumberField label="Strong-tone harmonics" value={config.linearStrongToneHarmonics} onChange={(value) => update({ linearStrongToneHarmonics: value })} />
                 <NumberField label="Modulation harmonics" value={config.linearModulationHarmonics} onChange={(value) => update({ linearModulationHarmonics: value })} />
               </Stack>
-              <Alert severity={linearFirstOrder ? 'success' : 'warning'} sx={{ mt: 1.5 }}>
+              <Alert severity={linearFirstOrder ? 'success' : 'info'} role="status" sx={{ mt: 1.5 }}>
                 {linearFirstOrder
                   ? 'Linear-stage harmonic and intermodulation limits are set to first order (1).'
-                  : 'For first-order linear simulations, set both linear harmonic counts and Max intermodulation order to 1. Other values can include higher-order mixing.'}
+                  : 'For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1. To explore pumped behavior across the parameter space, increase the harmonic counts as needed.'}
               </Alert>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                 Max intermodulation order is a shared solver setting below; changing it also affects the nonlinear HB stage.

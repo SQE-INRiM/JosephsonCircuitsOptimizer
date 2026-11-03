@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from '../store'
 import { SetupScreen } from './SetupScreen'
@@ -92,9 +92,10 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
 
   afterEach(() => cleanup())
 
-  it('warns when the shared intermodulation order is unlimited', () => {
+  it('shows informational guidance when the shared intermodulation order is unlimited', () => {
     render(<SetupScreen />)
-    expect(screen.getByText(/For first-order linear simulations, set both linear harmonic counts and Max intermodulation order to 1/)).toBeTruthy()
+    const guidance = screen.getByText(/For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1/)
+    expect(guidance.closest('.MuiAlert-root')?.getAttribute('role')).toBe('status')
     expect(screen.getByText(/changing it also affects the nonlinear HB stage/)).toBeTruthy()
   })
 
@@ -103,22 +104,86 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
     render(<SetupScreen />)
 
     expect(screen.getByText(/Linear-stage harmonic and intermodulation limits are set to first order/)).toBeTruthy()
-    expect(screen.queryByText(/For first-order linear simulations, set both linear harmonic counts/)).toBeNull()
+    expect(screen.queryByText(/For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics/)).toBeNull()
   })
 
   it.each([
     { linearStrongToneHarmonics: 2 },
     { linearModulationHarmonics: 2 },
-  ])('warns when a linear harmonic count is increased (%o)', (patch) => {
+  ])('shows info when a linear harmonic count is increased (%o)', (patch) => {
     useAppStore.getState().updateComputation({ maxIntermodOrder: '1', ...patch })
     render(<SetupScreen />)
-    expect(screen.getByText(/For first-order linear simulations, set both linear harmonic counts/)).toBeTruthy()
+    const guidance = screen.getByText(/For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics/)
+    expect(guidance.closest('.MuiAlert-root')?.getAttribute('role')).toBe('status')
   })
 
   it('updates the guidance when the shared intermodulation order changes', () => {
     render(<SetupScreen />)
     fireEvent.change(screen.getByRole('textbox', { name: 'Max intermodulation order' }), { target: { value: '1' } })
     expect(screen.getByText(/Linear-stage harmonic and intermodulation limits are set to first order/)).toBeTruthy()
+  })
+})
+
+describe('Single-point optimization panel', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: {
+        ...structuredClone(originalProject),
+        parameters: originalProject.parameters.map((parameter) => ({
+          ...parameter, mode: 'Fixed' as const, value: '250',
+        })),
+      },
+      setupStep: 1,
+      dirty: false,
+    })
+  })
+
+  afterEach(() => cleanup())
+
+  it('shows a muted panel and disables all optimization controls for one configuration', () => {
+    render(<SetupScreen />)
+
+    const panel = screen.getByText('Optimization').closest('.MuiCard-root')
+    expect(panel?.getAttribute('aria-disabled')).toBe('true')
+    expect(panel?.querySelectorAll('.Mui-disabled').length).toBeGreaterThan(0)
+    expect(screen.getByText(/Optimization skipped — only one device configuration in Linear/)).toBeTruthy()
+    for (const label of ['Iterations', 'Samples / iteration', 'Random seed']) {
+      expect((screen.getByRole('spinbutton', { name: label }) as HTMLInputElement).disabled).toBe(true)
+    }
+    for (const label of ['Surrogate', 'Strategy', 'Sampler']) {
+      expect(screen.getByRole('combobox', { name: label }).getAttribute('aria-disabled')).toBe('true')
+    }
+  })
+
+  it('keeps a single-value List disabled and automatically re-enables optimization for multiple points', () => {
+    render(<SetupScreen />)
+    const startingIterations = useAppStore.getState().project.computation.optimizerIterations
+
+    act(() => {
+      useAppStore.setState((state) => ({
+        project: {
+          ...state.project,
+          parameters: state.project.parameters.map((parameter, index) =>
+            index === 0 ? { ...parameter, mode: 'List' as const, values: '250' } : parameter),
+        },
+      }))
+    })
+    expect((screen.getByRole('spinbutton', { name: 'Iterations' }) as HTMLInputElement).disabled).toBe(true)
+
+    act(() => {
+      useAppStore.setState((state) => ({
+        project: {
+          ...state.project,
+          parameters: state.project.parameters.map((parameter, index) =>
+            index === 0 ? { ...parameter, mode: 'List' as const, values: '250, 350' } : parameter),
+        },
+      }))
+    })
+    expect(screen.getByText(/Optimization enabled/)).toBeTruthy()
+    expect(screen.getByText('Optimization').closest('.MuiCard-root')?.getAttribute('aria-disabled')).toBe('false')
+    expect((screen.getByRole('spinbutton', { name: 'Iterations' }) as HTMLInputElement).disabled).toBe(false)
+    expect(screen.getByRole('combobox', { name: 'Surrogate' }).getAttribute('aria-disabled')).not.toBe('true')
+    expect(useAppStore.getState().project.computation.optimizerIterations).toBe(startingIterations)
   })
 })
 
