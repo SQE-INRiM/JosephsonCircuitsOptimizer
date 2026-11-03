@@ -271,7 +271,7 @@ async function startRun(request) {
     windowsHide: true,
   })
   activeRun = { ...runSession, cancelRequested: false, stageStartedAt: {} }
-  emit({ type: 'run-started', runId, timestamp: new Date().toISOString() })
+  emit({ type: 'run-started', runId, stages: request.stages, timestamp: new Date().toISOString() })
   readline.createInterface({ input: juliaProcess.stdout }).on('line', (line) => parseOutputLine(line, runId))
   readline.createInterface({ input: juliaProcess.stderr }).on('line', (line) => parseOutputLine(line, runId))
   juliaProcess.on('error', (error) => emit({ type: 'log', runId, level: 'ERROR', message: error.message, timestamp: new Date().toISOString() }))
