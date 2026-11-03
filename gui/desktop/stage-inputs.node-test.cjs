@@ -8,7 +8,7 @@ const { validatePartialRunInputs } = require('./stage-inputs.cjs')
 function fixture() {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'jco-stage-inputs-'))
   const input = path.join(workspace, 'user_inputs')
-  const run = path.join(workspace, 'outputs', 'output_test')
+  const run = path.join(workspace, 'outputs', 'output_2026-11-03_16-00-00-000Z')
   const snapshot = path.join(run, 'inputs_snapshot')
   fs.mkdirSync(input, { recursive: true })
   fs.mkdirSync(snapshot, { recursive: true })
@@ -63,12 +63,36 @@ test('HB can use a fixed-device Linear point after changing irrelevant optimizer
     validatePartialRunInputs(f.workspace, 'nonlinear_only')
   } finally { f.cleanup() }
 })
+test('retry Optimization after cancellation reuses the earlier valid Linear dataset', () => {
+  const f = fixture()
+  try {
+    const abandoned = path.join(f.workspace, 'outputs', 'output_2026-11-03_16-30-00-000Z')
+    fs.mkdirSync(path.join(abandoned, 'inputs_snapshot'), { recursive: true })
+    fs.writeFileSync(path.join(abandoned, 'simulation_info.txt'), 'cancelled optimizer, partial history')
+    fs.writeFileSync(path.join(f.workspace, 'outputs', 'LATEST.txt'), abandoned + '\\n')
+    const resolved = validatePartialRunInputs(f.workspace, 'optimization_only')
+    assert.equal(resolved.datasetPath, path.join(f.run, 'df_uniform_analysis.h5'))
+    assert.equal(resolved.optimalParamsPath, undefined)
+  } finally { f.cleanup() }
+})
+test('retry Nonlinear after cancellation finds the last compatible optimum', () => {
+  const f = fixture()
+  try {
+    const abandoned = path.join(f.workspace, 'outputs', 'output_2026-11-03_16-30-00-000Z')
+    fs.mkdirSync(abandoned)
+    fs.writeFileSync(path.join(abandoned, 'df_uniform_analysis.h5'), 'partial copied dataset')
+    fs.writeFileSync(path.join(f.workspace, 'outputs', 'LATEST.txt'), abandoned + '\\n')
+    const resolved = validatePartialRunInputs(f.workspace, 'nonlinear_only')
+    assert.equal(resolved.datasetPath, path.join(f.run, 'df_uniform_analysis.h5'))
+    assert.equal(resolved.optimalParamsPath, path.join(f.run, 'optimal_device_parameters.json'))
+  } finally { f.cleanup() }
+})
 test('rejects a changed Linear input and missing prerequisites', () => {
   const f = fixture()
   try {
     writeJson(f.input, 'drive_physical_quantities.json', { source_1_linear_amplitude: [3] })
     assert.throws(() => validatePartialRunInputs(f.workspace, 'optimization_only'), /Run Linear/)
     fs.rmSync(path.join(f.run, 'df_uniform_analysis.h5'))
-    assert.throws(() => validatePartialRunInputs(f.workspace, 'optimization_only'), /missing prerequisites/)
+    assert.throws(() => validatePartialRunInputs(f.workspace, 'optimization_only'), /No completed saved stage/)
   } finally { f.cleanup() }
 })
