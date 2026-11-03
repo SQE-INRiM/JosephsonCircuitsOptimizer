@@ -95,6 +95,7 @@ interface AppStore {
   setupStep: SetupStep
   setupPanel: 'circuit' | 'parameters' | 'sources'
   resultsStage: StageId
+  selectedResultsRunId: string | null
   project: ProjectModel
   dirty: boolean
   stages: StageState[]
@@ -108,6 +109,7 @@ interface AppStore {
   setSetupStep: (step: SetupStep) => void
   setSetupPanel: (panel: 'circuit' | 'parameters' | 'sources') => void
   setResultsStage: (stage: StageId) => void
+  setSelectedResultsRunId: (runId: string) => void
   setSelectedPumpAmplitude: (amplitude: number) => void
   updateProjectName: (name: string) => void
   updateParameter: (id: string, patch: Partial<ParameterSpec>) => void
@@ -138,6 +140,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setupStep: 0,
   setupPanel: 'parameters',
   resultsStage: 'linear',
+  selectedResultsRunId: null,
   project: initialProject,
   dirty: false,
   stages: initialStages,
@@ -151,6 +154,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setSetupStep: (setupStep) => set({ setupStep }),
   setSetupPanel: (setupPanel) => set({ setupPanel }),
   setResultsStage: (resultsStage) => set({ resultsStage }),
+  setSelectedResultsRunId: (selectedResultsRunId) => set({ selectedResultsRunId }),
   setSelectedPumpAmplitude: (selectedPumpAmplitude) => set({ selectedPumpAmplitude }),
   updateProjectName: (name) =>
     set((state) => {
@@ -262,7 +266,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return { dirty: true, project, stages: invalidateFrom(state.stages, project, affected) }
     }),
   markSaved: () => set({ dirty: false }),
-  resetProject: () => set({ project: initialProject, dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, activeRunStages: [] }),
+  resetProject: () => set({ project: initialProject, dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, activeRunStages: [], results: null, selectedResultsRunId: null }),
   setStage: (id, patch) => set((state) => ({ stages: state.stages.map((stage) => (stage.id === id ? { ...stage, ...patch } : stage)) })),
   addLog: (entry) =>
     set((state) => ({
@@ -284,13 +288,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
       })),
       logs: [{ id: 1, time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: `Loaded ${project.filename}` }],
       results: null,
+      selectedResultsRunId: null,
       currentRunId: null,
       activeRunStages: [],
     })
   },
   // Historical Results are for browsing only: a saved optimum or an old Linear
   // table is not evidence that the current (possibly cancelled) stage completed.
-  setResults: (results) => set({ results }),
+  setResults: (results) => set((state) => ({
+    results,
+    // Keep the user's chosen run when refreshing/indexing; only fall back if it disappears.
+    selectedResultsRunId: results?.runs.some((run) => run.id === state.selectedResultsRunId)
+      ? state.selectedResultsRunId
+      : results?.runs[0]?.id ?? null,
+  })),
   applyRunEvent: (event) => {
     if (event.type === 'run-started') {
       set((state) => ({
