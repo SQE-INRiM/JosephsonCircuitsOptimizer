@@ -19,6 +19,7 @@ afterEach(() => {
 
 it('runs the stage named by the selected-stage button', async () => {
   const onRunStage = vi.fn().mockResolvedValue(undefined)
+  useAppStore.setState({ stages: structuredClone(initialStages).map((stage) => ({ ...stage, status: 'ready' as const })) })
   render(
     <RunScreen
       desktop
