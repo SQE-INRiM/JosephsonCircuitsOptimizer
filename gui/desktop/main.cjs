@@ -253,7 +253,7 @@ async function startRun(request) {
   const validation = validateWorkspace(session.workspace)
   if (!validation.valid) throw new Error(`Missing inputs: ${validation.missing.join(', ')}`)
   const mode = modeForStages(request.stages)
-  validatePartialRunInputs(session.workspace, mode)
+  const stageInputs = validatePartialRunInputs(session.workspace, mode)
   await ensureRuntimePrepared()
   if (juliaProcess) throw new Error('A simulation is already running.')
   const settings = getSettings()
@@ -267,7 +267,7 @@ async function startRun(request) {
   const args = ['--startup-file=no', '--color=no', `--project=${jcoRoot()}`, bootstrap]
   juliaProcess = spawn(settings.juliaPath || 'julia', args, {
     cwd: jcoRoot(),
-    env: { ...process.env, JCO_PROJECT: jcoRoot(), JCO_WORKSPACE: runSession.workspace, JCO_MODE: mode, JCO_RUN_ID: runId, JULIA_NUM_THREADS: String(Math.max(1, settings.threads || 1)) },
+    env: { ...process.env, JCO_PROJECT: jcoRoot(), JCO_WORKSPACE: runSession.workspace, JCO_MODE: mode, JCO_RUN_ID: runId, JCO_STAGE_DATASET: stageInputs.datasetPath ?? '', JCO_STAGE_OPTIMUM: stageInputs.optimalParamsPath ?? '', JULIA_NUM_THREADS: String(Math.max(1, settings.threads || 1)) },
     windowsHide: true,
   })
   activeRun = { ...runSession, cancelRequested: false, stageStartedAt: {} }
