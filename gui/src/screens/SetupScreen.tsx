@@ -547,13 +547,43 @@ function MetricsStep() {
 export function SetupScreen() {
   const step = useAppStore((state) => state.setupStep)
   const setStep = useAppStore((state) => state.setSetupStep)
+  const panel = useAppStore((state) => state.setupPanel)
+  const setPanel = useAppStore((state) => state.setSetupPanel)
   const project = useAppStore((state) => state.project)
   const missingParameterCount = project.parameters.filter((parameter) => parameter.circuitStatus === 'missing').length
-  const go = (next: number) => setStep(Math.max(0, Math.min(2, next)) as SetupStep)
+
+  // Model & inputs comprises three separate stops in the Setup navigation:
+  // Circuit → Device parameters → Sources → Computation → Metrics.
+  const goBack = () => {
+    if (step === 0) {
+      if (panel === 'sources') setPanel('parameters')
+      else if (panel === 'parameters') setPanel('circuit')
+    } else if (step === 1) {
+      setPanel('sources')
+      setStep(0)
+    } else {
+      setStep(1)
+    }
+  }
+  const goNext = () => {
+    if (step === 0) {
+      if (panel === 'circuit') setPanel('parameters')
+      else if (panel === 'parameters') setPanel('sources')
+      else setStep(1)
+    } else if (step === 1) {
+      setStep(2)
+    }
+  }
 
   return (
     <Stack spacing={2.5}>
-      <Box><Typography variant="h4">Project setup</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Build the complete simulation input before starting expensive calculations.</Typography></Box>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+        <Box><Typography variant="h4">Project setup</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Build the complete simulation input before starting expensive calculations.</Typography></Box>
+        <Stack direction="row" spacing={1} sx={{ flexShrink: 0, justifyContent: { xs: 'flex-end', sm: 'initial' } }}>
+          <Button startIcon={<ArrowBackRoundedIcon />} disabled={step === 0 && panel === 'circuit'} onClick={goBack}>Back</Button>
+          <Button variant="contained" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={goNext}>Next</Button>
+        </Stack>
+      </Stack>
       <Paper variant="outlined" sx={{ p: 2.2 }}><Stepper nonLinear activeStep={step} alternativeLabel>{steps.map((label, index) => <Step key={label} completed={index < step}><StepButton color="inherit" onClick={() => setStep(index as SetupStep)}>{label}</StepButton></Step>)}</Stepper></Paper>
       {step === 0 && <ModelStep />}
       {step === 1 && <ComputationStep />}
@@ -567,10 +597,7 @@ export function SetupScreen() {
               <Typography variant="caption" color="text.secondary">{project.parameters.length} parameters · {project.sources.length} sources · {project.metrics.length} named metrics</Typography>
             </Box>
           </Stack>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: { xs: 'flex-start', lg: 'flex-end' }, gap: 1 }}>
-            <Button startIcon={<ArrowBackRoundedIcon />} disabled={step === 0} onClick={() => go(step - 1)}>Back</Button>
-            <Button variant="contained" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={() => go(step + 1)}>Next</Button>
-          </Box>
+
         </Stack>
       </Paper>
     </Stack>
