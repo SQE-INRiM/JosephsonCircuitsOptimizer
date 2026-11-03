@@ -4,6 +4,9 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Application header
+- Show one inline-editable project title in the top bar instead of a separate filename badge and Setup project-name field. Keep underlying .jco filename handling unchanged and remove the Desktop bridge / Schema v1 developer labels.
+
 ### Setup computation usability
 - Present the first-order Linear harmonic/intermodulation guidance as information rather than a warning when higher-order mixing remains enabled.
 - Grey out and disable Optimization settings when Linear has a single device configuration, while retaining saved settings and re-enabling controls when a multi-point parameter sweep is configured.
