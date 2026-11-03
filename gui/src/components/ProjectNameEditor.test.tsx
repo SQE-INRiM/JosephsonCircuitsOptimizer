@@ -43,7 +43,7 @@ describe('Header project title', () => {
         ...state.project,
         name: 'Saved device',
         filename: 'device_2026.jco',
-        workspaceInfo: { ...state.project.workspaceInfo, projectPath: 'C:/projects/device_2026.jco' },
+        workspaceInfo: { path: 'C:/projects', projectPath: 'C:/projects/device_2026.jco', auxiliaryFiles: [] },
       },
     }))
     render(<ProjectNameEditor />)
