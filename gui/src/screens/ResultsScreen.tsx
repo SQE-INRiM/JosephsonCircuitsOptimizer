@@ -102,9 +102,6 @@ export function ResultsScreen() {
           </Select>
         </FormControl>
         <Chip size="small" label={`${results!.runs.length} stored runs`} color="success" variant="outlined" />
-        <Chip size="small" label="Stored JCO data" variant="outlined" />
-        {visibleStage === 'linear' && selectedRun.savedLinear && <Chip size="small" variant="outlined" label={`${selectedRun.savedLinear.points.length} retained-data points`} />}
-        {visibleStage === 'hb' && selectedRun.savedNonlinear && <Chip size="small" variant="outlined" label={`${selectedRun.savedNonlinear.points.length} retained-data points`} />}
         <Box sx={{ flexGrow: 1 }} />
         <RunSetupSnapshot runs={results!.runs} initialRunId={selectedRun.id} />
         <ResultsRunManager results={results!} activeRunId={running ? currentRunId : null} onResultsChanged={setResults} />
@@ -113,13 +110,15 @@ export function ResultsScreen() {
       </Stack>
     </Paper>}
 
-    <Paper variant="outlined" sx={{ px: 2 }}>
-      <Tabs value={stageIndex} onChange={(_, index) => setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)}>
-        <Tab label="Linear" />
-        <Tab label="Optimization" disabled={optimizationDisabled} />
-        <Tab label="Harmonic balance" />
-      </Tabs>
-    </Paper>
+    <Box sx={{ pt: hasResults ? 2 : 0, borderTop: hasResults ? '1px solid' : 'none', borderColor: 'divider' }}>
+      <Paper variant="outlined" sx={{ px: 2 }}>
+        <Tabs value={stageIndex} onChange={(_, index) => setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)}>
+          <Tab label="Linear" />
+          <Tab label="Optimization" disabled={optimizationDisabled} />
+          <Tab label="Harmonic balance" />
+        </Tabs>
+      </Paper>
+    </Box>
 
     {running && <Alert severity="info">A new simulation is running. Previously stored runs remain available below. The active run is refreshed when its run state changes rather than continuously re-indexing all stored data.</Alert>}
     {refreshError && <Alert severity="warning">Stored Results could not be refreshed: {refreshError}. The last successfully indexed runs remain visible.</Alert>}
