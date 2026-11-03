@@ -96,6 +96,38 @@ describe('GUI device parameter workflow', () => {
     expect(useAppStore.getState().project.metrics.map((metric) => metric.name)).toEqual(['metric', 'reflection', 'performance', 'ripple'])
   })
 
+  it('keeps completed Linear when editing only optimizer or nonlinear settings', () => {
+    const project = structuredClone(originalProject)
+    project.parameters[0] = { ...project.parameters[0], mode: 'Range', start: '1', stop: '2', step: '1' }
+    useAppStore.getState().loadProject(project)
+    useAppStore.setState((state) => ({
+      stages: state.stages.map((stage) => ({ ...stage, status: 'completed' as const })),
+    }))
+    const iterations = useAppStore.getState().project.computation.optimizerIterations
+    useAppStore.getState().updateComputation({ optimizerIterations: iterations + 1 })
+    expect(useAppStore.getState().stages.map((stage) => stage.status))
+      .toEqual(['completed', 'stale', 'stale'])
+
+    useAppStore.setState((state) => ({
+      stages: state.stages.map((stage) => ({ ...stage, status: 'completed' as const })),
+    }))
+    const source = useAppStore.getState().project.sources[0]
+    useAppStore.getState().updateSource(source.id, { nonlinearAmplitude: { mode: 'Fixed', value: '2e-6' } })
+    expect(useAppStore.getState().stages.map((stage) => stage.status))
+      .toEqual(['completed', 'completed', 'stale'])
+  })
+
+  it('does not resurrect stale stages from old result tables', () => {
+    useAppStore.setState((state) => ({
+      stages: state.stages.map((stage) => ({ ...stage, status: 'stale' as const })),
+    }))
+    useAppStore.getState().setResults({
+      schemaVersion: 'jco.results/4', workspace: 'test',
+      runs: [{ id: 'output_old', linear: { columns: ['metric'], rows: [[1]], file: 'old.h5' }, traces: [] }],
+    })
+    expect(useAppStore.getState().stages[0].status).toBe('stale')
+  })
+
   it('uses backend stage completion time instead of a demo duration', () => {
     useAppStore.getState().applyRunEvent({
       type: 'stage-status',
