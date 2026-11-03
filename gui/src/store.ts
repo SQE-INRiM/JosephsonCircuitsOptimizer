@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { carthagoParameters, carthagoSources, initialStages } from './data/carthago'
 import { nextManualParameter, reconcileDeviceParameters } from './utils/deviceParameters'
 import { metricsFromCode } from './utils/metrics'
+import { hasVaryingDeviceParameters } from './utils/runSummary'
 import { affectedComputationStage, affectedSourceStage, invalidateFrom } from './utils/runStages'
 import type {
   ComputationConfig,
@@ -267,7 +268,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     })),
   loadProject: (project) => {
     const reconciled = { ...project, parameters: reconcileDeviceParameters(project.circuitCode, project.parameters) }
-    const singlePoint = reconciled.parameters.every((parameter) => parameter.mode === 'Fixed')
+    const singlePoint = !hasVaryingDeviceParameters(reconciled)
     set({
       project: reconciled,
       dirty: false,
