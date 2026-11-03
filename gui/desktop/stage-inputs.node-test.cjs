@@ -1,0 +1,65 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const os = require('node:os')
+const path = require('node:path')
+const { validatePartialRunInputs } = require('./stage-inputs.cjs')
+
+function fixture() {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'jco-stage-inputs-'))
+  const input = path.join(workspace, 'user_inputs')
+  const run = path.join(workspace, 'outputs', 'output_test')
+  const snapshot = path.join(run, 'inputs_snapshot')
+  fs.mkdirSync(input, { recursive: true })
+  fs.mkdirSync(snapshot, { recursive: true })
+  fs.writeFileSync(path.join(workspace, 'outputs', 'LATEST.txt'), run + '\n')
+  const files = {
+    'device_parameters_space.json': { Cg: [1] },
+    'drive_physical_quantities.json': { frequency_range: [1, 2], source_1_on_port: 1, source_1_linear_amplitude: [0], source_1_non_linear_amplitude: [1] },
+    'simulation_config.json': { ftol: 1e-10, nonlinear_strong_tone_harmonics: 3 },
+    'optimizer_config.json': { max_optimizer_iterations: 20 },
+    'user_circuit.jl': 'function create_user_circuit(device_params_set) end',
+    'user_cost_and_performance.jl': 'function user_cost(sol, p, c) end',
+  }
+  for (const [name, value] of Object.entries(files)) {
+    const content = typeof value === 'string' ? value : JSON.stringify(value)
+    fs.writeFileSync(path.join(input, name), content)
+    fs.writeFileSync(path.join(snapshot, name), content)
+  }
+  fs.writeFileSync(path.join(run, 'df_uniform_analysis.h5'), 'fixture')
+  fs.writeFileSync(path.join(run, 'optimal_device_parameters.json'), '{}')
+  return { workspace, input, run, cleanup: () => fs.rmSync(workspace, { recursive: true, force: true }) }
+}
+function writeJson(root, file, update) {
+  const full = path.join(root, file)
+  const value = JSON.parse(fs.readFileSync(full, 'utf8'))
+  fs.writeFileSync(full, JSON.stringify({ ...value, ...update }))
+}
+test('allows valid partial runs and nonlinear-only changes without repeating Linear', () => {
+  const f = fixture()
+  try {
+    validatePartialRunInputs(f.workspace, 'optimization_only')
+    validatePartialRunInputs(f.workspace, 'nonlinear_only')
+    writeJson(f.input, 'drive_physical_quantities.json', { source_1_non_linear_amplitude: [2] })
+    writeJson(f.input, 'simulation_config.json', { nonlinear_strong_tone_harmonics: 7 })
+    validatePartialRunInputs(f.workspace, 'optimization_only')
+    validatePartialRunInputs(f.workspace, 'nonlinear_only')
+  } finally { f.cleanup() }
+})
+test('optimizer changes keep Linear reusable but invalidate an HB-only optimum', () => {
+  const f = fixture()
+  try {
+    writeJson(f.input, 'optimizer_config.json', { max_optimizer_iterations: 40 })
+    validatePartialRunInputs(f.workspace, 'optimization_only')
+    assert.throws(() => validatePartialRunInputs(f.workspace, 'nonlinear_only'), /optimizer_config/)
+  } finally { f.cleanup() }
+})
+test('rejects a changed Linear input and missing prerequisites', () => {
+  const f = fixture()
+  try {
+    writeJson(f.input, 'drive_physical_quantities.json', { source_1_linear_amplitude: [3] })
+    assert.throws(() => validatePartialRunInputs(f.workspace, 'optimization_only'), /Run Linear/)
+    fs.rmSync(path.join(f.run, 'df_uniform_analysis.h5'))
+    assert.throws(() => validatePartialRunInputs(f.workspace, 'optimization_only'), /missing prerequisites/)
+  } finally { f.cleanup() }
+})
