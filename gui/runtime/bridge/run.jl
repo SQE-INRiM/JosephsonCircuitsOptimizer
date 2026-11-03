@@ -16,6 +16,9 @@ Base.include(JCO, joinpath(@__DIR__, "gui_optimizer_persistence_diagnostics.jl")
 
 workspace = ENV["JCO_WORKSPACE"]
 mode = get(ENV, "JCO_MODE", "run")
+# Paths resolved and provenance-validated by the Electron desktop preflight.
+stage_dataset = get(ENV, "JCO_STAGE_DATASET", "")
+stage_optimum = get(ENV, "JCO_STAGE_OPTIMUM", "")
 
 if mode == "run"
     JCO.run(; workspace)
@@ -35,9 +38,11 @@ elseif mode == "sweep_only"
         JCO.save_output_file(header, params, joinpath(run_dir, "optimal_device_parameters.json"))
     end
 elseif mode == "optimization_only"
-    JCO.run_optimization_only(; workspace)
+    JCO.run_optimization_only(; workspace, dataset_path=isempty(stage_dataset) ? nothing : stage_dataset)
 elseif mode == "nonlinear_only"
-    JCO.run_nonlinear_only(; workspace)
+    JCO.run_nonlinear_only(; workspace,
+        optimal_params_path=isempty(stage_optimum) ? nothing : stage_optimum,
+        dataset_path=isempty(stage_dataset) ? nothing : stage_dataset)
 elseif mode == "from_latest"
     JCO.run_from_latest_dataset_only(; workspace)
 else
