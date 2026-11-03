@@ -18,6 +18,8 @@ Do not include nonlinear-feedback iterations.
   and downstream stages; optimizer-only changes invalidate Optimization/HB; nonlinear
   source amplitude or nonlinear solver changes invalidate HB.
 - A stale stage cannot be marked completed simply by refreshing older Results.
+- Live stage readiness comes from the current run's start/progress/completion events, not historical result files. At run start, reset requested stages and invalidate downstream steps; if a run ends cancelled/failed, mark its first unfinished stage accordingly. An auto-removed empty cancelled run must never resurrect the completed state of an older run.
+- Reopening a project with stored result tables does not automatically mark its stages complete; the data remain browseable, and a new staged computation requires a valid current chain.
 - A partial Optimization or HB run is rejected unless the latest run has its required
   scientific files and matching source snapshots (device parameters, linear drives,
   linear simulator configuration, Julia source/calibration files; optimizer settings for
