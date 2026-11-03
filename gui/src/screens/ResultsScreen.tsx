@@ -96,8 +96,8 @@ export function ResultsScreen() {
     {hasResults && selectedRun && <Paper variant="outlined" sx={{ p: 1.5 }}>
       <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <FormControl size="small" sx={{ minWidth: { xs: 240, sm: 310 }, maxWidth: 480, flexGrow: { xs: 1, md: 0 } }}>
-          <InputLabel>Run</InputLabel>
-          <Select label="Run" value={selectedRun.id} onChange={(event) => setSelectedRunId(event.target.value)}>
+          <InputLabel id="results-run-select-label">Run</InputLabel>
+          <Select labelId="results-run-select-label" label="Run" value={selectedRun.id} onChange={(event) => setSelectedRunId(event.target.value)}>
             {results!.runs.map((run) => <MenuItem key={run.id} value={run.id}>{run.id}{running && run.id === currentRunId ? ' · running' : ''}</MenuItem>)}
           </Select>
         </FormControl>
