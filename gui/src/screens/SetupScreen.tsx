@@ -478,7 +478,7 @@ function ComputationStep() {
               <Alert severity={linearFirstOrder ? 'success' : 'info'} sx={{ mt: 1.5 }}>
                 {linearFirstOrder
                   ? 'Linear-stage harmonic and intermodulation limits are set to first order (1).'
-                  : 'For first-order linear simulations, set both linear harmonic counts and Max intermodulation order to 1. Other values can include higher-order mixing.'}
+                  : 'To keep Linear simulations first-order, set both harmonic counts and Max intermodulation order to 1. Higher values may include higher-order mixing.'}
               </Alert>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                 Max intermodulation order is a shared solver setting below; changing it also affects the nonlinear HB stage.
