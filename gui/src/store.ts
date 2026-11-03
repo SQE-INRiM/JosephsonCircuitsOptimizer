@@ -3,7 +3,7 @@ import { carthagoParameters, carthagoSources, initialStages } from './data/carth
 import { nextManualParameter, reconcileDeviceParameters } from './utils/deviceParameters'
 import { metricsFromCode } from './utils/metrics'
 import { hasVaryingDeviceParameters } from './utils/runSummary'
-import { affectedComputationStage, affectedSourceStage, invalidateFrom } from './utils/runStages'
+import { affectedComputationStage, affectedSourceStage, finishRunStages, invalidateFrom, prepareStagesForRun } from './utils/runStages'
 import type {
   ComputationConfig,
   LogEntry,
@@ -101,6 +101,7 @@ interface AppStore {
   logs: LogEntry[]
   running: boolean
   currentRunId: string | null
+  activeRunStages: StageId[]
   selectedPumpAmplitude: number
   results: ResultsBundle | null
   setSection: (section: NavigationSection) => void
@@ -143,6 +144,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   logs: initialLogs,
   running: false,
   currentRunId: null,
+  activeRunStages: [],
   selectedPumpAmplitude: 1.122,
   results: null,
   setSection: (section) => set({ section }),
@@ -260,7 +262,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return { dirty: true, project, stages: invalidateFrom(state.stages, project, affected) }
     }),
   markSaved: () => set({ dirty: false }),
-  resetProject: () => set({ project: initialProject, dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null }),
+  resetProject: () => set({ project: initialProject, dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, activeRunStages: [] }),
   setStage: (id, patch) => set((state) => ({ stages: state.stages.map((stage) => (stage.id === id ? { ...stage, ...patch } : stage)) })),
   addLog: (entry) =>
     set((state) => ({
@@ -283,28 +285,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
       logs: [{ id: 1, time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: `Loaded ${project.filename}` }],
       results: null,
       currentRunId: null,
+      activeRunStages: [],
     })
   },
-  setResults: (results) => set((state) => {
-    const latest = results?.runs[0]
-    if (!latest) return { results }
-    const failedStage = latest.status?.status === 'error' ? String(latest.status?.stage ?? '').toLowerCase() : ''
-    return {
-      results,
-      stages: state.stages.map((stage) => {
-        // A Results refresh must not silently revalidate a setup-dependent stale stage.
-        if (stage.status === 'stale') return stage
-        if ((stage.id === 'linear' && failedStage === 'lin') || (stage.id === 'optimization' && failedStage === 'bo') || (stage.id === 'hb' && failedStage === 'hb')) return { ...stage, status: 'failed' }
-        if (stage.id === 'linear' && latest.linear) return { ...stage, status: 'completed', progress: 100, completedAt: latest.id.replace('output_', '').replace('_', ' · ') }
-        if (stage.id === 'optimization' && stage.status !== 'skipped' && latest.optimalParameters) return { ...stage, status: 'completed', progress: 100, completedAt: latest.id.replace('output_', '').replace('_', ' · ') }
-        if (stage.id === 'hb' && latest.nonlinear) return { ...stage, status: 'completed', progress: 100, completedAt: latest.id.replace('output_', '').replace('_', ' · ') }
-        return stage
-      }),
-    }
-  }),
+  // Historical Results are for browsing only: a saved optimum or an old Linear
+  // table is not evidence that the current (possibly cancelled) stage completed.
+  setResults: (results) => set({ results }),
   applyRunEvent: (event) => {
-    if (event.type === 'run-started') { set({ running: true, section: 'run', currentRunId: event.runId }); return }
+    if (event.type === 'run-started') {
+      set((state) => ({
+        running: true, section: 'run', currentRunId: event.runId,
+        activeRunStages: event.stages ?? [],
+        stages: event.stages?.length ? prepareStagesForRun(state.stages, state.project, event.stages) : state.stages,
+      }))
+      return
+    }
     if (event.type === 'stage-status') {
+      if (event.runId !== get().currentRunId) return
       const patch: Partial<StageState> = { status: event.status, progress: event.status === 'running' ? 0 : event.status === 'completed' ? 100 : undefined }
       if (event.status === 'completed') {
         patch.completedAt = new Date(event.timestamp).toLocaleString('en-GB', { hour12: false })
@@ -313,15 +310,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
       get().setStage(event.stage, patch); return
     }
     if (event.type === 'progress') {
+      if (event.runId !== get().currentRunId) return
       const progress = event.total ? Math.min(100, Math.round((event.completed / event.total) * 100)) : 0
       get().setStage(event.stage, { status: 'running', progress, points: event.total }); return
     }
     if (event.type === 'log') { get().addLog({ level: event.level, message: event.message }); return }
     if (event.type === 'run-finished') {
-      set((state) => ({
-        running: false,
-        stages: state.stages.map((stage) => stage.status === 'running' ? { ...stage, status: event.outcome === 'completed' ? 'completed' : event.outcome, progress: event.outcome === 'completed' ? 100 : stage.progress, completedAt: stage.completedAt } : stage),
-      }))
+      set((state) => {
+        if (event.runId !== state.currentRunId) return state
+        const stages = state.activeRunStages.length
+          ? finishRunStages(state.stages, state.activeRunStages, event.outcome)
+          : state.stages.map((stage) => stage.status === 'running'
+            ? { ...stage, status: event.outcome === 'completed' ? 'failed' as const : event.outcome }
+            : stage)
+        return { running: false, activeRunStages: [], stages }
+      })
     }
   },
   startDemoRun: () => {
