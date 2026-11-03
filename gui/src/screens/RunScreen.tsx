@@ -1,18 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
   Chip,
   Dialog,
   DialogContent,
   DialogTitle,
-  FormControl,
-  InputLabel,
   LinearProgress,
   Paper,
-  MenuItem,
-  Select,
   Stack,
   Typography,
 } from '@mui/material'
@@ -24,10 +19,10 @@ import PauseRoundedIcon from '@mui/icons-material/PauseRounded'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded'
 import { StatusChip } from '../components/StatusChip'
-import { getJcoAdapter } from '../services/jcoAdapter'
 import { useAppStore } from '../store'
 import type { StageId } from '../types'
 import { configuredStageSummary } from '../utils/runSummary'
+import { nextRunStage } from '../utils/runStages'
 
 const logColors = { INFO: '#b7cadb', WARN: '#f2c97d', ERROR: '#f19a9a', PROGRESS: '#77c9ae' }
 const ETA_WINDOW = 7
@@ -68,26 +63,24 @@ interface EtaTracker {
 interface RunScreenProps {
   desktop: boolean
   cancelling: boolean
-  onRunRemaining: () => Promise<void>
+  onRunAll: () => Promise<void>
   onRunStage: (stage: StageId) => Promise<void>
   onStop: () => Promise<void>
 }
 
-export function RunScreen({ desktop, cancelling, onRunRemaining, onRunStage, onStop }: RunScreenProps) {
+export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }: RunScreenProps) {
   const stages = useAppStore((state) => state.stages)
   const logs = useAppStore((state) => state.logs)
   const running = useAppStore((state) => state.running)
   const currentRunId = useAppStore((state) => state.currentRunId)
   const project = useAppStore((state) => state.project)
   const active = stages.find((stage) => stage.status === 'running')
-  const remaining = stages.filter((stage) => ['ready', 'stale', 'failed', 'cancelled'].includes(stage.status)).length
-  const [selectedStage, setSelectedStage] = useState<StageId>('linear')
-  const [runAllError, setRunAllError] = useState('')
+  const nextStage = nextRunStage(stages)
+  const nextStageState = stages.find((stage) => stage.id === nextStage)
   const [logOpen, setLogOpen] = useState(false)
   const [activeEta, setActiveEta] = useState<{ stageId: StageId; seconds: number } | null>(null)
   const [backendEta, setBackendEta] = useState<{ stageId: StageId; seconds: number } | null>(null)
   const etaTracker = useRef<EtaTracker | null>(null)
-  const selectedStageState = stages.find((stage) => stage.id === selectedStage)
   const projectPath = project.workspaceInfo?.projectPath
 
   // The Julia progress reporter is the authoritative ETA source. It measures real
@@ -147,29 +140,15 @@ export function RunScreen({ desktop, cancelling, onRunRemaining, onRunStage, onS
     }
   }, [active?.id, active?.progress])
 
-  const runAll = async () => {
-    if (running) return
-    const adapter = getJcoAdapter()
-    if (!adapter) return setRunAllError('Run all is available in the desktop application.')
-    setRunAllError('')
-    try {
-      const allStages = stages.filter((stage) => stage.status !== 'skipped').map((stage) => stage.id)
-      await adapter.startRun({ project, stages: allStages })
-    } catch (error) { setRunAllError(error instanceof Error ? error.message : String(error)) }
-  }
 
   return <Stack spacing={2.5}>
     <Stack direction="row" sx={{ alignItems: 'flex-end', justifyContent: 'space-between' }}>
-      <Box><Typography variant="h4">Simulation run</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Run remaining reuses valid earlier stages; Run all always starts a fresh Linear → Optimization → Harmonic balance pipeline.</Typography></Box>
+      <Box><Typography variant="h4">Simulation run</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Run starts a fresh Linear → Optimization → Harmonic balance pipeline. Run next step advances only when earlier stages are valid.</Typography></Box>
       <Stack direction="row" spacing={1.2}>
-        <FormControl size="small" sx={{ minWidth: 210 }}><InputLabel id="run-stage-label">Stage to run</InputLabel><Select labelId="run-stage-label" label="Stage to run" value={selectedStage} disabled={running} onChange={(event) => setSelectedStage(event.target.value as StageId)}>{stages.map((stage) => <MenuItem key={stage.id} value={stage.id} disabled={stage.status === 'skipped'}>{stage.label}</MenuItem>)}</Select></FormControl>
-        <Button variant="outlined" disabled={running || selectedStageState?.status === 'skipped'} onClick={() => onRunStage(selectedStage)}>Run {selectedStageState?.label ?? 'stage'}</Button>
-        <Button variant="outlined" disabled={running || cancelling || !desktop} onClick={runAll}>Run all</Button>
-        <Button variant="contained" color={running ? 'error' : 'primary'} disabled={cancelling} startIcon={running ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon />} onClick={running ? onStop : onRunRemaining}>{cancelling ? 'Stopping Julia…' : running ? 'Stop simulation' : `Run remaining${remaining ? ` (${remaining})` : ''}`}</Button>
+        {nextStage && <Button variant="outlined" disabled={running || cancelling || !desktop} onClick={() => onRunStage(nextStage)}>Run {nextStageState?.label ?? 'next step'}</Button>}
+        <Button variant="contained" color={running ? 'error' : 'primary'} disabled={cancelling || (!running && !desktop)} startIcon={running ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon />} onClick={running ? onStop : onRunAll}>{cancelling ? 'Stopping Julia…' : running ? 'Stop simulation' : 'Run'}</Button>
       </Stack>
     </Stack>
-
-    {runAllError && <Alert severity="error" onClose={() => setRunAllError('')}>{runAllError}</Alert>}
 
     <Paper variant="outlined" sx={{ p: 2.4 }}><Stack direction="row" spacing={1.2} sx={{ alignItems: 'stretch' }}>
       {stages.map((stage, index) => {
