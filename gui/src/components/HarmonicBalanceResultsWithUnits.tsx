@@ -79,9 +79,9 @@ export function convertHbFrequencyTableForDisplay(table: ResultTable): ResultTab
   }
 }
 
-export function HarmonicBalanceResultsWithUnits({ results, activeRunId }: {
+export function HarmonicBalanceResultsWithUnits({ results, selectedRunId }: {
   results: ResultsBundle
-  activeRunId?: string | null
+  selectedRunId?: string | null
 }) {
   const unitByRun = useMemo(() => Object.fromEntries(
     results.runs.map((run) => [run.id, runAmplitudeDisplay(run).units]),
@@ -101,6 +101,6 @@ export function HarmonicBalanceResultsWithUnits({ results, activeRunId }: {
   }), [results])
 
   return <HarmonicBalanceResultsNormalized
-    results={displayResults} activeRunId={activeRunId} unitByRun={unitByRun}
+    results={displayResults} selectedRunId={selectedRunId} unitByRun={unitByRun}
   />
 }
