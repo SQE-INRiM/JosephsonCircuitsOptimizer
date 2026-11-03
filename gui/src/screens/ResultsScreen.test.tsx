@@ -45,11 +45,12 @@ describe('Results stage availability for a fixed-parameter project', () => {
     expect((screen.getByRole('tab', { name: 'Harmonic balance' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
-  it('keeps historical optimization data accessible despite a single-point current setup', () => {
+  it('disables Optimization even when older runs contain persisted optimizer data', () => {
     useAppStore.setState({ results: bundle(true) })
     render(<ResultsScreen />)
-    expect((screen.getByRole('tab', { name: 'Optimization' }) as HTMLButtonElement).disabled).toBe(false)
-    expect(screen.getByTestId('visible-results-stage').textContent).toBe('optimization')
+    expect((screen.getByRole('tab', { name: 'Optimization' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByTestId('visible-results-stage').textContent).toBe('linear')
+    expect(useAppStore.getState().resultsStage).toBe('linear')
   })
 
   it('re-enables Optimization when the current project defines a multi-point device sweep', () => {
