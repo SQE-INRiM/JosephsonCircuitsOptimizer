@@ -164,7 +164,7 @@ describe('Single-point optimization panel', () => {
         project: {
           ...state.project,
           parameters: state.project.parameters.map((parameter, index) =>
-            index === 0 ? { ...parameter, mode: 'List', values: '250' } : parameter),
+            index === 0 ? { ...parameter, mode: 'List' as const, values: '250' } : parameter),
         },
       }))
     })
@@ -175,7 +175,7 @@ describe('Single-point optimization panel', () => {
         project: {
           ...state.project,
           parameters: state.project.parameters.map((parameter, index) =>
-            index === 0 ? { ...parameter, mode: 'List', values: '250, 350' } : parameter),
+            index === 0 ? { ...parameter, mode: 'List' as const, values: '250, 350' } : parameter),
         },
       }))
     })
