@@ -49,9 +49,18 @@ test('allows valid partial runs and nonlinear-only changes without repeating Lin
 test('optimizer changes keep Linear reusable but invalidate an HB-only optimum', () => {
   const f = fixture()
   try {
+    writeJson(f.input, 'device_parameters_space.json', { Cg: { start: 1, step: 1, stop: 2 } })
+    writeJson(path.join(f.run, 'inputs_snapshot'), 'device_parameters_space.json', { Cg: { start: 1, step: 1, stop: 2 } })
     writeJson(f.input, 'optimizer_config.json', { max_optimizer_iterations: 40 })
     validatePartialRunInputs(f.workspace, 'optimization_only')
     assert.throws(() => validatePartialRunInputs(f.workspace, 'nonlinear_only'), /optimizer_config/)
+  } finally { f.cleanup() }
+})
+test('HB can use a fixed-device Linear point after changing irrelevant optimizer settings', () => {
+  const f = fixture()
+  try {
+    writeJson(f.input, 'optimizer_config.json', { max_optimizer_iterations: 99 })
+    validatePartialRunInputs(f.workspace, 'nonlinear_only')
   } finally { f.cleanup() }
 })
 test('rejects a changed Linear input and missing prerequisites', () => {
