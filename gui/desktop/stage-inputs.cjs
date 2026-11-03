@@ -37,6 +37,13 @@ function assertSameInput(source, snapshot, filename, transform = (x) => x) {
     throw new Error('Saved run is incompatible with current ' + filename + '. Run Linear first.')
   }
 }
+function isSinglePointDeviceSpace(parameters) {
+  return Object.values(parameters).every((spec) => {
+    if (Array.isArray(spec)) return spec.length === 1
+    if (spec && typeof spec === 'object') return Number(spec.start) === Number(spec.stop)
+    return true
+  })
+}
 function validatePartialRunInputs(workspace, mode) {
   if (!['optimization_only', 'nonlinear_only'].includes(mode)) return
   const outputRoot = path.resolve(workspace, 'outputs')
@@ -64,7 +71,9 @@ function validatePartialRunInputs(workspace, mode) {
 
   // Only HB depends on the selected optimizer output. Changes to BO settings
   // may reuse the Linear sweep, but not an old optimum.
-  if (mode === 'nonlinear_only') assertSameInput(input, snapshot, 'optimizer_config.json')
+  if (mode === 'nonlinear_only' && !isSinglePointDeviceSpace(parseJson(path.join(input, 'device_parameters_space.json')))) {
+    assertSameInput(input, snapshot, 'optimizer_config.json')
+  }
 }
 
 module.exports = { validatePartialRunInputs }
