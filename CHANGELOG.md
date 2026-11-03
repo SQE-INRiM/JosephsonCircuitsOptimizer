@@ -7,7 +7,7 @@ This changelog records completed user-relevant and development-process changes. 
 ### Setup computation usability
 - Present the first-order Linear harmonic/intermodulation guidance as information rather than a warning when higher-order mixing remains enabled.
 - Grey out and disable Optimization settings when Linear has a single device configuration, while retaining saved settings and re-enabling controls when a multi-point parameter sweep is configured.
-- Simplify the first-order Linear guidance text. In Results, disable the Optimization tab for single-point setups without historical optimization output; disable Correlation and 1D density views when the selected Linear dataset contains no parameter sweep while keeping its point data accessible.
+- Simplify the first-order Linear guidance text. In Results, always disable the Optimization tab for single-point setups (including when older runs contain optimizer data); disable Correlation and 1D density views when the selected Linear dataset contains no parameter sweep while keeping its point data accessible.
 
 ### Windows desktop packaging
 - Recreate the `JCO GUI` Windows desktop shortcut when reinstalling/upgrading through the NSIS installer so legacy Electron shortcuts no longer retain their original icon. Preserve the configured native JCO `.ico` and the installer/portable target names. Existing published v0.4.2 downloads are unchanged.
