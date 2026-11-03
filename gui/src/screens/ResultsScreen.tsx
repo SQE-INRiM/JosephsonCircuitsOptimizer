@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, Box, Button, Chip, Paper, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Tab, Tabs, Typography } from '@mui/material'
 import { ConnectedResults } from '../components/ConnectedResults'
 import { ResultsRunManager } from '../components/ResultsRunManager'
 import { RunSetupSnapshot } from '../components/RunSetupSnapshot'
@@ -19,19 +19,25 @@ export function ResultsScreen() {
   const stage = useAppStore((state) => state.resultsStage)
   const project = useAppStore((state) => state.project)
   const setStage = useAppStore((state) => state.setResultsStage)
+  const selectedRunId = useAppStore((state) => state.selectedResultsRunId)
+  const setSelectedRunId = useAppStore((state) => state.setSelectedResultsRunId)
   const results = useAppStore((state) => state.results)
   const setResults = useAppStore((state) => state.setResults)
   const running = useAppStore((state) => state.running)
   const currentRunId = useAppStore((state) => state.currentRunId)
   const [refreshError, setRefreshError] = useState('')
+  const [actionStatus, setActionStatus] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  // Results navigation follows the current setup, even when older runs contain optimizer data.
+  const [deleting, setDeleting] = useState(false)
+
+  // Select the run once, independently of the currently displayed stage.
+  const selectedRun = results?.runs.find((run) => run.id === selectedRunId) ?? results?.runs[0]
   const optimizationDisabled = !hasVaryingDeviceParameters(project)
   const visibleStage = optimizationDisabled && stage === 'optimization' ? 'linear' : stage
   const stageIndex = visibleStage === 'linear' ? 0 : visibleStage === 'optimization' ? 1 : 2
   const hasResults = Boolean(results?.runs.length)
-  const latestRun = results?.runs[0]
-  const latestHistoryCount = optimizerHistoryCount(latestRun)
+  const selectedTable = visibleStage === 'linear' ? selectedRun?.linear : visibleStage === 'optimization' ? selectedRun?.optimization : selectedRun?.nonlinear
+  const selectedHistoryCount = optimizerHistoryCount(selectedRun)
 
   useEffect(() => {
     if (optimizationDisabled && stage === 'optimization') setStage('linear')
@@ -47,22 +53,78 @@ export function ResultsScreen() {
 
   useEffect(() => { const adapter = getJcoAdapter(); if (!adapter) return; let cancelled = false; void refresh(() => cancelled); return () => { cancelled = true } }, [running, setResults])
 
+  const deleteSelectedRun = async () => {
+    if (!selectedRun || deleting) return
+    if (selectedRun.id === currentRunId && running) {
+      setActionStatus('The active running simulation cannot be deleted.')
+      return
+    }
+    if (!window.confirm(`Delete ${selectedRun.id} and all of its stored numerical results? This cannot be undone.`)) return
+    const adapter = getJcoAdapter()
+    if (!adapter) return setActionStatus('Desktop result bridge is unavailable.')
+    setDeleting(true)
+    setActionStatus('')
+    try {
+      const next = await adapter.deleteRun(selectedRun.id)
+      setResults(next)
+    } catch (error) {
+      setActionStatus(error instanceof Error ? error.message : String(error))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const exportSelectedStage = async () => {
+    if (!selectedRun || !selectedTable) return
+    const adapter = getJcoAdapter()
+    if (!adapter) return setActionStatus('Desktop result bridge is unavailable.')
+    setActionStatus('')
+    try {
+      const target = await adapter.exportData({ runId: selectedRun.id, stage: visibleStage, format: 'csv', metrics: [], filters: {} })
+      if (target) setActionStatus(`Exported to ${target}`)
+    } catch (error) {
+      setActionStatus(error instanceof Error ? error.message : String(error))
+    }
+  }
+
   return <Stack spacing={2.5}>
     <Stack direction="row" sx={{ alignItems: 'flex-end', justifyContent: 'space-between' }}>
       <Box><Typography variant="h4">Result explorer</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Completed runs stay available independently of the setup currently being edited.</Typography></Box>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>{running && <Chip color="info" variant="outlined" label={currentRunId ? `Run in progress · ${currentRunId}` : 'Run in progress'} />}<Button variant="outlined" disabled={refreshing} onClick={() => void refresh()}>{refreshing ? 'Refreshing…' : 'Refresh results'}</Button></Stack>
     </Stack>
 
-    <Paper variant="outlined" sx={{ px: 2 }}><Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-      <Tabs value={stageIndex} onChange={(_, index) => setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)} sx={{ flex: 1 }}><Tab label="Linear" /><Tab label="Optimization" disabled={optimizationDisabled} /><Tab label="Harmonic balance" /></Tabs>
-      <Chip label={hasResults ? `${results!.runs.length} stored runs` : running ? 'Waiting for stored results' : 'No stored results'} color={hasResults ? 'success' : running ? 'info' : 'default'} variant="outlined" />
-      {hasResults && <RunSetupSnapshot runs={results!.runs} />}
-      {hasResults && <ResultsRunManager results={results!} activeRunId={running ? currentRunId : null} onResultsChanged={setResults} />}
-    </Stack></Paper>
+    {hasResults && selectedRun && <Paper variant="outlined" sx={{ p: 1.5 }}>
+      <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <FormControl size="small" sx={{ minWidth: { xs: 240, sm: 310 }, maxWidth: 480, flexGrow: { xs: 1, md: 0 } }}>
+          <InputLabel>Run</InputLabel>
+          <Select label="Run" value={selectedRun.id} onChange={(event) => setSelectedRunId(event.target.value)}>
+            {results!.runs.map((run) => <MenuItem key={run.id} value={run.id}>{run.id}{running && run.id === currentRunId ? ' · running' : ''}</MenuItem>)}
+          </Select>
+        </FormControl>
+        <Chip size="small" label={`${results!.runs.length} stored runs`} color="success" variant="outlined" />
+        <Chip size="small" label="Stored JCO data" variant="outlined" />
+        {visibleStage === 'linear' && selectedRun.savedLinear && <Chip size="small" variant="outlined" label={`${selectedRun.savedLinear.points.length} retained-data points`} />}
+        {visibleStage === 'hb' && selectedRun.savedNonlinear && <Chip size="small" variant="outlined" label={`${selectedRun.savedNonlinear.points.length} retained-data points`} />}
+        <Box sx={{ flexGrow: 1 }} />
+        <RunSetupSnapshot runs={results!.runs} initialRunId={selectedRun.id} />
+        <ResultsRunManager results={results!} activeRunId={running ? currentRunId : null} onResultsChanged={setResults} />
+        <Button size="small" color="error" variant="outlined" disabled={deleting || (running && selectedRun.id === currentRunId)} onClick={() => void deleteSelectedRun()}>{deleting ? 'Deleting…' : 'Delete run'}</Button>
+        <Button size="small" variant="outlined" disabled={!selectedTable || deleting} onClick={() => void exportSelectedStage()}>Export CSV…</Button>
+      </Stack>
+    </Paper>}
+
+    <Paper variant="outlined" sx={{ px: 2 }}>
+      <Tabs value={stageIndex} onChange={(_, index) => setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)}>
+        <Tab label="Linear" />
+        <Tab label="Optimization" disabled={optimizationDisabled} />
+        <Tab label="Harmonic balance" />
+      </Tabs>
+    </Paper>
 
     {running && <Alert severity="info">A new simulation is running. Previously stored runs remain available below. The active run is refreshed when its run state changes rather than continuously re-indexing all stored data.</Alert>}
     {refreshError && <Alert severity="warning">Stored Results could not be refreshed: {refreshError}. The last successfully indexed runs remain visible.</Alert>}
-    {visibleStage === 'optimization' && latestRun && !latestRun.optimization && <Alert severity={latestHistoryCount > 0 ? 'warning' : 'info'}><strong>Latest-run Optimization diagnostic:</strong> {latestRun.id} · status {runStatus(latestRun)} · Linear table {latestRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {latestHistoryCount} evaluations.{latestHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>}
-    {hasResults ? <ConnectedResults results={results!} stage={visibleStage} onResultsChanged={setResults} activeRunId={running ? currentRunId : null} /> : <Alert severity="info">{running ? 'No completed numerical dataset is available yet for this project.' : 'Run a simulation to populate the Result explorer.'}</Alert>}
+    {actionStatus && <Alert severity={actionStatus.startsWith('Exported') ? 'success' : 'warning'} onClose={() => setActionStatus('')}>{actionStatus}</Alert>}
+    {visibleStage === 'optimization' && selectedRun && !selectedRun.optimization && <Alert severity={selectedHistoryCount > 0 ? 'warning' : 'info'}><strong>Selected-run Optimization diagnostic:</strong> {selectedRun.id} · status {runStatus(selectedRun)} · Linear table {selectedRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {selectedHistoryCount} evaluations.{selectedHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>}
+    {hasResults ? <ConnectedResults results={results!} stage={visibleStage} selectedRunId={selectedRun?.id} /> : <Alert severity="info">{running ? 'No completed numerical dataset is available yet for this project.' : 'Run a simulation to populate the Result explorer.'}</Alert>}
   </Stack>
 }
