@@ -57,7 +57,7 @@ export interface CircuitPreviewData {
 }
 
 export type RunEvent =
-  | { type: 'run-started'; runId: string; timestamp: string }
+  | { type: 'run-started'; runId: string; timestamp: string; stages?: StageId[] }
   | { type: 'stage-status'; runId: string; stage: StageId; status: StageStatus; timestamp: string; durationSeconds?: number }
   | { type: 'progress'; runId: string; stage: StageId; completed: number; total: number; etaSeconds?: number; timestamp: string }
   | { type: 'log'; runId: string; level: 'INFO' | 'WARN' | 'ERROR'; message: string; timestamp: string }

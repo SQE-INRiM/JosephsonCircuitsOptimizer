@@ -9,6 +9,7 @@ const readline = require('readline')
 const { copyWorkspace, findWorkspaceRoot, packProject, packWorkspaceZip, unpackProject, validateWorkspace } = require('./archive.cjs')
 const { loadProjectModel, saveProjectModel } = require('./project-model.cjs')
 const { modeForStages } = require('./run-mode.cjs')
+const { validatePartialRunInputs } = require('./stage-inputs.cjs')
 const { createRunId, outcomeForClose, requireDurableProject, terminateProcessTree } = require('./run-process.cjs')
 const { assertProcessIdle, captureRunSession } = require('./run-session.cjs')
 const { normalizeZoom, stepZoom, zoomShortcut } = require('./zoom.cjs')
@@ -251,6 +252,8 @@ async function startRun(request) {
   saveProjectModel(session.workspace, request.project)
   const validation = validateWorkspace(session.workspace)
   if (!validation.valid) throw new Error(`Missing inputs: ${validation.missing.join(', ')}`)
+  const mode = modeForStages(request.stages)
+  const stageInputs = validatePartialRunInputs(session.workspace, mode)
   await ensureRuntimePrepared()
   if (juliaProcess) throw new Error('A simulation is already running.')
   const settings = getSettings()
@@ -261,15 +264,14 @@ async function startRun(request) {
   const displayMetadataPath = path.join(runSession.workspace, 'jco_gui_metadata.json')
   const displayMetadata = fs.existsSync(displayMetadataPath) ? fs.readFileSync(displayMetadataPath) : null
   const bootstrap = path.join(resourcesRoot(), 'bridge', 'run.jl')
-  const mode = modeForStages(request.stages)
   const args = ['--startup-file=no', '--color=no', `--project=${jcoRoot()}`, bootstrap]
   juliaProcess = spawn(settings.juliaPath || 'julia', args, {
     cwd: jcoRoot(),
-    env: { ...process.env, JCO_PROJECT: jcoRoot(), JCO_WORKSPACE: runSession.workspace, JCO_MODE: mode, JCO_RUN_ID: runId, JULIA_NUM_THREADS: String(Math.max(1, settings.threads || 1)) },
+    env: { ...process.env, JCO_PROJECT: jcoRoot(), JCO_WORKSPACE: runSession.workspace, JCO_MODE: mode, JCO_RUN_ID: runId, JCO_STAGE_DATASET: stageInputs.datasetPath ?? '', JCO_STAGE_OPTIMUM: stageInputs.optimalParamsPath ?? '', JULIA_NUM_THREADS: String(Math.max(1, settings.threads || 1)) },
     windowsHide: true,
   })
   activeRun = { ...runSession, cancelRequested: false, stageStartedAt: {} }
-  emit({ type: 'run-started', runId, timestamp: new Date().toISOString() })
+  emit({ type: 'run-started', runId, stages: request.stages, timestamp: new Date().toISOString() })
   readline.createInterface({ input: juliaProcess.stdout }).on('line', (line) => parseOutputLine(line, runId))
   readline.createInterface({ input: juliaProcess.stderr }).on('line', (line) => parseOutputLine(line, runId))
   juliaProcess.on('error', (error) => emit({ type: 'log', runId, level: 'ERROR', message: error.message, timestamp: new Date().toISOString() }))
