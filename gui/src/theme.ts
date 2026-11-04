@@ -1,7 +1,13 @@
 import { createTheme } from '@mui/material/styles'
 
-export type ThemePreference = 'light' | 'dark' | 'system'
-export type ThemeMode = 'light' | 'dark'
+export type ThemePreference = 'dark' | 'light'
+export type ThemeMode = ThemePreference
+
+// Stored 'system' preferences from earlier GUI versions migrate to Dark.
+// An explicit Light choice always remains intact.
+export function readStoredThemePreference(stored: string | null): ThemePreference {
+  return stored === 'light' ? 'light' : 'dark'
+}
 
 export function createJcoTheme(mode: ThemeMode) {
   const dark = mode === 'dark'
