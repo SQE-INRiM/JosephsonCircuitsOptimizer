@@ -26,7 +26,7 @@ function range(values: number[]): [number, number] {
   if (!finite.length) return [0, 1]
   let lower = Math.min(...finite)
   let upper = Math.max(...finite)
-  const padding = lower === upper ? Math.max(Math.abs(lower) * 0.06, 1e-15) : (upper - lower) * 0.04
+  const padding = lower === upper ? (lower === 0 ? 1 : Math.abs(lower) * 0.06) : (upper - lower) * 0.04
   lower -= padding
   upper += padding
   return [lower, upper]
@@ -212,12 +212,13 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     && storedValues(linear!, x).length >= 2 && storedValues(linear!, y).length >= 2
   const effectiveMode: LandscapeMode = mode === 'slice' && canSlice ? 'slice' : 'projection'
   const otherNames = linear ? names.filter((name) => name !== x && name !== y && linear.columns.includes(name)) : []
-  const fixed = Object.fromEntries(otherNames.map((name) => {
+  const fixed = otherNames.reduce<Record<string, number>>((values, name) => {
     const options = linear ? storedValues(linear, name) : []
     const proposed = fixedOverrides[name]
     const value = options.includes(proposed) ? proposed : nearestStoredValue(options, overallBest?.values[name])
-    return [name, value]
-  }).filter((pair): pair is [string, number] => typeof pair[1] === 'number')) as Record<string, number>
+    if (value !== undefined) values[name] = value
+    return values
+  }, {})
   const slice = useMemo(() => canSlice && effectiveMode === 'slice' && linear
     ? linearObjectiveSlice(linear, x, y, fixed) : null,
   [canSlice, effectiveMode, linear, x, y, ...otherNames.map((name) => fixed[name])])
