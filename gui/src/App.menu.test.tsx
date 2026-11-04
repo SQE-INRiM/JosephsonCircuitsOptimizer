@@ -4,9 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { useAppStore } from './store'
 import type { JcoAdapter } from './services/jcoAdapter'
+import type { ProjectModel } from './types'
 
 const originalProject = structuredClone(useAppStore.getState().project)
-const saved = vi.fn(async () => null)
+const saved = vi.fn(async (_project: ProjectModel, _saveAs = false): Promise<null> => null)
 
 beforeEach(() => {
   useAppStore.getState().loadProject(structuredClone(originalProject))
@@ -67,7 +68,7 @@ describe('JCO project menu', () => {
     render(<App themePreference="dark" onThemePreferenceChange={changeTheme} />)
     fireEvent.click(screen.getByRole('button', { name: 'Project menu' }))
     const dark = screen.getByRole('menuitem', { name: 'Dark ✓' })
-    expect(dark.getAttribute('aria-selected')).toBe('true')
+    expect(dark.classList.contains('Mui-selected')).toBe(true)
     fireEvent.click(screen.getByRole('menuitem', { name: 'Light' }))
     expect(changeTheme).toHaveBeenCalledWith('light')
   })
