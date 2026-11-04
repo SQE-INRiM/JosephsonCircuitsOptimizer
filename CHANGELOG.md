@@ -8,6 +8,7 @@ This changelog records completed user-relevant and development-process changes. 
 - Avoid Node.js DEP0190 warnings on Windows by calling the npm JavaScript CLI directly rather than passing arguments through a command shell.
 
 ### Results navigation
+- Remove the redundant retained-array selection hint from both Linear and Harmonic Balance result inspectors.
 - Place one shared Run selector and its run-specific actions above the Linear / Optimization / Harmonic balance tabs.
 - Keep the selected historical run across stage changes, page navigation and Results refresh; fall back to the latest surviving run only when the selected run disappears. Keep CSV export, deletion and Simulation info aligned with the selected run.
 - Give Run controls and result-stage tabs clearer visual separation, and remove the redundant Stored JCO data / retained-data points badges.
