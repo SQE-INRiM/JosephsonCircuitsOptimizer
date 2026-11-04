@@ -51,7 +51,7 @@ const placeholderCode = `function create_user_circuit(device_params_set)
     return circuit, circuitdefs
 end`
 
-const placeholderMetrics = `function user_cost(S, device_params_set, nonlinear_correction)
+const placeholderMetrics = `function user_cost(sol, device_params_set, nonlinear_correction)
     metric = 0.0 + nonlinear_correction
     reflection = 0.0
     phase_mismatch = 0.0
