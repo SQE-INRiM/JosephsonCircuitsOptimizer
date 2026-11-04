@@ -9,7 +9,7 @@ This changelog records completed user-relevant and development-process changes. 
 
 ### Results navigation
 - Remove the duplicated running-simulation information alert from Results (the header already displays Run in progress).
-- Split Optimization Results into Landscape and History: keep colored sample projection/exact Linear slice with a chronological optional arrowed trajectory (Start/Latest) and evaluation slider, omit the confusing Linear-cell minimum diamond, and put the objective plus all parameter plots together in History with a thin divider.
+- Split Optimization Results into Landscape and History: keep colored sample projection/exact Linear slice with a chronological optional arrowed trajectory and evaluation slider, label the smaller Linear-slice minimum diamond separately from optimizer best, and use more compact objective/parameter charts in History.
 - Remove the redundant retained-array selection hint from both Linear and Harmonic Balance result inspectors.
 - Place one shared Run selector and its run-specific actions above the Linear / Optimization / Harmonic balance tabs.
 - Keep the selected historical run across stage changes, page navigation and Results refresh; fall back to the latest surviving run only when the selected run disappears. Keep CSV export, deletion and Simulation info aligned with the selected run.
