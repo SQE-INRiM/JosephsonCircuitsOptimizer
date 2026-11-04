@@ -94,7 +94,7 @@ export function linearObjectiveSlice(table: ResultTable, xName: string, yName: s
     const row = byCoordinate.get(String(xv) + '|' + String(yv))
     if (!row || !Number.isFinite(row[im])) return null
     if (retainedIds && !retainedIds.has(row[ip])) return null
-    if (!retainedIds && row[im] >= 1e8) return null
+    if (row[im] >= 1e8) return null
     return row[im]
   }))
   return { x, y, values }
