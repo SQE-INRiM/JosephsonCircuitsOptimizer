@@ -595,10 +595,10 @@ function MetricsStep() {
           <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setMetricsEditorFunction('user_nonlinear_correction')}>Edit correction</Button>
         </Stack>
         <Typography variant="body2" sx={{ mt: 2, fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
-          user_nonlinear_correction(S_linear, sol, device_params_set)
+          user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          S_linear is the extracted linear S-parameter dictionary; sol is the complete nonlinear hbsolve solution. The returned correction is passed to user_cost, which decides how to use it. All three editors open the same Julia file at the selected function.
+Both inputs are complete hbsolve solutions. Extract S-parameters from sol_linear.linearized.S(...) and sol_nonlinear.linearized.S(...). The correction is passed to user_cost, which decides how to use it.
         </Typography>
         {feedbackEnabled && !hasCorrection && <Alert severity="warning" sx={{ mt: 2 }}>Nonlinear feedback is enabled, but <code>user_nonlinear_correction</code> is not defined.</Alert>}
         {!hasCorrection && !feedbackEnabled && <Alert severity="info" sx={{ mt: 2 }}>Define <code>user_nonlinear_correction</code> before enabling feedback. The nonlinear sweep also expects this hook to exist.</Alert>}
