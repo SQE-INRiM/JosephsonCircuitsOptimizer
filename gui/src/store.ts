@@ -64,8 +64,8 @@ function user_performance(sol, device_params_set, source_amps, source_freqs)
     return (performance = performance, gain_ripple = gain_ripple)
 end
 
-function user_nonlinear_correction(S_linear, sol, device_params_set)
-    # Optional nonlinear feedback hook. Return a scalar correction.
+function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)
+    # Both inputs are complete hbsolve solutions. Return a scalar correction.
     return 0.0
 end`
 
