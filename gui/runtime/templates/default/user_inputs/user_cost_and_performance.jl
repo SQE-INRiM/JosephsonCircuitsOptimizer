@@ -34,8 +34,11 @@ function user_performance(sol, device_params_set, source_amps, source_freqs)
     )
 end
 
-# Default scalar correction; replace this function to define a physical feedback term.
-# JCO calls it during the nonlinear sweep even if feedback cycles are disabled.
-function user_nonlinear_correction(S_linear, sol, device_params_set)
+# Optional correction hook. Both inputs are complete JosephsonCircuits
+# hbsolve solutions, not pre-extracted S-parameter dictionaries.
+# Example: sol_linear.linearized.S((0,), 1, (0,), 1, :)
+#          sol_nonlinear.linearized.S((0,), 1, (0,), 1, :)
+# JCO calls this hook during nonlinear sweeps even when correction cycles are off.
+function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)
     return 0.0
 end
