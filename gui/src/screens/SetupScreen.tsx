@@ -490,12 +490,12 @@ function ComputationStep() {
             <Stack spacing={1.5}>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}><NumberField label="Max solver iterations" value={config.maxSimulatorIterations} onChange={(value) => update({ maxSimulatorIterations: value })} /><NumberField label="Residual tolerance (ftol)" value={config.solverFtol} onChange={(value) => update({ solverFtol: value })} /><NumberField label="Switch-off line search tolerance" value={config.switchOffLineSearchTolerance} onChange={(value) => update({ switchOffLineSearchTolerance: value })} /><NumberField label="Minimum line-search step (alphamin)" value={config.alphaMin} onChange={(value) => update({ alphaMin: value })} /></Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}>
-                <TextField label="Max intermodulation order" value={config.maxIntermodOrder} helperText="Shared by linear and nonlinear stages; use 1 to restrict mixing to first order, or Inf for no additional truncation." onChange={(event) => update({ maxIntermodOrder: event.target.value })} fullWidth />
+                <TextField label="Max intermodulation order" value={config.maxIntermodOrder} helperText="Use 1 to restrict mixing to first order, or Inf for no additional truncation." onChange={(event) => update({ maxIntermodOrder: event.target.value })} fullWidth />
                 <NumberField label="Frequency batches" value={config.solverBatches} onChange={(value) => update({ solverBatches: value })} />
                 <TextField select label="Node sorting" value={config.nodeSorting} onChange={(event) => update({ nodeSorting: event.target.value as typeof config.nodeSorting })} fullWidth><MenuItem value="number">Numeric node names</MenuItem><MenuItem value="name">Text node names</MenuItem><MenuItem value="none">Circuit order</MenuItem></TextField>
               </Box>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><FormControlLabel control={<Checkbox checked={config.threeWaveMixing} onChange={(event) => update({ threeWaveMixing: event.target.checked })} />} label="Three-wave mixing" /><FormControlLabel control={<Checkbox checked={config.fourWaveMixing} onChange={(event) => update({ fourWaveMixing: event.target.checked })} />} label="Four-wave mixing" /></Stack>
-              <Alert severity="info">Frequency batches set to 0 use all Julia threads. DC inclusion is determined automatically from the source configuration.</Alert>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Set Frequency batches to 0 to use all Julia threads configured in ⋮ → Julia settings.</Typography>
             </Stack>
           </Box>
         </Stack>
