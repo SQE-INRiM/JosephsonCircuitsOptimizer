@@ -35,6 +35,7 @@ import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
 import SettingsInputComponentRoundedIcon from '@mui/icons-material/SettingsInputComponentRounded'
 import { ProjectNameEditor } from './components/ProjectNameEditor'
+import { AboutJcoDialog } from './components/AboutJcoDialog'
 import { SetupScreen } from './screens/SetupScreen'
 import { RunScreen } from './screens/RunScreen'
 import { ResultsScreen } from './screens/ResultsScreen'
@@ -444,16 +445,7 @@ export default function App({ themePreference = 'dark', onThemePreferenceChange 
         </DialogActions>
       </Dialog>
 
-      <Dialog open={aboutOpen} onClose={() => setAboutOpen(false)} fullWidth maxWidth="sm" aria-labelledby="jco-about-title">
-        <DialogTitle id="jco-about-title">About JCO</DialogTitle>
-        <DialogContent>
-          <Box component="img" src="./jco-logo.svg" alt="JCO — Josephson Circuits Optimizer" sx={{ display: 'block', width: '100%', maxWidth: 445, height: 'auto', mx: 'auto', borderRadius: 1.5 }} />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Explore and optimize superconducting Josephson circuits with linear analysis, surrogate optimization and nonlinear harmonic balance.
-          </Typography>
-        </DialogContent>
-        <DialogActions><Button onClick={() => setAboutOpen(false)}>Close</Button></DialogActions>
-      </Dialog>
+      <AboutJcoDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
 
       <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Julia runtime</DialogTitle>
