@@ -223,11 +223,44 @@ describe('Nonlinear feedback setup', () => {
     expect((screen.getByRole('textbox', { name: 'Source 1 reference amplitude (A)' }) as HTMLInputElement).value).toBe('1e-6')
   })
 
-  it('shows where to edit the Julia feedback function without changing its meaning', () => {
+  it('documents the current two-solution correction hook precisely', () => {
     useAppStore.setState({ setupStep: 2 })
     render(<SetupScreen />)
-    expect(screen.getByRole('button', { name: 'Edit feedback function' })).toBeTruthy()
-    expect(screen.getByText(/S_linear contains the linear S-parameters/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Edit correction' })).toBeTruthy()
+    expect(screen.getByText(/S_linear is the extracted linear S-parameter dictionary/)).toBeTruthy()
+    expect(screen.getByText(/sol is the complete nonlinear hbsolve solution/)).toBeTruthy()
+  })
+
+  it.each([
+    { action: 'Edit cost', functionName: 'user_cost' },
+    { action: 'Edit performance', functionName: 'user_performance' },
+    { action: 'Edit correction', functionName: 'user_nonlinear_correction' },
+  ])('opens the shared Julia file at $functionName', ({ action, functionName }) => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('button', { name: action }))
+    const editor = screen.getByRole('textbox', { name: 'user_cost_and_performance.jl' }) as HTMLTextAreaElement
+    const original = useAppStore.getState().project.metricsCode
+    expect(editor.value).toBe(original)
+    expect(editor.selectionStart).toBe(original.indexOf('function ' + functionName + '('))
+    expect(editor.selectionEnd).toBe(editor.selectionStart)
+  })
+
+  it('preserves every user function when editing the correction', () => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit correction' }))
+    const editor = screen.getByRole('textbox', { name: 'user_cost_and_performance.jl' })
+    const original = useAppStore.getState().project.metricsCode
+    const modified = original.replace(
+      'function user_nonlinear_correction(S_linear, sol, device_params_set)',
+      'function user_nonlinear_correction(S_linear, sol, device_params_set)\n    # custom feedback',
+    )
+    fireEvent.change(editor, { target: { value: modified } })
+    expect(useAppStore.getState().project.metricsCode).toBe(modified)
+    expect(useAppStore.getState().project.metricsCode).toContain('function user_cost(')
+    expect(useAppStore.getState().project.metricsCode).toContain('function user_performance(')
+    expect(useAppStore.getState().dirty).toBe(true)
   })
 })
 
