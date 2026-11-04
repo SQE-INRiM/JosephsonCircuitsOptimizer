@@ -25,13 +25,11 @@ import {
   Typography,
 } from '@mui/material'
 import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined'
-import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded'
 import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded'
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded'
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded'
-import SettingsBrightnessRoundedIcon from '@mui/icons-material/SettingsBrightnessRounded'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
@@ -53,7 +51,7 @@ const navigation: Array<{ id: NavigationSection; label: string; description: str
   { id: 'results', label: 'Results', description: 'Explore simulation data', icon: <AnalyticsOutlinedIcon /> },
 ]
 
-export default function App({ themePreference = 'system', onThemePreferenceChange }: {
+export default function App({ themePreference = 'dark', onThemePreferenceChange }: {
   themePreference?: ThemePreference
   onThemePreferenceChange?: (value: ThemePreference) => void
 } = {}) {
@@ -238,13 +236,6 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
     }
   }, [desktop, busy, running, dirty, loadProject, setResults])
 
-  const importWorkspace = () => perform(async () => {
-    const adapter = getJcoAdapter()
-    if (!adapter) return setNotice('Workspace import is available in the Windows desktop build.')
-    const loaded = await adapter.importWorkspace()
-    if (loaded) { loadProject(loaded); await refreshResults(); setNotice('Legacy workspace imported. Use Save As to create one .jco file.') }
-  })
-
   const openExample = (fileName: string) => perform(async () => {
     const adapter = getJcoAdapter()
     if (!adapter) return setNotice('Bundled examples are available in the Windows desktop build.')
@@ -268,13 +259,6 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
     if (!adapter) { markSaved(); return setNotice('Preview state marked as saved. Desktop build writes the .jco file.') }
     const saved = await adapter.saveProject(project, saveAs)
     if (saved) { if (saved.project) loadProject(saved.project); else markSaved(); setNotice(`Saved ${saved.path}`) }
-  })
-
-  const exportWorkspace = () => perform(async () => {
-    const adapter = getJcoAdapter()
-    if (!adapter) return setNotice('Workspace ZIP export is available in the Windows desktop build.')
-    const target = await adapter.exportWorkspace(project)
-    if (target) setNotice(`Exported editable workspace to ${target}`)
   })
 
   const run = async (requestedStages?: StageId[]) => {
@@ -329,29 +313,24 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
           <IconButton color="inherit" onClick={(event) => { setMenuAnchor(event.currentTarget); void refreshExamples() }}><MoreVertRoundedIcon /></IconButton>
           <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
             <MenuItem disabled={running} onClick={() => perform(async () => { const loaded = await getJcoAdapter()?.newProject(); if (loaded) loadProject(loaded) })}>New project</MenuItem>
-            <MenuItem disabled={running} onClick={openProject}>Open .jco…</MenuItem>
-            <MenuItem disabled={running} onClick={importWorkspace}><FolderOpenRoundedIcon fontSize="small" sx={{ mr: 1 }} />Import legacy folder…</MenuItem>
-            <Divider />
-            {examples.length
-              ? examples.map((example) => <MenuItem key={example.fileName} disabled={running} onClick={() => openExample(example.fileName)}>Example · {example.name}</MenuItem>)
-              : <MenuItem disabled>No bundled examples found</MenuItem>}
-            <Divider />
+            <MenuItem disabled={running} onClick={openProject}>Open project…</MenuItem>
             <MenuItem disabled={running} onClick={() => save(false)}>Save</MenuItem>
             <MenuItem disabled={running} onClick={() => save(true)}>Save As…</MenuItem>
-            <MenuItem disabled={running} onClick={exportWorkspace}>Export editable workspace (.zip)…</MenuItem>
             <Divider />
-            <MenuItem onClick={() => setNotice('Choose a dataset in Results, then use Export filtered data.')}>Export Data…</MenuItem>
+            <MenuItem disabled sx={{ opacity: '1 !important', fontWeight: 750 }}>Examples</MenuItem>
+            {examples.length
+              ? examples.map((example) => <MenuItem key={example.fileName} disabled={running} onClick={() => openExample(example.fileName)}>{example.name}</MenuItem>)
+              : <MenuItem disabled>No bundled examples found</MenuItem>}
+            <Divider />
             <MenuItem disabled={running} onClick={openSettings}>Julia settings…</MenuItem>
             <MenuItem onClick={() => { setMenuAnchor(null); setAboutOpen(true) }}>About JCO…</MenuItem>
             <Divider />
             <MenuItem disabled sx={{ opacity: '1 !important', fontWeight: 750 }}>Appearance</MenuItem>
-            {(['light', 'dark', 'system'] as const).map((choice) => <MenuItem
+            {(['dark', 'light'] as const).map((choice) => <MenuItem
               key={choice} selected={themePreference === choice}
               onClick={() => { onThemePreferenceChange?.(choice); setMenuAnchor(null) }}>
-              {choice === 'light' ? <LightModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />
-                : choice === 'dark' ? <DarkModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />
-                : <SettingsBrightnessRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />}
-              {choice === 'light' ? 'Light' : choice === 'dark' ? 'Dark' : 'System'}
+              {choice === 'dark' ? <DarkModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} /> : <LightModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />}
+              {choice === 'dark' ? 'Dark' : 'Light'}
               {themePreference === choice ? ' ✓' : ''}
             </MenuItem>)}
           </Menu>
