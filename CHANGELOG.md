@@ -9,6 +9,7 @@ This changelog records completed user-relevant and development-process changes. 
 - Place Setup Back/Next inside the Stepper card, aligned right beneath the three main steps, and navigate through Circuit → Device parameters → Sources before Computation and Metrics. Start new/opened projects at Circuit and keep Back symmetric.
 
 ### Setup computation usability
+- Remove repeated DC inclusion and shared-stage wording from solver guidance; explain Frequency batches = 0 in a small caption pointing to Julia thread settings under the ⋮ menu, rather than in an info alert.
 - Present the first-order Linear harmonic/intermodulation guidance as information rather than a warning when higher-order mixing remains enabled.
 - Grey out and disable Optimization settings when Linear has a single device configuration, while retaining saved settings and re-enabling controls when a multi-point parameter sweep is configured.
 - Simplify the first-order Linear guidance text. In Results, always disable the Optimization tab for single-point setups (including when older runs contain optimizer data); disable Correlation and 1D density views when the selected Linear dataset contains no parameter sweep while keeping its point data accessible.
