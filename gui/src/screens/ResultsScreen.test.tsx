@@ -8,8 +8,8 @@ import { ResultsScreen } from './ResultsScreen'
 vi.mock('../components/ConnectedResults', () => ({
   ConnectedResults: ({ stage, selectedRunId }: { stage: StageId; selectedRunId?: string | null }) => <><div data-testid="visible-results-stage">{stage}</div><div data-testid="selected-results-run">{selectedRunId}</div></>,
 }))
-vi.mock('../components/ResultsRunManager', () => ({ ResultsRunManager: () => null }))
-vi.mock('../components/RunSetupSnapshot', () => ({ RunSetupSnapshot: () => null }))
+vi.mock('../components/ResultsRunManager', () => ({ ResultsRunManager: () => <button type="button">Manage runs</button> }))
+vi.mock('../components/RunSetupSnapshot', () => ({ RunSetupSnapshot: () => <button type="button">Simulation info</button> }))
 
 const originalProject = structuredClone(useAppStore.getState().project)
 const onePoint = { columns: ['point_id', 'Cg', 'metric'], rows: [[1, 250, -20]], file: 'linear.h5' }
@@ -92,6 +92,22 @@ describe('Shared Results run navigation', () => {
     })
   })
   afterEach(() => cleanup())
+
+  it('places Manage runs before Refresh and orders actions immediately after the Run selector', () => {
+    render(<ResultsScreen />)
+    const manage = screen.getByRole('button', { name: 'Manage runs' })
+    const refresh = screen.getByRole('button', { name: 'Refresh results' })
+    const selector = screen.getByRole('combobox', { name: 'Run' })
+    const csv = screen.getByRole('button', { name: 'Export CSV…' })
+    const info = screen.getByRole('button', { name: 'Simulation info' })
+    const deleteRun = screen.getByRole('button', { name: 'Delete run' })
+    const linearTab = screen.getByRole('tab', { name: 'Linear' })
+
+    expect(manage.parentElement).toBe(refresh.parentElement)
+    for (const [first, second] of [[manage, refresh], [refresh, selector], [selector, csv], [csv, info], [info, deleteRun], [deleteRun, linearTab]]) {
+      expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
+  })
 
   it('places one Run selector above the three stage tabs and shares the same historical run', () => {
     render(<ResultsScreen />)
