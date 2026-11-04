@@ -6,9 +6,9 @@ Refine the GUI Results explorer on `gui/results-optimizer` (PR #35) without chan
 ## User-facing requirements
 - Keep the common Run in progress header chip; remove the redundant full-width informational alert.
 - Present Optimization in two views, **Landscape** and **History**, following the compact Linear Results navigation pattern.
-- Landscape retains **Projection** (all samples) and **Slice · Linear** (exact Linear values with explicit fixed coordinates). Display optimization samples in evaluation order with an optional straight-segment trajectory, sparse direction arrows and Start/Latest labels. The line represents order between discrete samples, not a continuous physical or surrogate descent.
-- Mark the best *evaluated optimizer* sample with a ring. Remove the separate dark diamond marking the lowest stored Linear grid cell to prevent confusion.
-- History shows evaluated and best-so-far objective first, then a subtle divider and every stored parameter history. Avoid long introductory instructions; expose scientific distinctions in compact legends/controls and point tooltips.
+- Landscape retains **Projection** (all samples) and **Slice · Linear** (exact Linear values with explicit fixed coordinates). Display optimizer samples in evaluation order with an optional straight-segment trajectory and sparse direction arrows, without Start/Latest text. The line represents order between discrete samples, not a continuous physical or surrogate descent.
+- Mark the best *evaluated optimizer* sample with a ring. Restore a smaller contrasting diamond for the minimum **stored Linear cell in the displayed slice**; identify it in the legend as **Linear slice min**, distinct from the optimizer best.
+- History shows a compact evaluated/best-so-far objective chart, then a subtle divider and compact side-by-side parameter history charts (two columns on medium/large screens). Avoid long introductory instructions; expose scientific distinctions in compact legends/controls and point tooltips.
 
 ## Scientific guardrails
 - Never claim that a sampled point or Linear cell is the global minimum.
