@@ -480,9 +480,6 @@ function ComputationStep() {
                   ? 'Linear-stage harmonic and intermodulation limits are set to first order (1).'
                   : 'For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1. To explore pumped behavior across the parameter space, increase the harmonic counts as needed.'}
               </Alert>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                Max intermodulation order is a shared solver setting below; changing it also affects the nonlinear HB stage.
-              </Typography>
             </Paper>
             <Paper variant="outlined" sx={{ p: 2, flex: 1 }}><Typography variant="subtitle2" sx={{ mb: 1.5 }}>Nonlinear stage harmonics</Typography><Stack direction="row" spacing={1.5}><NumberField label="Strong-tone harmonics" value={config.nonlinearStrongToneHarmonics} onChange={(value) => update({ nonlinearStrongToneHarmonics: value })} /><NumberField label="Modulation harmonics" value={config.nonlinearModulationHarmonics} onChange={(value) => update({ nonlinearModulationHarmonics: value })} /></Stack></Paper>
           </Stack>
