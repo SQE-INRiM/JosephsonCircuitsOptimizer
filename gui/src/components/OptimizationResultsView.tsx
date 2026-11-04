@@ -219,9 +219,10 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     if (value !== undefined) values[name] = value
     return values
   }, {})
+  const fixedKey = JSON.stringify(fixed)
   const slice = useMemo(() => canSlice && effectiveMode === 'slice' && linear
     ? linearObjectiveSlice(linear, x, y, fixed) : null,
-  [canSlice, effectiveMode, linear, x, y, ...otherNames.map((name) => fixed[name])])
+  [canSlice, effectiveMode, linear, x, y, fixedKey])
 
   const evaluations = shown.map((sample) => sample.evaluation)
   const metrics = shown.map((sample) => sample.metric)
