@@ -11,6 +11,7 @@ This changelog records completed user-relevant and development-process changes. 
 - Place one shared Run selector and its run-specific actions above the Linear / Optimization / Harmonic balance tabs.
 - Keep the selected historical run across stage changes, page navigation and Results refresh; fall back to the latest surviving run only when the selected run disappears. Keep CSV export, deletion and Simulation info aligned with the selected run.
 - Give Run controls and result-stage tabs clearer visual separation, and remove the redundant Stored JCO data / retained-data points badges.
+- Align Export CSV, Simulation info and Delete run immediately after the Run picker; place Manage runs in the header beside Refresh results.
 
 ### Setup computation usability
 - Present the first-order Linear harmonic/intermodulation guidance as information rather than a warning when higher-order mixing remains enabled.
