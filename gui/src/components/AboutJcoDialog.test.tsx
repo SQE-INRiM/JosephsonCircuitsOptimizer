@@ -19,7 +19,14 @@ describe('About JCO', () => {
     expect(logo).toBeTruthy()
     expect(getComputedStyle(logo.parentElement!).justifyContent).toBe('center')
     expect(screen.getByText(`Version ${packageJson.version}`)).toBeTruthy()
-    expect(screen.getByText('Emanuele Palumbo')).toBeTruthy()
+    const developerHeading = screen.getByText('Developer')
+    expect(developerHeading.classList.contains('MuiTypography-subtitle1')).toBe(true)
+    const developerName = screen.getByText('Emanuele Palumbo')
+    expect(developerName.classList.contains('MuiTypography-body2')).toBe(true)
+    for (const heading of ['Repository & support', 'How to cite']) {
+      expect(screen.getByText(heading).classList.contains('MuiTypography-subtitle1')).toBe(true)
+    }
+    expect(screen.queryByText(/Development & collaboration/)).toBeNull()
     const affiliation = screen.getByText('INRiM – Politecnico di Torino')
     expect(affiliation).toBeTruthy()
     expect(affiliation.classList.contains('MuiTypography-caption')).toBe(true)
