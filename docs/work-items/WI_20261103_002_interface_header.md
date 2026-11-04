@@ -21,7 +21,7 @@
 
 ## Setup navigation extension
 
-- Move **Back / Next** from the Setup footer into the upper three-step **Stepper card**, right-aligned beneath the indicator rather than at the far edge of the project title row.
+- Keep **Back / Next** in the top-right Setup title row, without an extra row below the Stepper. Use a modest outlined Back and a clearly contrasted contained Next, keeping their text labels and avoiding oversized controls.
 - Treat `Model & inputs` as three navigable substeps: `Circuit → Device parameters → Sources`; then `Computation → Metrics & constraints`.
 - `Back` follows the reverse order, including returning from Computation to Sources. Keep direct clicks on the Stepper and tabs functional, with navigation relative to the currently selected substep.
 - New/opened projects start on Circuit (first substep). The bottom footer continues to show parameter/source/metric readiness, without navigation buttons.
