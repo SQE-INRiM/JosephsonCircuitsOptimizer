@@ -6,7 +6,7 @@ This changelog records completed user-relevant and development-process changes. 
 
 ### Application header
 - Show one inline-editable project title in the top bar instead of a separate filename badge and Setup project-name field. Keep underlying .jco filename handling unchanged and remove the Desktop bridge / Schema v1 developer labels.
-- Place Setup Back/Next inside the Stepper card, aligned right beneath the three main steps, and navigate through Circuit → Device parameters → Sources before Computation and Metrics. Start new/opened projects at Circuit and keep Back symmetric.
+- Keep compact, high-contrast Setup Back/Next controls in the page-title row (outlined Back, prominent Next) without adding vertical space to the Stepper; navigate through Circuit → Device parameters → Sources before Computation and Metrics. Start new/opened projects at Circuit and keep Back symmetric.
 
 ### Setup computation usability
 - Remove repeated DC inclusion and shared-stage wording from solver guidance; explain Frequency batches = 0 in a small caption pointing to Julia thread settings under the ⋮ menu, rather than in an info alert.
