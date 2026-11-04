@@ -6,6 +6,8 @@ type JuliaCodeEditorProps = {
   value: string
   onChange: (value: string) => void
   label: string
+  /** Position the cursor at a named top-level Julia function when the editor opens. */
+  focusFunction?: string
 }
 
 /**
@@ -13,7 +15,7 @@ type JuliaCodeEditorProps = {
  * Selection, keyboard input, IME composition, undo and clipboard remain native;
  * only the mirror has colored tokens, and it never edits the source.
  */
-export function JuliaCodeEditor({ value, onChange, label }: JuliaCodeEditorProps) {
+export function JuliaCodeEditor({ value, onChange, label, focusFunction }: JuliaCodeEditorProps) {
   const highlightRef = useRef<HTMLPreElement>(null)
   const gutterRef = useRef<HTMLPreElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -23,6 +25,25 @@ export function JuliaCodeEditor({ value, onChange, label }: JuliaCodeEditorProps
     () => Array.from({ length: value.split('\n').length }, (_, index) => String(index + 1)).join('\n'),
     [value],
   )
+
+  // Navigate to the selected function only when the requested target changes,
+  // not on each keystroke. Always edit the complete original source file.
+  useLayoutEffect(() => {
+    if (!focusFunction || !inputRef.current) return
+    const escaped = focusFunction.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\  useLayoutEffect(() => {
+    if (!pendingSelection.current || !inputRef.current) return')
+    const definition = new RegExp(`^\\s*function\\s+${escaped}\\s*\\(`, 'm').exec(value)
+    if (!definition) return
+    const editor = inputRef.current
+    const position = definition.index
+    const line = value.slice(0, position).split('\\n').length - 1
+    editor.focus()
+    editor.setSelectionRange(position, position)
+    editor.scrollTop = Math.max(0, line - 2) * 20
+    syncScroll(editor)
+  // Intentionally do not depend on value: typing must never jump the cursor.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusFunction])
 
   useLayoutEffect(() => {
     if (!pendingSelection.current || !inputRef.current) return
