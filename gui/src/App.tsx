@@ -25,18 +25,17 @@ import {
   Typography,
 } from '@mui/material'
 import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined'
-import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded'
 import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded'
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded'
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded'
-import SettingsBrightnessRoundedIcon from '@mui/icons-material/SettingsBrightnessRounded'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
 import SettingsInputComponentRoundedIcon from '@mui/icons-material/SettingsInputComponentRounded'
 import { ProjectNameEditor } from './components/ProjectNameEditor'
+import { AboutJcoDialog } from './components/AboutJcoDialog'
 import { SetupScreen } from './screens/SetupScreen'
 import { RunScreen } from './screens/RunScreen'
 import { ResultsScreen } from './screens/ResultsScreen'
@@ -53,7 +52,7 @@ const navigation: Array<{ id: NavigationSection; label: string; description: str
   { id: 'results', label: 'Results', description: 'Explore simulation data', icon: <AnalyticsOutlinedIcon /> },
 ]
 
-export default function App({ themePreference = 'system', onThemePreferenceChange }: {
+export default function App({ themePreference = 'dark', onThemePreferenceChange }: {
   themePreference?: ThemePreference
   onThemePreferenceChange?: (value: ThemePreference) => void
 } = {}) {
@@ -78,6 +77,7 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
   const [cancelling, setCancelling] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [saveAsOpen, setSaveAsOpen] = useState(false)
   const [juliaPath, setJuliaPath] = useState('julia')
   const [threads, setThreads] = useState(1)
   const [zoom, setZoom] = useState(100)
@@ -238,20 +238,13 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
     }
   }, [desktop, busy, running, dirty, loadProject, setResults])
 
-  const importWorkspace = () => perform(async () => {
-    const adapter = getJcoAdapter()
-    if (!adapter) return setNotice('Workspace import is available in the Windows desktop build.')
-    const loaded = await adapter.importWorkspace()
-    if (loaded) { loadProject(loaded); await refreshResults(); setNotice('Legacy workspace imported. Use Save As to create one .jco file.') }
-  })
-
   const openExample = (fileName: string) => perform(async () => {
     const adapter = getJcoAdapter()
     if (!adapter) return setNotice('Bundled examples are available in the Windows desktop build.')
     const loaded = await adapter.openExample(fileName)
     loadProject(loaded)
     await refreshResults()
-    setNotice(`Loaded example ${loaded.name}. You can run it directly; use Save As if you want to keep changes or results.`)
+    setNotice(`Loaded example ${loaded.name}. You can run it directly; use Save to keep changes or results in a .jco project.`)
   })
 
   const openSettings = () => perform(async () => {
@@ -270,12 +263,22 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
     if (saved) { if (saved.project) loadProject(saved.project); else markSaved(); setNotice(`Saved ${saved.path}`) }
   })
 
-  const exportWorkspace = () => perform(async () => {
-    const adapter = getJcoAdapter()
-    if (!adapter) return setNotice('Workspace ZIP export is available in the Windows desktop build.')
-    const target = await adapter.exportWorkspace(project)
-    if (target) setNotice(`Exported editable workspace to ${target}`)
-  })
+  // Export is deliberately independent of Save: a ZIP does not change the
+  // active .jco path or clear the project's unsaved-changes indicator.
+  const saveEditableWorkspace = () => {
+    setSaveAsOpen(false)
+    void perform(async () => {
+      const adapter = getJcoAdapter()
+      if (!adapter) return setNotice('Editable workspace export requires the desktop application.')
+      const target = await adapter.exportWorkspace(project)
+      if (target) setNotice(`Exported editable workspace to ${target}`)
+    })
+  }
+
+  const saveJcoCopy = () => {
+    setSaveAsOpen(false)
+    void save(true)
+  }
 
   const run = async (requestedStages?: StageId[]) => {
     const adapter = getJcoAdapter()
@@ -326,32 +329,27 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
               </IconButton>
             </span>
           </Tooltip>
-          <IconButton color="inherit" onClick={(event) => { setMenuAnchor(event.currentTarget); void refreshExamples() }}><MoreVertRoundedIcon /></IconButton>
+          <IconButton color="inherit" aria-label="Project menu" onClick={(event) => { setMenuAnchor(event.currentTarget); void refreshExamples() }}><MoreVertRoundedIcon /></IconButton>
           <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
             <MenuItem disabled={running} onClick={() => perform(async () => { const loaded = await getJcoAdapter()?.newProject(); if (loaded) loadProject(loaded) })}>New project</MenuItem>
-            <MenuItem disabled={running} onClick={openProject}>Open .jco…</MenuItem>
-            <MenuItem disabled={running} onClick={importWorkspace}><FolderOpenRoundedIcon fontSize="small" sx={{ mr: 1 }} />Import legacy folder…</MenuItem>
+            <MenuItem disabled={running} onClick={openProject}>Open project…</MenuItem>
+            <MenuItem disabled={running} onClick={() => save(false)}>Save</MenuItem>
+            <MenuItem disabled={running} onClick={() => { setMenuAnchor(null); setSaveAsOpen(true) }}>Save As…</MenuItem>
             <Divider />
+            <MenuItem disabled sx={{ opacity: '1 !important', fontWeight: 750 }}>Examples</MenuItem>
             {examples.length
-              ? examples.map((example) => <MenuItem key={example.fileName} disabled={running} onClick={() => openExample(example.fileName)}>Example · {example.name}</MenuItem>)
+              ? examples.map((example) => <MenuItem key={example.fileName} disabled={running} onClick={() => openExample(example.fileName)}>{example.name}</MenuItem>)
               : <MenuItem disabled>No bundled examples found</MenuItem>}
             <Divider />
-            <MenuItem disabled={running} onClick={() => save(false)}>Save</MenuItem>
-            <MenuItem disabled={running} onClick={() => save(true)}>Save As…</MenuItem>
-            <MenuItem disabled={running} onClick={exportWorkspace}>Export editable workspace (.zip)…</MenuItem>
-            <Divider />
-            <MenuItem onClick={() => setNotice('Choose a dataset in Results, then use Export filtered data.')}>Export Data…</MenuItem>
             <MenuItem disabled={running} onClick={openSettings}>Julia settings…</MenuItem>
             <MenuItem onClick={() => { setMenuAnchor(null); setAboutOpen(true) }}>About JCO…</MenuItem>
             <Divider />
             <MenuItem disabled sx={{ opacity: '1 !important', fontWeight: 750 }}>Appearance</MenuItem>
-            {(['light', 'dark', 'system'] as const).map((choice) => <MenuItem
+            {(['dark', 'light'] as const).map((choice) => <MenuItem
               key={choice} selected={themePreference === choice}
               onClick={() => { onThemePreferenceChange?.(choice); setMenuAnchor(null) }}>
-              {choice === 'light' ? <LightModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />
-                : choice === 'dark' ? <DarkModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />
-                : <SettingsBrightnessRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />}
-              {choice === 'light' ? 'Light' : choice === 'dark' ? 'Dark' : 'System'}
+              {choice === 'dark' ? <DarkModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} /> : <LightModeRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />}
+              {choice === 'dark' ? 'Dark' : 'Light'}
               {themePreference === choice ? ' ✓' : ''}
             </MenuItem>)}
           </Menu>
@@ -433,16 +431,21 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
         </Alert>
       </Snackbar>
 
-      <Dialog open={aboutOpen} onClose={() => setAboutOpen(false)} fullWidth maxWidth="sm" aria-labelledby="jco-about-title">
-        <DialogTitle id="jco-about-title">About JCO</DialogTitle>
+      <Dialog open={saveAsOpen} onClose={() => setSaveAsOpen(false)} fullWidth maxWidth="xs" aria-labelledby="jco-save-as-title">
+        <DialogTitle id="jco-save-as-title">Save As…</DialogTitle>
         <DialogContent>
-          <Box component="img" src="./jco-logo.svg" alt="JCO — Josephson Circuits Optimizer" sx={{ display: 'block', width: '100%', maxWidth: 445, height: 'auto', mx: 'auto', borderRadius: 1.5 }} />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Explore and optimize superconducting Josephson circuits with linear analysis, surrogate optimization and nonlinear harmonic balance.
+          <Typography color="text.secondary" variant="body2">
+            Export an editable ZIP with the project files, or save another .jco project copy.
           </Typography>
         </DialogContent>
-        <DialogActions><Button onClick={() => setAboutOpen(false)}>Close</Button></DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Button onClick={() => setSaveAsOpen(false)}>Cancel</Button>
+          <Button variant="outlined" onClick={saveJcoCopy}>JCO project (.jco)</Button>
+          <Button variant="contained" onClick={saveEditableWorkspace}>Editable workspace (.zip)</Button>
+        </DialogActions>
       </Dialog>
+
+      <AboutJcoDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
 
       <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Julia runtime</DialogTitle>

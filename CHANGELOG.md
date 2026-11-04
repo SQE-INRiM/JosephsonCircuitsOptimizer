@@ -4,6 +4,14 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Project menu and appearance
+- Group the ⋮ menu into New/Open/Save/Save As, bundled Examples, Julia settings/About, and Dark/Light choices; remove the obsolete Import legacy folder, Export editable workspace, and Export Data menu entries.
+- Retain legacy workspace import and ZIP export support internally for possible future access; existing Results CSV/data export actions remain available.
+- Distinguish Save (current .jco project) from Save As: a format-choice dialog offers editable workspace ZIP by default and an additional .jco project copy; ZIP exports do not change the active project or its dirty state.
+- Default to Dark on first launch, preserve explicitly saved Light selections, and migrate the old System preference to Dark.
+- Expand About JCO with the package-derived version, Emanuele Palumbo as developer (INRiM – Politecnico di Torino), MIT license, GitHub repository/issues, published paper DOI and copyable citation; open approved reference links in the system browser.
+- Center the About logo; keep the Developer and other section headings larger than Emanuele Palumbo's name, with the smaller italic INRiM – Politecnico di Torino affiliation and institutional contact link.
+
 ### Desktop launch
 - Avoid Node.js DEP0190 warnings on Windows by calling the npm JavaScript CLI directly rather than passing arguments through a command shell.
 

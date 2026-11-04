@@ -25,6 +25,15 @@ let activeRun = null
 
 const CANCELLATION_GRACE_MS = 3000
 
+// About JCO may open only these documented project destinations.
+const EXTERNAL_ABOUT_LINKS = new Set([
+  'https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer',
+  'https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/issues',
+  'https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/blob/main/LICENSE.md',
+  'https://doi.org/10.1109/TASC.2026.3679488',
+  'mailto:emanuele.palumbo@polito.it',
+])
+
 function resourcesRoot() {
   return app.isPackaged ? process.resourcesPath : path.join(__dirname, '..', 'runtime')
 }
@@ -572,6 +581,12 @@ app.whenReady().then(() => {
   ipcMain.handle('jco:set-settings', (_event, patch) => setSettings(patch))
   ipcMain.handle('jco:setup-runtime', ensureRuntimePrepared)
   ipcMain.handle('jco:show-workspace', () => session ? shell.openPath(session.workspace) : null)
+  ipcMain.handle('jco:open-external', async (_event, url) => {
+    if (typeof url !== 'string' || !EXTERNAL_ABOUT_LINKS.has(url)) {
+      throw new Error('External link is not approved.')
+    }
+    await shell.openExternal(url)
+  })
   createWindow()
   if (!runtimeIsPrepared()) {
     void ensureRuntimePrepared().catch((error) => {

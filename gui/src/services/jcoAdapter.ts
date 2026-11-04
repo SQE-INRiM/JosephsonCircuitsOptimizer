@@ -86,6 +86,7 @@ export interface JcoAdapter {
   setSettings(patch: Partial<{ juliaPath: string; threads: number }>): Promise<{ juliaPath: string; threads: number }>
   setupRuntime(): Promise<{ ok: boolean; message: string }>
   showWorkspace(): Promise<string | null>
+  openExternal?(url: string): Promise<void>
   getZoom?(): Promise<number>
   setZoom?(percent: number): Promise<number>
   onZoomChanged?(listener: (percent: number) => void): () => void

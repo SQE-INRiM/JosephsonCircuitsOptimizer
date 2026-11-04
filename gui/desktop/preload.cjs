@@ -25,6 +25,7 @@ const api = {
   setSettings: (patch) => ipcRenderer.invoke('jco:set-settings', patch),
   setupRuntime: () => ipcRenderer.invoke('jco:setup-runtime'),
   showWorkspace: () => ipcRenderer.invoke('jco:show-workspace'),
+  openExternal: (url) => ipcRenderer.invoke('jco:open-external', url),
   getZoom: () => ipcRenderer.invoke('jco:get-zoom'),
   setZoom: (percent) => ipcRenderer.invoke('jco:set-zoom', percent),
   onZoomChanged: (listener) => {
