@@ -88,7 +88,7 @@ describe('JCO project menu', () => {
   it('keeps the regular Save action directed at the current .jco project', async () => {
     render(<App themePreference="dark" />)
     fireEvent.click(screen.getByRole('button', { name: 'Project menu' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Save', exact: true }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /^Save$/ }))
 
     await waitFor(() => expect(saved).toHaveBeenCalledTimes(1))
     expect(saved.mock.calls[0]?.[1]).toBe(false)
