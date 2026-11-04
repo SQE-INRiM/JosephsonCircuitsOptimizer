@@ -20,7 +20,7 @@ interface HeatmapGridProps {
 }
 
 function interpolate(a: number, b: number, t: number) { return Math.round(a + (b - a) * t) }
-function sequentialColor(value: number, min: number, max: number) {
+export function sequentialColor(value: number, min: number, max: number) {
   const t = max === min ? 0.5 : (value - min) / (max - min)
   const from = [237, 244, 250]; const middle = [68, 137, 171]; const to = [234, 173, 56]
   const local = t < 0.5 ? t * 2 : (t - 0.5) * 2; const left = t < 0.5 ? from : middle; const right = t < 0.5 ? middle : to

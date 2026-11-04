@@ -3,11 +3,9 @@ import { Alert, Box, Button, Chip, FormControl, InputLabel, MenuItem, Paper, Sel
 import { LineChart } from '@mui/x-charts/LineChart'
 import type { ResultTable, ResultsBundle, RunResults, SavedDataCatalog, SavedTraceData } from '../types'
 import { getJcoAdapter } from '../services/jcoAdapter'
-import { useAppStore } from '../store'
-import { parameterLabel } from '../utils/resultUnits'
 import { HeatmapGrid } from './HeatmapGrid'
+import { OptimizationResultsView } from './OptimizationResultsView'
 
-const ALL_PARAMETERS = '__all__'
 type HbView = 'landscape' | 'response'
 type ConvergenceFilter = 'all' | 'converged' | 'nonconverged'
 
@@ -72,20 +70,6 @@ export function buildHbGrid(table: ResultTable, xName: string, yName: string, me
   }
 }
 
-function OptimizationResults({ table }: { table: ResultTable }) {
-  const projectParameters = useAppStore((state) => state.project.parameters)
-  const metricIndex = table.columns.indexOf('metric'); const evaluationIndex = table.columns.indexOf('evaluation')
-  if (metricIndex < 0) return <Alert severity="warning">The optimization table does not contain a metric column.</Alert>
-  const rows = rowsAsNumbers(table).filter((row) => Number.isFinite(row[metricIndex])).sort((a, b) => (evaluationIndex >= 0 ? a[evaluationIndex] - b[evaluationIndex] : 0))
-  const evaluations = rows.map((row, index) => evaluationIndex >= 0 ? row[evaluationIndex] : index + 1)
-  const parameters = varyingColumns(table, table.columns.slice(Math.max(0, evaluationIndex + 1), metricIndex))
-  const [mode, setMode] = useState<'best' | 'history'>('best'); const [parameter, setParameter] = useState(parameters[0] ?? ALL_PARAMETERS)
-  useEffect(() => { if (parameter !== ALL_PARAMETERS && !parameters.includes(parameter)) setParameter(parameters[0] ?? ALL_PARAMETERS) }, [parameters, parameter])
-  let best = Number.POSITIVE_INFINITY; const bestHistory = rows.map((row) => { best = Math.min(best, row[metricIndex]); return best })
-  const parameterChart = (name: string, height = 300) => { const index = table.columns.indexOf(name); const data = rows.map((row) => row[index]); const displayName = parameterLabel(projectParameters, name); return <Paper key={name} variant="outlined" sx={{ p: 1.2 }}><Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{displayName}</Typography><LineChart height={height} margin={{ bottom: 50, left: 90 }} xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => `${Math.round(Number(value))}` }]} yAxis={[{ label: displayName, width: 80, valueFormatter: (value: number | null) => formatNumber(value) }]} series={[{ data, label: displayName, showMark: true, curve: 'linear', valueFormatter: (value: number | null) => formatNumber(value) }]} grid={{ horizontal: true }} /></Paper> }
-  return <Stack spacing={1.3}><Paper variant="outlined" sx={{ p: 1.25 }}><Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}><Button size="small" variant={mode === 'best' ? 'contained' : 'outlined'} onClick={() => setMode('best')}>Best objective</Button><Button size="small" variant={mode === 'history' ? 'contained' : 'outlined'} onClick={() => setMode('history')}>Parameter history</Button><Chip sx={{ ml: { md: 'auto' } }} size="small" variant="outlined" label={`${rows.length} optimizer evaluations`} />{mode === 'history' && <FormControl size="small" sx={{ minWidth: 220 }}><InputLabel>Parameter</InputLabel><Select label="Parameter" value={parameter} onChange={(event) => setParameter(event.target.value)}><MenuItem value={ALL_PARAMETERS}>All parameters</MenuItem>{parameters.map((name) => <MenuItem value={name} key={name}>{parameterLabel(projectParameters, name)}</MenuItem>)}</Select></FormControl>}</Stack></Paper>{mode === 'best' && <Paper variant="outlined" sx={{ p: 1.5 }}><Typography variant="h6">Best sampled objective</Typography><Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Best objective found up to each optimizer evaluation.</Typography><LineChart height={380} margin={{ bottom: 55, left: 90 }} xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => `${Math.round(Number(value))}` }]} yAxis={[{ label: table.columns[metricIndex], width: 80, valueFormatter: (value: number | null) => formatNumber(value) }]} series={[{ data: bestHistory, label: table.columns[metricIndex], showMark: evaluations.length <= 40, curve: 'linear', valueFormatter: (value: number | null) => formatNumber(value) }]} grid={{ horizontal: true }} /></Paper>}{mode === 'history' && (parameter === ALL_PARAMETERS ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: 'repeat(2, minmax(0, 1fr))' }, gap: 1.2 }}>{parameters.map((name) => parameterChart(name, 270))}</Box> : parameterChart(parameter, 380))}</Stack>
-}
-
 function traceSeries(trace: SavedTraceData): { data: number[]; label: string } {
   if (trace.magnitude) return { data: trace.magnitude, label: `${trace.quantityName} · ${trace.arrayName} (magnitude)` }
   if (trace.values) return { data: trace.values, label: `${trace.quantityName} · ${trace.arrayName}` }
@@ -126,6 +110,6 @@ export function EnhancedStageResults({ results, stage, selectedRunId }: { result
   const table = stage === 'optimization' ? run.optimization : run.nonlinear
   return !table
     ? <Alert severity="warning">{stage === 'optimization' ? 'This run does not contain persisted optimizer evaluations.' : 'This run does not contain a Harmonic Balance summary table.'}</Alert>
-    : stage === 'optimization' ? <OptimizationResults key={run.id} table={table} />
+    : stage === 'optimization' ? <OptimizationResultsView key={run.id} run={run} table={table} />
     : <HarmonicBalanceResults key={run.id} run={run} table={table} />
 }
