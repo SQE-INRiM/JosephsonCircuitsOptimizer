@@ -574,10 +574,20 @@ export function SetupScreen() {
 
   return (
     <Stack spacing={2.5}>
-      <Box>
-        <Typography variant="h4">Project setup</Typography>
-        <Typography color="text.secondary" sx={{ mt: 0.6 }}>Build the complete simulation input before starting expensive calculations.</Typography>
-      </Box>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h4">Project setup</Typography>
+          <Typography color="text.secondary" sx={{ mt: 0.6 }}>Build the complete simulation input before starting expensive calculations.</Typography>
+        </Box>
+        <Stack direction="row" spacing={1} sx={{ flexShrink: 0, justifyContent: { xs: 'flex-end', sm: 'initial' } }}>
+          <Button variant="outlined" startIcon={<ArrowBackRoundedIcon />} disabled={step === 0 && panel === 'circuit'} onClick={goBack}>Back</Button>
+          <Button variant="contained" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={goNext} sx={{ fontWeight: 700, boxShadow: 2 }}>Next</Button>
+        </Stack>
+      </Stack>
       <Paper variant="outlined" sx={{ p: 2.2 }}>
         <Stepper nonLinear activeStep={step} alternativeLabel>
           {steps.map((label, index) => (
@@ -586,10 +596,6 @@ export function SetupScreen() {
             </Step>
           ))}
         </Stepper>
-        <Stack direction="row" spacing={1} sx={{ mt: 1.5, justifyContent: 'flex-end' }}>
-          <Button startIcon={<ArrowBackRoundedIcon />} disabled={step === 0 && panel === 'circuit'} onClick={goBack}>Back</Button>
-          <Button variant="contained" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={goNext}>Next</Button>
-        </Stack>
       </Paper>
       {step === 0 && <ModelStep />}
       {step === 1 && <ComputationStep />}
