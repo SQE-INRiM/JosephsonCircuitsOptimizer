@@ -15,10 +15,16 @@ describe('About JCO', () => {
     render(<AboutJcoDialog open onClose={() => {}} />)
 
     expect(screen.getByRole('dialog', { name: 'About JCO' })).toBeTruthy()
-    expect(screen.getByAltText('JCO — Josephson Circuits Optimizer')).toBeTruthy()
+    const logo = screen.getByAltText('JCO — Josephson Circuits Optimizer')
+    expect(logo).toBeTruthy()
+    expect(getComputedStyle(logo.parentElement!).justifyContent).toBe('center')
     expect(screen.getByText(`Version ${packageJson.version}`)).toBeTruthy()
-    expect(screen.getByText('Developed by Emanuele Palumbo')).toBeTruthy()
-    expect(screen.getByText('INRiM – Politecnico di Torino')).toBeTruthy()
+    expect(screen.getByText('Emanuele Palumbo')).toBeTruthy()
+    const affiliation = screen.getByText('INRiM – Politecnico di Torino')
+    expect(affiliation).toBeTruthy()
+    expect(affiliation.classList.contains('MuiTypography-caption')).toBe(true)
+    const email = screen.getByRole('link', { name: 'emanuele.palumbo@polito.it' })
+    expect(email.getAttribute('href')).toBe('mailto:emanuele.palumbo@polito.it')
     expect(screen.getByText('How to cite')).toBeTruthy()
     expect(screen.getByText(/IEEE Transactions on Applied Superconductivity/)).toBeTruthy()
     expect(screen.getByText(/Open-source software · MIT License/)).toBeTruthy()
@@ -39,12 +45,14 @@ describe('About JCO', () => {
     expect(screen.getByRole('status').textContent).toContain('Citation copied to clipboard.')
   })
 
-  it('opens reference links using the desktop bridge', async () => {
+  it('opens repository and institutional collaboration email via the desktop bridge', async () => {
     const openExternal = vi.fn(async (_url: string) => {})
     window.jco = { openExternal } as unknown as JcoAdapter
 
     render(<AboutJcoDialog open onClose={() => {}} />)
     fireEvent.click(screen.getByRole('link', { name: 'GitHub repository' }))
     await waitFor(() => expect(openExternal).toHaveBeenCalledWith('https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer'))
+    fireEvent.click(screen.getByRole('link', { name: 'emanuele.palumbo@polito.it' }))
+    await waitFor(() => expect(openExternal).toHaveBeenCalledWith('mailto:emanuele.palumbo@polito.it'))
   })
 })
