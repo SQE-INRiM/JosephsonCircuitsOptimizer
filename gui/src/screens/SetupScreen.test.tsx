@@ -96,7 +96,14 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
     render(<SetupScreen />)
     const guidance = screen.getByText(/For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1/)
     expect(guidance.closest('.MuiAlert-root')?.getAttribute('role')).toBe('status')
-    expect(screen.getByText(/changing it also affects the nonlinear HB stage/)).toBeTruthy()
+    expect(screen.queryByText(/changing it also affects the nonlinear HB stage/)).toBeNull()
+    expect(screen.queryByText(/DC inclusion is determined automatically/)).toBeNull()
+    expect(screen.queryByText(/Shared by linear and nonlinear stages/)).toBeNull()
+
+    const batchesHint = screen.getByText(/Set Frequency batches to 0 to use all Julia threads configured in/)
+    expect(batchesHint.classList.contains('MuiTypography-caption')).toBe(true)
+    expect(batchesHint.closest('.MuiAlert-root')).toBeNull()
+    expect(batchesHint.textContent).toContain('Julia settings')
   })
 
   it('shows first-order guidance when all three truncations are 1', () => {
@@ -251,28 +258,78 @@ describe('Device parameter mode editor regression', () => {
   })
 })
 
-describe('Setup footer navigation', () => {
+describe('Setup navigation across Model & inputs substeps', () => {
   beforeEach(() => {
     useAppStore.setState({
       project: structuredClone(originalProject),
-      setupStep: 2,
+      setupStep: 0,
+      setupPanel: 'circuit',
       dirty: false,
     })
   })
   afterEach(() => cleanup())
 
-  it('contains Back and Next without a simulation action', () => {
+  it('walks through Circuit, Device parameters and Sources before Computation', () => {
     render(<SetupScreen />)
-
-    const back = screen.getByRole('button', { name: 'Back' })
     const next = screen.getByRole('button', { name: 'Next' })
-    const footer = next.closest('.MuiPaper-root')
-    expect(footer).not.toBeNull()
-    expect(footer?.contains(back)).toBe(true)
+    const back = screen.getByRole('button', { name: 'Back' })
+
+    const titleRow = screen.getByText('Project setup').parentElement?.parentElement
+    expect(titleRow?.contains(next)).toBe(true)
+    expect(titleRow?.contains(back)).toBe(true)
+    expect(next.closest('.MuiPaper-root')).toBeNull()
+    expect(back.classList.contains('MuiButton-outlined')).toBe(true)
+    expect(next.classList.contains('MuiButton-contained')).toBe(true)
     expect(screen.queryByRole('button', { name: 'Run remaining' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Stop run' })).toBeNull()
 
+    expect(back.hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('tab', { name: 'Circuit' }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(next)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'parameters' })
+    expect(screen.getByRole('tab', { name: /Device parameters/ }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(next)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
+    expect(screen.getByRole('tab', { name: /Sources/ }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(next)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 1, setupPanel: 'sources' })
+    expect(screen.getByText('Harmonic and solver settings')).toBeTruthy()
+
+    fireEvent.click(next)
+    expect(useAppStore.getState().setupStep).toBe(2)
+    expect(next.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('traverses the same substeps backwards from Metrics to Circuit', () => {
+    useAppStore.setState({ setupStep: 2, setupPanel: 'circuit' })
+    render(<SetupScreen />)
+    const back = screen.getByRole('button', { name: 'Back' })
+
     fireEvent.click(back)
     expect(useAppStore.getState().setupStep).toBe(1)
+
+    fireEvent.click(back)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
+
+    fireEvent.click(back)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'parameters' })
+
+    fireEvent.click(back)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'circuit' })
+    expect(back.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('respects manually selected sub-tabs when using Next and Back', () => {
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('tab', { name: /Sources/ }))
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(useAppStore.getState().setupStep).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
   })
 })

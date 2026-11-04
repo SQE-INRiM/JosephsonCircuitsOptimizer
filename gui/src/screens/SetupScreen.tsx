@@ -480,9 +480,6 @@ function ComputationStep() {
                   ? 'Linear-stage harmonic and intermodulation limits are set to first order (1).'
                   : 'For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1. To explore pumped behavior across the parameter space, increase the harmonic counts as needed.'}
               </Alert>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                Max intermodulation order is a shared solver setting below; changing it also affects the nonlinear HB stage.
-              </Typography>
             </Paper>
             <Paper variant="outlined" sx={{ p: 2, flex: 1 }}><Typography variant="subtitle2" sx={{ mb: 1.5 }}>Nonlinear stage harmonics</Typography><Stack direction="row" spacing={1.5}><NumberField label="Strong-tone harmonics" value={config.nonlinearStrongToneHarmonics} onChange={(value) => update({ nonlinearStrongToneHarmonics: value })} /><NumberField label="Modulation harmonics" value={config.nonlinearModulationHarmonics} onChange={(value) => update({ nonlinearModulationHarmonics: value })} /></Stack></Paper>
           </Stack>
@@ -493,12 +490,12 @@ function ComputationStep() {
             <Stack spacing={1.5}>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}><NumberField label="Max solver iterations" value={config.maxSimulatorIterations} onChange={(value) => update({ maxSimulatorIterations: value })} /><NumberField label="Residual tolerance (ftol)" value={config.solverFtol} onChange={(value) => update({ solverFtol: value })} /><NumberField label="Switch-off line search tolerance" value={config.switchOffLineSearchTolerance} onChange={(value) => update({ switchOffLineSearchTolerance: value })} /><NumberField label="Minimum line-search step (alphamin)" value={config.alphaMin} onChange={(value) => update({ alphaMin: value })} /></Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}>
-                <TextField label="Max intermodulation order" value={config.maxIntermodOrder} helperText="Shared by linear and nonlinear stages; use 1 to restrict mixing to first order, or Inf for no additional truncation." onChange={(event) => update({ maxIntermodOrder: event.target.value })} fullWidth />
+                <TextField label="Max intermodulation order" value={config.maxIntermodOrder} helperText="Use 1 to restrict mixing to first order, or Inf for no additional truncation." onChange={(event) => update({ maxIntermodOrder: event.target.value })} fullWidth />
                 <NumberField label="Frequency batches" value={config.solverBatches} onChange={(value) => update({ solverBatches: value })} />
                 <TextField select label="Node sorting" value={config.nodeSorting} onChange={(event) => update({ nodeSorting: event.target.value as typeof config.nodeSorting })} fullWidth><MenuItem value="number">Numeric node names</MenuItem><MenuItem value="name">Text node names</MenuItem><MenuItem value="none">Circuit order</MenuItem></TextField>
               </Box>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><FormControlLabel control={<Checkbox checked={config.threeWaveMixing} onChange={(event) => update({ threeWaveMixing: event.target.checked })} />} label="Three-wave mixing" /><FormControlLabel control={<Checkbox checked={config.fourWaveMixing} onChange={(event) => update({ fourWaveMixing: event.target.checked })} />} label="Four-wave mixing" /></Stack>
-              <Alert severity="info">Frequency batches set to 0 use all Julia threads. DC inclusion is determined automatically from the source configuration.</Alert>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Set Frequency batches to 0 to use all Julia threads configured in ⋮ → Julia settings.</Typography>
             </Stack>
           </Box>
         </Stack>
@@ -547,15 +544,59 @@ function MetricsStep() {
 export function SetupScreen() {
   const step = useAppStore((state) => state.setupStep)
   const setStep = useAppStore((state) => state.setSetupStep)
+  const panel = useAppStore((state) => state.setupPanel)
+  const setPanel = useAppStore((state) => state.setSetupPanel)
   const project = useAppStore((state) => state.project)
-  const updateProjectName = useAppStore((state) => state.updateProjectName)
   const missingParameterCount = project.parameters.filter((parameter) => parameter.circuitStatus === 'missing').length
-  const go = (next: number) => setStep(Math.max(0, Math.min(2, next)) as SetupStep)
+
+  // Model & inputs comprises three separate stops in the Setup navigation:
+  // Circuit → Device parameters → Sources → Computation → Metrics.
+  const goBack = () => {
+    if (step === 0) {
+      if (panel === 'sources') setPanel('parameters')
+      else if (panel === 'parameters') setPanel('circuit')
+    } else if (step === 1) {
+      setPanel('sources')
+      setStep(0)
+    } else {
+      setStep(1)
+    }
+  }
+  const goNext = () => {
+    if (step === 0) {
+      if (panel === 'circuit') setPanel('parameters')
+      else if (panel === 'parameters') setPanel('sources')
+      else setStep(1)
+    } else if (step === 1) {
+      setStep(2)
+    }
+  }
 
   return (
     <Stack spacing={2.5}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: { md: 'center' }, justifyContent: 'space-between' }}><Box><Typography variant="h4">Project setup</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Build the complete simulation input before starting expensive calculations.</Typography></Box><TextField label="Project name" value={project.name} onChange={(event) => updateProjectName(event.target.value)} sx={{ width: { xs: '100%', md: 360 } }} /></Stack>
-      <Paper variant="outlined" sx={{ p: 2.2 }}><Stepper nonLinear activeStep={step} alternativeLabel>{steps.map((label, index) => <Step key={label} completed={index < step}><StepButton color="inherit" onClick={() => setStep(index as SetupStep)}>{label}</StepButton></Step>)}</Stepper></Paper>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h4">Project setup</Typography>
+          <Typography color="text.secondary" sx={{ mt: 0.6 }}>Build the complete simulation input before starting expensive calculations.</Typography>
+        </Box>
+        <Stack direction="row" spacing={1} sx={{ flexShrink: 0, justifyContent: { xs: 'flex-end', sm: 'initial' } }}>
+          <Button variant="outlined" startIcon={<ArrowBackRoundedIcon />} disabled={step === 0 && panel === 'circuit'} onClick={goBack}>Back</Button>
+          <Button variant="contained" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={goNext} sx={{ fontWeight: 700, boxShadow: 2 }}>Next</Button>
+        </Stack>
+      </Stack>
+      <Paper variant="outlined" sx={{ p: 2.2 }}>
+        <Stepper nonLinear activeStep={step} alternativeLabel>
+          {steps.map((label, index) => (
+            <Step key={label} completed={index < step}>
+              <StepButton color="inherit" onClick={() => setStep(index as SetupStep)}>{label}</StepButton>
+            </Step>
+          ))}
+        </Stepper>
+      </Paper>
       {step === 0 && <ModelStep />}
       {step === 1 && <ComputationStep />}
       {step === 2 && <MetricsStep />}
@@ -565,13 +606,10 @@ export function SetupScreen() {
             <CheckCircleOutlineRoundedIcon color={missingParameterCount ? 'warning' : 'success'} />
             <Box sx={{ minWidth: 0 }}>
               <Typography variant="subtitle2">{missingParameterCount ? `${missingParameterCount} parameter${missingParameterCount === 1 ? '' : 's'} still need values` : 'Project setup complete'}</Typography>
-              <Typography variant="caption" color="text.secondary">{project.parameters.length} parameters · {project.sources.length} sources · {project.metrics.length} named metrics · schema {project.schemaVersion}</Typography>
+              <Typography variant="caption" color="text.secondary">{project.parameters.length} parameters · {project.sources.length} sources · {project.metrics.length} named metrics</Typography>
             </Box>
           </Stack>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: { xs: 'flex-start', lg: 'flex-end' }, gap: 1 }}>
-            <Button startIcon={<ArrowBackRoundedIcon />} disabled={step === 0} onClick={() => go(step - 1)}>Back</Button>
-            <Button variant="contained" endIcon={<ArrowForwardRoundedIcon />} disabled={step === 2} onClick={() => go(step + 1)}>Next</Button>
-          </Box>
+
         </Stack>
       </Paper>
     </Stack>

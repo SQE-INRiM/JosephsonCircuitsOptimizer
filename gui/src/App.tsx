@@ -4,7 +4,6 @@ import {
   AppBar,
   Box,
   Button,
-  Chip,
   Divider,
   Dialog,
   DialogActions,
@@ -37,6 +36,7 @@ import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
 import SettingsInputComponentRoundedIcon from '@mui/icons-material/SettingsInputComponentRounded'
+import { ProjectNameEditor } from './components/ProjectNameEditor'
 import { SetupScreen } from './screens/SetupScreen'
 import { RunScreen } from './screens/RunScreen'
 import { ResultsScreen } from './screens/ResultsScreen'
@@ -311,14 +311,9 @@ export default function App({ themePreference = 'system', onThemePreferenceChang
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,.6)' }}>Superconducting circuit design</Typography>
           </Box>
           <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,.12)', my: 1.4 }} />
-          <Box sx={{ flex: 1, overflow: 'hidden' }}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <Typography noWrap sx={{ fontWeight: 700 }}>{project.name}{dirty ? ' *' : ''}</Typography>
-              <Chip size="small" label={project.filename} sx={{ backgroundColor: 'rgba(255,255,255,.09)', color: 'rgba(255,255,255,.78)' }} />
-            </Stack>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <ProjectNameEditor />
           </Box>
-          <Chip size="small" label={desktop ? 'Desktop bridge' : 'Browser preview'} color={desktop ? 'success' : 'warning'} variant="outlined" sx={{ display: { xs: 'none', xl: 'flex' }, color: desktop ? '#a9dec9' : '#f1c77b', borderColor: desktop ? '#4c8a73' : '#9b753a' }} />
-          <Chip size="small" label="Schema v1" sx={{ display: { xs: 'none', lg: 'flex' }, backgroundColor: 'rgba(255,255,255,.08)', color: '#d9e1e8' }} />
           {desktop && <Stack direction="row" spacing={0.2} sx={{ alignItems: 'center', border: '1px solid rgba(255,255,255,.2)', borderRadius: 2, px: 0.3 }}>
               <Tooltip title="Zoom out · Ctrl+−"><span><IconButton color="inherit" size="small" disabled={zoom <= 50} onClick={() => void applyZoom(zoom - 10)} aria-label="Zoom out"><ZoomOutRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
               <Tooltip title="Reset zoom · Ctrl+0"><Button color="inherit" size="small" onClick={() => void applyZoom(100)} aria-label="Reset zoom" sx={{ minWidth: 50, color: '#fff' }}>{zoom}%</Button></Tooltip>
