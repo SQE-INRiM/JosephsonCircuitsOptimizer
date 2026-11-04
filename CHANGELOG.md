@@ -4,6 +4,10 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+## 0.4.3 - 2026-11-04
+
+[Complete release notes](docs/releases/v0.4.3.md) · Stable GUI/Results baseline after v0.4.2; nonlinear feedback remains in a separate feature branch.
+
 ### Project menu and appearance
 - Group the ⋮ menu into New/Open/Save/Save As, bundled Examples, Julia settings/About, and Dark/Light choices; remove the obsolete Import legacy folder, Export editable workspace, and Export Data menu entries.
 - Retain legacy workspace import and ZIP export support internally for possible future access; existing Results CSV/data export actions remain available.
