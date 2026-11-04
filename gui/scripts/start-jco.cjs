@@ -10,7 +10,7 @@ const electronVersion = '43.4.1'
 // to avoid DEP0190 (passing argument arrays to shell: true).
 const npmCli = isWindows
   ? [process.env.npm_execpath, path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')]
-    .find((candidate) => candidate && /npm-cli\\.js$/i.test(candidate) && fs.existsSync(candidate))
+    .find((candidate) => candidate && /npm-cli\.js$/i.test(candidate) && fs.existsSync(candidate))
   : null
 
 function fail(message) {
