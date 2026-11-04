@@ -266,14 +266,20 @@ function nonlinear_correction(optimal_params, best_amplitudes)
 
     circuit = create_circuit(optimal_params)
 
-    S_lin = linear_simulation(optimal_params, circuit, sim_vars)
-
-    sol_nonlin = nonlinear_simulation(circuit, best_amplitudes, sim_vars)
+    # Both inputs to the user correction are full JC hbsolve solutions.
+    # Avoid extracting the linear S-parameter dictionary: users can access
+    # sol_linear.linearized.S(...) and sol_nonlinear.linearized.S(...) directly.
+    sol_linear = linear_solution(optimal_params, circuit, sim_vars)
+    nonlinear_status = nonlinear_simulation(circuit, best_amplitudes, sim_vars)
+    if !nonlinear_status.converged || nonlinear_status.sol === nothing
+        error("Cannot calculate nonlinear feedback from a failed HB solution: $(nonlinear_status.message)")
+    end
+    sol_nonlinear = nonlinear_status.sol
 
     nonlin_correction_term = Base.invokelatest(
         user_nonlinear_correction,
-        S_lin,
-        sol_nonlin.sol,
+        sol_linear,
+        sol_nonlinear,
         optimal_params
     )
 
