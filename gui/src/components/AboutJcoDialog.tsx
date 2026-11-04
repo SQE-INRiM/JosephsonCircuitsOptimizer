@@ -66,8 +66,8 @@ export function AboutJcoDialog({ open, onClose }: AboutJcoDialogProps) {
           </Box>
           <Divider />
           <Box>
-            <Typography variant="subtitle2">Development &amp; collaboration</Typography>
-            <Typography variant="body1" sx={{ mt: 0.5, fontWeight: 700 }}>Emanuele Palumbo</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Developer</Typography>
+            <Typography variant="body2" sx={{ mt: 0.3, fontWeight: 500 }}>Emanuele Palumbo</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontStyle: 'italic', mt: 0.2 }}>
               INRiM – Politecnico di Torino
             </Typography>
@@ -80,14 +80,14 @@ export function AboutJcoDialog({ open, onClose }: AboutJcoDialogProps) {
             </Link>
           </Box>
           <Box>
-            <Typography variant="subtitle2">Repository &amp; support</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Repository &amp; support</Typography>
             <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', rowGap: 0.5 }}>
               <Link href={REPOSITORY} target="_blank" rel="noopener noreferrer" onClick={(event) => openLink(event, REPOSITORY)}>GitHub repository</Link>
               <Link href={`${REPOSITORY}/issues`} target="_blank" rel="noopener noreferrer" onClick={(event) => openLink(event, `${REPOSITORY}/issues`)}>Report an issue</Link>
             </Stack>
           </Box>
           <Box>
-            <Typography variant="subtitle2">How to cite</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>How to cite</Typography>
             <Typography variant="body2" sx={{ mt: 0.5 }}>
               E. Palumbo <i>et al.</i>, “JCO: Optimization Framework for Nonlinear Superconducting Circuits Using a Lumped-Element Approach and Harmonic Balance,” <i>IEEE Transactions on Applied Superconductivity</i> (2026).
             </Typography>
