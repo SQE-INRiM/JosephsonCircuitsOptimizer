@@ -6,7 +6,7 @@ type JuliaCodeEditorProps = {
   value: string
   onChange: (value: string) => void
   label: string
-  /** Position the cursor at a named top-level Julia function when the editor opens. */
+  /** Move the cursor to the selected function on editor opening. */
   focusFunction?: string
 }
 
@@ -26,22 +26,20 @@ export function JuliaCodeEditor({ value, onChange, label, focusFunction }: Julia
     [value],
   )
 
-  // Navigate to the selected function only when the requested target changes,
-  // not on each keystroke. Always edit the complete original source file.
+  // This editor always edits the entire shared Julia file. Navigate only on
+  // opening/target change: editing text must never reset the user's selection.
   useLayoutEffect(() => {
-    if (!focusFunction || !inputRef.current) return
-    const escaped = focusFunction.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\  useLayoutEffect(() => {
-    if (!pendingSelection.current || !inputRef.current) return')
-    const definition = new RegExp(`^\\s*function\\s+${escaped}\\s*\\(`, 'm').exec(value)
-    if (!definition) return
+    if (!focusFunction || !/^[A-Za-z_]\\w*$/.test(focusFunction) || !inputRef.current) return
+    const match = new RegExp('^[ \\t]*function[ \\t]+' + focusFunction + '[ \\t]*\\(', 'm').exec(value)
+    if (!match) return
     const editor = inputRef.current
-    const position = definition.index
-    const line = value.slice(0, position).split('\\n').length - 1
+    const lineStart = match.index
+    const lineNumber = value.slice(0, lineStart).split('\\n').length - 1
     editor.focus()
-    editor.setSelectionRange(position, position)
-    editor.scrollTop = Math.max(0, line - 2) * 20
+    editor.setSelectionRange(lineStart, lineStart)
+    editor.scrollTop = Math.max(0, lineNumber - 2) * 20
     syncScroll(editor)
-  // Intentionally do not depend on value: typing must never jump the cursor.
+  // Only re-run for a different function target, not on keystrokes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusFunction])
 
