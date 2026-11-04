@@ -4,6 +4,12 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Project menu and appearance
+- Group the ⋮ menu into New/Open/Save/Save As, bundled Examples, Julia settings/About, and Dark/Light choices; remove the obsolete Import legacy folder, Export editable workspace, and Export Data menu entries.
+- Retain legacy workspace import and ZIP export support internally for possible future access; existing Results CSV/data export actions remain available.
+- Default to Dark on first launch, preserve explicitly saved Light selections, and migrate the old System preference to Dark.
+
+
 ### Application header
 - Show one inline-editable project title in the top bar instead of a separate filename badge and Setup project-name field. Keep underlying .jco filename handling unchanged and remove the Desktop bridge / Schema v1 developer labels.
 - Keep compact, high-contrast Setup Back/Next controls in the page-title row (outlined Back, prominent Next) without adding vertical space to the Stepper; navigate through Circuit → Device parameters → Sources before Computation and Metrics. Start new/opened projects at Circuit and keep Back symmetric.
