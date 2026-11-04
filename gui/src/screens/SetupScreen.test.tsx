@@ -97,6 +97,13 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
     const guidance = screen.getByText(/For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1/)
     expect(guidance.closest('.MuiAlert-root')?.getAttribute('role')).toBe('status')
     expect(screen.queryByText(/changing it also affects the nonlinear HB stage/)).toBeNull()
+    expect(screen.queryByText(/DC inclusion is determined automatically/)).toBeNull()
+    expect(screen.queryByText(/Shared by linear and nonlinear stages/)).toBeNull()
+
+    const batchesHint = screen.getByText(/Set Frequency batches to 0 to use all Julia threads configured in/)
+    expect(batchesHint.tagName).toBe('SPAN')
+    expect(batchesHint.closest('.MuiAlert-root')).toBeNull()
+    expect(batchesHint.textContent).toContain('Julia settings')
   })
 
   it('shows first-order guidance when all three truncations are 1', () => {
