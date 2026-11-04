@@ -1,6 +1,6 @@
 # Repository Status
 
-Last governance refresh: 2026-10-30
+Last governance refresh: 2026-11-04
 
 ## Current development baseline
 
@@ -50,13 +50,13 @@ No packaging change intentionally modifies JCO numerical algorithms, scientific 
 
 Conservative just-finished empty-run cleanup, saved per-run source display units and `.jco` drag/drop were merged before the v0.4.2 preparation. See `docs/work-items/WI_20261029_001_run_cleanup_units_drag_drop.md` and the **qualified** `docs/audits/AUD_20261029_002_run_cleanup_units_file_drop.md`. The work is included in `main`, not a pending baseline.
 
-## October GUI release candidate: v0.4.2
+## Published October GUI release: v0.4.2
 
 - The release preparation PR #25, final visual polish PR #26, simplified Run-controls PR #27 and full plotted CSV exports PR #28 have **all merged into `main`**, through the last code merge `c066cb4` (2026-10-30).
 - The existing release branch `release/v0.4.2-october-gui` was **fast-forwarded to `main`** after PR #28, then used for the final documentation/notes changes. See `docs/releases/v0.4.2.md` and `CHANGELOG.md`.
 - Both root Julia `Project.toml` and Electron GUI `package.json` (plus npm lockfile) declare `0.4.2`.
-- Previous published GitHub release is **v0.4.1**. Publication of v0.4.2 is triggered by creating and pushing a `v0.4.2` tag on the **final merged `main` commit**; the existing `.github/workflows/release-desktop.yml` will build Windows Setup/Portable and Linux AppImage and publish the GitHub Release.
-- The new nonlinear feedback GUI remains isolated in **draft PR #24** and is **excluded** from v0.4.2; update it for **v0.4.3** after publication.
+- **v0.4.2** was published on 2026-10-30. Its tag-triggered workflow produced Windows Setup/Portable and Linux AppImage release assets.
+- The nonlinear-feedback GUI remains isolated from published v0.4.x releases. Target a subsequent feature release (tentatively v0.5.0) after independent review and validation.
 - The final plot CSV PR #28 had **four successful PR-level checks**: governance, tests/renderer build, Windows package build and Linux AppImage. Separate installed-desktop scientific/HB reference validation is not claimed.
 
 ## v0.4.2 final visual polish (2026-10-30)
@@ -71,7 +71,15 @@ Conservative just-finished empty-run cleanup, saved per-run source display units
 - Merged PR #28 adds plotted-data CSV for the Linear/HB single-point and A/B overlays, plus Linear 1D and HB amplitude response charts.
 - Uses shared CSV formatting with unmodified frequency samples in Hz for retained arrays and distinct labeled A/B series; mismatched physical X grids remain non-comparable and cannot be exported as an overlay.
 - Focused unit/integration tests for CSV precision, escaping, incompatible axes and HB trace/response output passed in PR #28; numerical Julia simulation and persisted `.jco` inputs remain unchanged.
-- `v0.4.2` was still untagged at the time these release notes were prepared. Do not use an earlier SHA (such as `b4bb509` or `50f2df6`) for the release tag; choose the final merged `main` after the release-notes PR.
+- The v0.4.2 tag was created after the release-notes merge; earlier candidate SHAs (such as `b4bb509` or `50f2df6`) were not release targets.
+
+## v0.4.3 GUI and Results release preparation (2026-11-04)
+
+- The already merged **PR #34** adds a shared historical-run selector, consistent Run toolbar, and persistent selected-run navigation across Linear / Optimization / Harmonic Balance. **PR #35** adds Optimization Landscape (chronological trajectory, exact Linear slice versus sample projection), a separate compact History view, and a clearly distinguished Linear minimum marker. The recent top-menu, Setup and stage-aware Run usability work is also integrated in `main`.
+- Release preparation is isolated on `release/v0.4.3-gui-results` to preserve current `main` while updating the root Julia version, Electron package version, npm lockfile, changelog and release notes.
+- `docs/releases/v0.4.3.md` describes the compatible GUI/Results baseline; **no numerical solver or `.jco` schema changes** are part of this release preparation.
+- The v0.4.3 GitHub Release has **not yet been published**: its final merged `main` commit must pass checks and receive an annotated `v0.4.3` tag.
+- Nonlinear-feedback GUI work remains outside this baseline, reserved for a subsequent feature version.
 
 ## Windows desktop shortcut icon refresh — separate packaging fix
 
@@ -103,7 +111,7 @@ Governance remains lightweight and advisory:
 - ADR 007 remains authoritative for Circuit Preview execution/topology boundaries;
 - `WI_20260911_001_example_project_workflow.md` / `AUD_20260911_001_example_project_workflow.md` retain the example/background-preview record;
 - `WI_20260911_002_installable_desktop_packages.md` / `AUD_20260911_002_installable_desktop_packages.md` track the T3 packaging change;
-- `CHANGELOG.md` now records the October GUI and desktop improvements under `0.4.2 - 2026-10-30`; the release remains a candidate until the matching tag is published.
+- `CHANGELOG.md` records the published v0.4.2 changes and the upcoming v0.4.3 GUI/Results baseline. The v0.4.3 release remains a candidate until its matching tag is published.
 - PR documentation decisions are checked automatically for code/configuration changes; repository branch-protection settings control whether the status is mandatory for merging.
 
 ## Recovery rule
@@ -112,7 +120,7 @@ For multi-session work, record only what is needed to resume safely: last verifi
 
 ## Next safe action
 
-1. Merge the v0.4.2 release-note documentation branch after checking its diff.
-2. Create and push the annotated `v0.4.2` tag on the final `main` merge commit; do not tag a stale release-preparation commit.
-3. Verify that the **Publish desktop release** tag-driven GitHub Actions workflow completes and the GitHub Release contains Windows Setup, Windows Portable and Linux AppImage assets.
-4. After publication, retarget the draft nonlinear feedback PR #24 toward v0.4.3. Keep real-data/installed-desktop scientific validation qualifications explicit.
+1. Review and merge `release/v0.4.3-gui-results` after the versioned GUI build/tests, governance and Windows/Linux package checks pass.
+2. Verify `Project.toml`, `gui/package.json` and `gui/package-lock.json` all declare `0.4.3` on the **final merged main commit**.
+3. Create and push the annotated `v0.4.3` tag on that exact `main` commit. The existing `.github/workflows/release-desktop.yml` will build and publish Windows Setup, Windows Portable and Linux AppImage artifacts.
+4. Verify the GitHub Release assets and keep the nonlinear feedback GUI on a separate branch for a later feature release (tentatively v0.5.0). Independent scientific/HB and installed-desktop validation remain separate from CI.
