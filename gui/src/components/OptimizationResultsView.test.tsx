@@ -42,6 +42,7 @@ describe('Optimization Results landscape and history views', () => {
   it('separates Landscape from History and puts objective before every parameter chart', () => {
     render(<OptimizationResultsView run={run()} table={optimization} />)
     expect(screen.getByRole('heading', { name: 'Optimization landscape' })).toBeTruthy()
+    expect(screen.getByText(/Surrogate-guided search for lower objective values/)).toBeTruthy()
     expect(screen.queryByRole('heading', { name: 'Objective' })).toBeNull()
     expect(screen.queryAllByTestId('optimizer-history-chart')).toHaveLength(0)
 
