@@ -49,12 +49,14 @@ export function AboutJcoDialog({ open, onClose }: AboutJcoDialogProps) {
       <DialogTitle id="jco-about-title">About JCO</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2.2}>
-          <Box
-            component="img"
-            src="./jco-logo.svg"
-            alt="JCO — Josephson Circuits Optimizer"
-            sx={{ display: 'block', width: '100%', maxWidth: 340, height: 'auto', mx: 'auto', borderRadius: 1.5 }}
-          />
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <Box
+              component="img"
+              src="./jco-logo.svg"
+              alt="JCO — Josephson Circuits Optimizer"
+              sx={{ display: 'block', width: '100%', maxWidth: 340, height: 'auto', borderRadius: 1.5 }}
+            />
+          </Box>
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h6">Josephson Circuits Optimizer</Typography>
             <Typography variant="caption" color="text.secondary">Version {packageJson.version}</Typography>
@@ -64,9 +66,18 @@ export function AboutJcoDialog({ open, onClose }: AboutJcoDialogProps) {
           </Box>
           <Divider />
           <Box>
-            <Typography variant="subtitle2">Development</Typography>
-            <Typography variant="body2">Developed by Emanuele Palumbo</Typography>
-            <Typography variant="body2" color="text.secondary">INRiM – Politecnico di Torino</Typography>
+            <Typography variant="subtitle2">Development &amp; collaboration</Typography>
+            <Typography variant="body1" sx={{ mt: 0.5, fontWeight: 700 }}>Emanuele Palumbo</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontStyle: 'italic', mt: 0.2 }}>
+              INRiM – Politecnico di Torino
+            </Typography>
+            <Link
+              href="mailto:emanuele.palumbo@polito.it"
+              onClick={(event) => openLink(event, 'mailto:emanuele.palumbo@polito.it')}
+              sx={{ display: 'inline-block', mt: 1, fontSize: '0.875rem' }}
+            >
+              emanuele.palumbo@polito.it
+            </Link>
           </Box>
           <Box>
             <Typography variant="subtitle2">Repository &amp; support</Typography>
