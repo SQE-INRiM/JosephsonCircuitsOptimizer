@@ -13,7 +13,12 @@ This changelog records completed user-relevant and development-process changes. 
 - Give Run controls and result-stage tabs clearer visual separation, and remove the redundant Stored JCO data / retained-data points badges.
 - Align Export CSV, Simulation info and Delete run immediately after the Run picker; place Manage runs in the header beside Refresh results.
 
+### Application header
+- Show one inline-editable project title in the top bar instead of a separate filename badge and Setup project-name field. Keep underlying .jco filename handling unchanged and remove the Desktop bridge / Schema v1 developer labels.
+- Keep compact, high-contrast Setup Back/Next controls in the page-title row (outlined Back, prominent Next) without adding vertical space to the Stepper; navigate through Circuit → Device parameters → Sources before Computation and Metrics. Start new/opened projects at Circuit and keep Back symmetric.
+
 ### Setup computation usability
+- Remove repeated DC inclusion and shared-stage wording from solver guidance; explain Frequency batches = 0 in a small caption pointing to Julia thread settings under the ⋮ menu, rather than in an info alert.
 - Present the first-order Linear harmonic/intermodulation guidance as information rather than a warning when higher-order mixing remains enabled.
 - Grey out and disable Optimization settings when Linear has a single device configuration, while retaining saved settings and re-enabling controls when a multi-point parameter sweep is configured.
 - Simplify the first-order Linear guidance text. In Results, always disable the Optimization tab for single-point setups (including when older runs contain optimizer data); disable Correlation and 1D density views when the selected Linear dataset contains no parameter sweep while keeping its point data accessible.

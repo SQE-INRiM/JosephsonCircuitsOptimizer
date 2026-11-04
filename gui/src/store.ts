@@ -138,7 +138,7 @@ let timer: ReturnType<typeof setInterval> | null = null
 export const useAppStore = create<AppStore>((set, get) => ({
   section: 'setup',
   setupStep: 0,
-  setupPanel: 'parameters',
+  setupPanel: 'circuit',
   resultsStage: 'linear',
   selectedResultsRunId: null,
   project: initialProject,
@@ -266,7 +266,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return { dirty: true, project, stages: invalidateFrom(state.stages, project, affected) }
     }),
   markSaved: () => set({ dirty: false }),
-  resetProject: () => set({ project: initialProject, dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, activeRunStages: [], results: null, selectedResultsRunId: null }),
+  resetProject: () => set({ project: initialProject, setupStep: 0, setupPanel: 'circuit', dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, activeRunStages: [], results: null, selectedResultsRunId: null }),
   setStage: (id, patch) => set((state) => ({ stages: state.stages.map((stage) => (stage.id === id ? { ...stage, ...patch } : stage)) })),
   addLog: (entry) =>
     set((state) => ({
@@ -280,6 +280,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       dirty: false,
       section: 'setup',
       setupStep: 0,
+      setupPanel: 'circuit',
       stages: initialStages.map((stage) => ({
         ...stage,
         status: stage.id === 'optimization' && singlePoint ? 'skipped' : 'ready',
