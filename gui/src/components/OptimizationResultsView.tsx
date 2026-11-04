@@ -164,6 +164,13 @@ function OptimizerScatter({
               <title>{'Evaluation ' + sample.evaluation + ' | metric ' + displayNumber(sample.metric) + ' | ' + xName + '=' + displayNumber(sample.values[xName]) + ', ' + yName + '=' + displayNumber(sample.values[yName]) + (mode === 'slice' ? (onSlice ? ' | on slice' : ' | projected from off-slice') : '')}</title>
             </circle>
           })}
+          {showPath && points.length > 1 && <>
+            <text x={points[0].x + 10} y={points[0].y - 11} fill={dark ? '#ffffff' : '#132d45'} fontSize={14} fontWeight={700}
+              stroke={dark ? '#122236' : '#ffffff'} strokeWidth={3.5} paintOrder="stroke" pointerEvents="none">Start</text>
+            <text x={points[points.length - 1].x - 10} y={points[points.length - 1].y + 22} textAnchor="end"
+              fill={dark ? '#ffffff' : '#132d45'} fontSize={14} fontWeight={700}
+              stroke={dark ? '#122236' : '#ffffff'} strokeWidth={3.5} paintOrder="stroke" pointerEvents="none">Latest</text>
+          </>}
           {best && Number.isFinite(best.values[xName]) && Number.isFinite(best.values[yName]) && <circle
             cx={xPosition(best.values[xName])} cy={yPosition(best.values[yName])} r={11} fill="none" stroke="#d18a23" strokeWidth={3.6} pointerEvents="none" />}
 
