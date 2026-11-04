@@ -76,6 +76,7 @@ export default function App({ themePreference = 'dark', onThemePreferenceChange 
   const [cancelling, setCancelling] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [saveAsOpen, setSaveAsOpen] = useState(false)
   const [juliaPath, setJuliaPath] = useState('julia')
   const [threads, setThreads] = useState(1)
   const [zoom, setZoom] = useState(100)
@@ -242,7 +243,7 @@ export default function App({ themePreference = 'dark', onThemePreferenceChange 
     const loaded = await adapter.openExample(fileName)
     loadProject(loaded)
     await refreshResults()
-    setNotice(`Loaded example ${loaded.name}. You can run it directly; use Save As if you want to keep changes or results.`)
+    setNotice(`Loaded example ${loaded.name}. You can run it directly; use Save to keep changes or results in a .jco project.`)
   })
 
   const openSettings = () => perform(async () => {
@@ -260,6 +261,23 @@ export default function App({ themePreference = 'dark', onThemePreferenceChange 
     const saved = await adapter.saveProject(project, saveAs)
     if (saved) { if (saved.project) loadProject(saved.project); else markSaved(); setNotice(`Saved ${saved.path}`) }
   })
+
+  // Export is deliberately independent of Save: a ZIP does not change the
+  // active .jco path or clear the project's unsaved-changes indicator.
+  const saveEditableWorkspace = () => {
+    setSaveAsOpen(false)
+    void perform(async () => {
+      const adapter = getJcoAdapter()
+      if (!adapter) return setNotice('Editable workspace export requires the desktop application.')
+      const target = await adapter.exportWorkspace(project)
+      if (target) setNotice(`Exported editable workspace to ${target}`)
+    })
+  }
+
+  const saveJcoCopy = () => {
+    setSaveAsOpen(false)
+    void save(true)
+  }
 
   const run = async (requestedStages?: StageId[]) => {
     const adapter = getJcoAdapter()
@@ -315,7 +333,7 @@ export default function App({ themePreference = 'dark', onThemePreferenceChange 
             <MenuItem disabled={running} onClick={() => perform(async () => { const loaded = await getJcoAdapter()?.newProject(); if (loaded) loadProject(loaded) })}>New project</MenuItem>
             <MenuItem disabled={running} onClick={openProject}>Open project…</MenuItem>
             <MenuItem disabled={running} onClick={() => save(false)}>Save</MenuItem>
-            <MenuItem disabled={running} onClick={() => save(true)}>Save As…</MenuItem>
+            <MenuItem disabled={running} onClick={() => { setMenuAnchor(null); setSaveAsOpen(true) }}>Save As…</MenuItem>
             <Divider />
             <MenuItem disabled sx={{ opacity: '1 !important', fontWeight: 750 }}>Examples</MenuItem>
             {examples.length
@@ -411,6 +429,20 @@ export default function App({ themePreference = 'dark', onThemePreferenceChange 
           {runNotification?.message}
         </Alert>
       </Snackbar>
+
+      <Dialog open={saveAsOpen} onClose={() => setSaveAsOpen(false)} fullWidth maxWidth="xs" aria-labelledby="jco-save-as-title">
+        <DialogTitle id="jco-save-as-title">Save As…</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary" variant="body2">
+            Export an editable ZIP with the project files, or save another .jco project copy.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Button onClick={() => setSaveAsOpen(false)}>Cancel</Button>
+          <Button variant="outlined" onClick={saveJcoCopy}>JCO project (.jco)</Button>
+          <Button variant="contained" onClick={saveEditableWorkspace}>Editable workspace (.zip)</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={aboutOpen} onClose={() => setAboutOpen(false)} fullWidth maxWidth="sm" aria-labelledby="jco-about-title">
         <DialogTitle id="jco-about-title">About JCO</DialogTitle>
