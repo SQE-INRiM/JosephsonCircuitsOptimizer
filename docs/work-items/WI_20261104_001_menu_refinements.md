@@ -13,12 +13,15 @@
 - Default to Dark when no preference has been saved, and migrate the removed System value to Dark. Keep an explicitly saved Light or Dark choice across restarts.
 - Distinguish Save and Save As for both saved and unsaved projects. Save writes a .jco (prompting for a path on first save). Save As opens a small dialog with primary **Editable workspace (.zip)** using the retained export implementation, and secondary **JCO project (.jco)** to make another .jco copy.
 - Exporting a ZIP must not overwrite, rename, or mark the active .jco project saved. Cancelling either export must leave project identity and unsaved state unchanged.
+- Expand About JCO while retaining the existing JCO logo. Show the package-derived app version, "Developed by Emanuele Palumbo", affiliation **INRiM – Politecnico di Torino** (without SQE), GitHub repository/issues, IEEE TASC 2026 publication + DOI, a copy-citation action and the MIT license.
+- Open these explicitly approved About JCO links in the default system browser via Electron IPC; browser previews use ordinary external links. Do not allow arbitrary URLs via the desktop bridge.
 - Maintain the .jco project schema, save/open behavior, runtime settings and scientific simulations unchanged.
 
 ## Tests and verification
 
 - React/jsdom: verify menu content and order with a mocked example, regular Save, both Save As format paths, unchanged .jco/dirty state after ZIP export and Dark/Light selection.
 - Theme tests: verify first-launch Dark default, old System migration and explicit Light preservation.
+- About tests: verify version, developer attribution, affiliation, DOI, canonical citation copy and external browser bridge.
 - GitHub Actions PR test/build, Windows/Linux packaging and governance checks; manual Windows GUI inspection remains the user's acceptance step.
 
 ## Documentation decisions
