@@ -90,6 +90,14 @@ function OptimizerScatter({
   const min = colorValues.length ? Math.min(...colorValues) : 0
   const max = colorValues.length ? Math.max(...colorValues) : 1
   const best = bestSample(samples)
+  const linearMinimum = mode === 'slice' && slice
+    ? slice.values.flatMap((row, yi) => row.map((value, xi) =>
+      value !== null && Number.isFinite(value)
+        ? { x: slice.x[xi], y: slice.y[yi], metric: value }
+        : null,
+    )).reduce<{ x: number; y: number; metric: number } | null>((minimum, value) =>
+      value && (!minimum || value.metric < minimum.metric) ? value : minimum, null)
+    : null
 
   const dark = theme.palette.mode === 'dark'
   const ticks = Array.from({ length: 5 }, (_, index) => index / 4)
@@ -164,13 +172,17 @@ function OptimizerScatter({
               <title>{'Evaluation ' + sample.evaluation + ' | metric ' + displayNumber(sample.metric) + ' | ' + xName + '=' + displayNumber(sample.values[xName]) + ', ' + yName + '=' + displayNumber(sample.values[yName]) + (mode === 'slice' ? (onSlice ? ' | on slice' : ' | projected from off-slice') : '')}</title>
             </circle>
           })}
-          {showPath && points.length > 1 && <>
-            <text x={points[0].x + 10} y={points[0].y - 11} fill={dark ? '#ffffff' : '#132d45'} fontSize={14} fontWeight={700}
-              stroke={dark ? '#122236' : '#ffffff'} strokeWidth={3.5} paintOrder="stroke" pointerEvents="none">Start</text>
-            <text x={points[points.length - 1].x - 10} y={points[points.length - 1].y + 22} textAnchor="end"
-              fill={dark ? '#ffffff' : '#132d45'} fontSize={14} fontWeight={700}
-              stroke={dark ? '#122236' : '#ffffff'} strokeWidth={3.5} paintOrder="stroke" pointerEvents="none">Latest</text>
-          </>}
+          {linearMinimum && <polygon data-testid="linear-slice-minimum"
+            points={[
+              [xPosition(linearMinimum.x), yPosition(linearMinimum.y) - 6.5],
+              [xPosition(linearMinimum.x) + 6.5, yPosition(linearMinimum.y)],
+              [xPosition(linearMinimum.x), yPosition(linearMinimum.y) + 6.5],
+              [xPosition(linearMinimum.x) - 6.5, yPosition(linearMinimum.y)],
+            ].map((point) => point.join(',')).join(' ')}
+            fill={dark ? '#10283f' : '#193851'} stroke="#ffffff" strokeWidth={1.9}
+            pointerEvents="none">
+            <title>{'Lowest Linear value in displayed slice: ' + displayNumber(linearMinimum.metric)}</title>
+          </polygon>}
           {best && Number.isFinite(best.values[xName]) && Number.isFinite(best.values[yName]) && <circle
             cx={xPosition(best.values[xName])} cy={yPosition(best.values[yName])} r={11} fill="none" stroke="#d18a23" strokeWidth={3.6} pointerEvents="none" />}
 
@@ -191,7 +203,10 @@ function OptimizerScatter({
     <Stack direction="row" useFlexGap spacing={2} sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
       <Typography variant="caption" sx={{ color: '#b67b21', fontWeight: 700 }}>◯ Best sampled</Typography>
       {showPath && samples.length > 1 && <Typography variant="caption" color="text.secondary">→ Evaluation order</Typography>}
-      {mode === 'slice' && <Typography variant="caption" color="text.secondary">● Pale: off-slice</Typography>}
+      {mode === 'slice' && <>
+        {linearMinimum && <Typography variant="caption" color="text.secondary">◆ Linear slice min</Typography>}
+        <Typography variant="caption" color="text.secondary">● Pale: off-slice</Typography>
+      </>}
       <Box sx={{ flexGrow: 1 }} />
       <Typography variant="caption" color="text.secondary">{displayNumber(min)}</Typography>
       <Box sx={{ width: 150, height: 8, borderRadius: 8, background: 'linear-gradient(90deg,#edf4fa,#4489ab,#eaad38)' }} />
@@ -326,7 +341,7 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     {view === 'history' && <Stack spacing={1.5}>
     <Paper variant="outlined" sx={{ p: 1.7 }}>
       <Typography variant="h6" sx={{ mb: 1 }}>Objective</Typography>
-      <LineChart height={355} margin={{ bottom: 55, left: 90 }}
+      <LineChart height={290} margin={{ bottom: 45, left: 80 }}
         xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => displayNumber(value) }]}
         yAxis={[{ label: 'metric', width: 80, valueFormatter: (value: number | null) => displayNumber(value) }]}
         series={[
@@ -337,10 +352,10 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     <Divider sx={{ my: 0.6 }} />
     <Stack spacing={1}>
       <Typography variant="h6">Parameters</Typography>
-      {names.length ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: 'repeat(2, minmax(0, 1fr))' }, gap: 1.4 }}>
-        {names.map((name) => <Paper key={name} variant="outlined" sx={{ p: 1.3, minWidth: 0 }}>
+      {names.length ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.2 }}>
+        {names.map((name) => <Paper key={name} variant="outlined" sx={{ p: 1.1, minWidth: 0 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.8 }}>{display(name)}</Typography>
-          <LineChart height={280} margin={{ bottom: 45, left: 95 }}
+          <LineChart height={215} margin={{ bottom: 38, left: 80 }}
             xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => displayNumber(value) }]}
             yAxis={[{ label: display(name), width: 84, valueFormatter: (value: number | null) => displayNumber(value) }]}
             series={[{ data: samples.map((sample) => Number.isFinite(sample.values[name]) ? sample.values[name] : null), label: display(name), showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) }]}
