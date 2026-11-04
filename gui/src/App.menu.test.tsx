@@ -8,11 +8,13 @@ import type { ProjectModel } from './types'
 
 const originalProject = structuredClone(useAppStore.getState().project)
 const saved = vi.fn(async (_project: ProjectModel, _saveAs = false): Promise<null> => null)
+const exported = vi.fn(async (_project: ProjectModel): Promise<string | null> => 'C:/exports/JTWPA.zip')
 
 beforeEach(() => {
   useAppStore.getState().loadProject(structuredClone(originalProject))
   useAppStore.setState({ dirty: false })
   saved.mockClear()
+  exported.mockClear()
   window.jco = {
     onRunEvent: () => () => {},
     setupRuntime: async () => ({ ok: true, message: 'ready' }),
@@ -20,6 +22,7 @@ beforeEach(() => {
     listExamples: async () => [{ fileName: 'demo-jtwpa.jco', name: 'Demo JTWPA' }],
     openExample: async () => structuredClone(originalProject),
     saveProject: saved,
+    exportWorkspace: exported,
   } as unknown as JcoAdapter
 })
 
@@ -54,13 +57,42 @@ describe('JCO project menu', () => {
     expect(screen.queryByRole('menuitem', { name: /Import legacy folder|Export editable workspace|Export Data|System/ })).toBeNull()
   })
 
-  it('keeps Save As operational in the primary project-action group', async () => {
+  it('offers editable ZIP as the primary Save As action without changing the current .jco project', async () => {
+    useAppStore.setState({ dirty: true })
     render(<App themePreference="dark" />)
     fireEvent.click(screen.getByRole('button', { name: 'Project menu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Save As…' }))
 
+    const dialog = screen.getByRole('dialog', { name: 'Save As…' })
+    expect(within(dialog).getByRole('button', { name: 'Editable workspace (.zip)' }).classList.contains('MuiButton-contained')).toBe(true)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Editable workspace (.zip)' }))
+
+    await waitFor(() => expect(exported).toHaveBeenCalledTimes(1))
+    expect(exported.mock.calls[0]?.[0].name).toBe(originalProject.name)
+    expect(saved).not.toHaveBeenCalled()
+    expect(useAppStore.getState().dirty).toBe(true)
+    expect(useAppStore.getState().project.filename).toBe(originalProject.filename)
+  })
+
+  it('still allows making a second .jco copy via Save As', async () => {
+    render(<App themePreference="dark" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Project menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save As…' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Save As…' })).getByRole('button', { name: 'JCO project (.jco)' }))
+
     await waitFor(() => expect(saved).toHaveBeenCalledTimes(1))
     expect(saved.mock.calls[0]?.[1]).toBe(true)
+    expect(exported).not.toHaveBeenCalled()
+  })
+
+  it('keeps the regular Save action directed at the current .jco project', async () => {
+    render(<App themePreference="dark" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Project menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save', exact: true }))
+
+    await waitFor(() => expect(saved).toHaveBeenCalledTimes(1))
+    expect(saved.mock.calls[0]?.[1]).toBe(false)
+    expect(exported).not.toHaveBeenCalled()
   })
 
   it('exposes Dark and Light choices and notifies the theme controller', async () => {
