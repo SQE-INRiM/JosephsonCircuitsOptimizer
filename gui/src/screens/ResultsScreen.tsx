@@ -90,7 +90,11 @@ export function ResultsScreen() {
   return <Stack spacing={2.5}>
     <Stack direction="row" sx={{ alignItems: 'flex-end', justifyContent: 'space-between' }}>
       <Box><Typography variant="h4">Result explorer</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Completed runs stay available independently of the setup currently being edited.</Typography></Box>
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>{running && <Chip color="info" variant="outlined" label={currentRunId ? `Run in progress · ${currentRunId}` : 'Run in progress'} />}<Button variant="outlined" disabled={refreshing} onClick={() => void refresh()}>{refreshing ? 'Refreshing…' : 'Refresh results'}</Button></Stack>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        {running && <Chip color="info" variant="outlined" label={currentRunId ? `Run in progress · ${currentRunId}` : 'Run in progress'} />}
+        {hasResults && <ResultsRunManager results={results!} activeRunId={running ? currentRunId : null} onResultsChanged={setResults} />}
+        <Button variant="outlined" disabled={refreshing} onClick={() => void refresh()}>{refreshing ? 'Refreshing…' : 'Refresh results'}</Button>
+      </Stack>
     </Stack>
 
     {hasResults && selectedRun && <Paper variant="outlined" sx={{ p: 1.5 }}>
@@ -101,12 +105,11 @@ export function ResultsScreen() {
             {results!.runs.map((run) => <MenuItem key={run.id} value={run.id}>{run.id}{running && run.id === currentRunId ? ' · running' : ''}</MenuItem>)}
           </Select>
         </FormControl>
-        <Chip size="small" label={`${results!.runs.length} stored runs`} color="success" variant="outlined" />
-        <Box sx={{ flexGrow: 1 }} />
-        <RunSetupSnapshot runs={results!.runs} initialRunId={selectedRun.id} />
-        <ResultsRunManager results={results!} activeRunId={running ? currentRunId : null} onResultsChanged={setResults} />
-        <Button size="small" color="error" variant="outlined" disabled={deleting || (running && selectedRun.id === currentRunId)} onClick={() => void deleteSelectedRun()}>{deleting ? 'Deleting…' : 'Delete run'}</Button>
         <Button size="small" variant="outlined" disabled={!selectedTable || deleting} onClick={() => void exportSelectedStage()}>Export CSV…</Button>
+        <RunSetupSnapshot runs={results!.runs} initialRunId={selectedRun.id} />
+        <Button size="small" color="error" variant="outlined" disabled={deleting || (running && selectedRun.id === currentRunId)} onClick={() => void deleteSelectedRun()}>{deleting ? 'Deleting…' : 'Delete run'}</Button>
+        <Box sx={{ flexGrow: 1 }} />
+        <Chip size="small" label={`${results!.runs.length} stored runs`} color="success" variant="outlined" />
       </Stack>
     </Paper>}
 
