@@ -24,8 +24,8 @@ Higher-dimensional uniform sweeps also require an explicit way to inspect a two-
 6. The 1D density view uses only the uniform Linear table. It therefore does not encode optimizer sampling behavior even though it retains JCO's count contribution.
 7. Optimization Results presents optimizer diagnostics in one continuous page: a two-dimensional sample-location landscape, evaluated and best-so-far objective versus evaluation number, then raw histories for every stored optimizer parameter (including constant columns).
 8. Parameter-history values are never metric-weighted or normalized.
-10. A fixed dimension in Optimization Slice defaults to the closest stored Linear coordinate to the overall best optimizer sample. Samples with different coordinates are never treated as if they belonged to that exact slice; if the run has no compatible Linear dataset, only Projection is offered.
 9. Linear Results presents one principal analysis view at a time to reduce vertical scrolling. The selected Point data is colocated directly below the Linear Landscape because it is the immediate detail view of the clicked landscape cell. Optimization instead keeps the landscape, metric and all parameter histories together on one scrollable page.
+10. A fixed dimension in Optimization Slice defaults to the closest stored Linear coordinate to the overall best optimizer sample. Samples with different coordinates are never treated as if they belonged to that exact slice; if the run has no compatible Linear dataset, only Projection is offered.
 
 ## Consequences
 - Correlation/density views no longer encode optimizer sampling density.
