@@ -23,13 +23,13 @@ Make the existing JCO nonlinear correction hook configurable through GUI Setup w
 - Accept one fixed numeric reference current, in amperes, for each source (including DC sources), independently of the nonlinear sweep values.
 - Use existing keys `n_iterations_nonlinear_correction` in `simulation_config.json` and `source_i_non_linear_amplitude_for_delta_correction` in `drive_physical_quantities.json`. No `.jco` schema change.
 - Keep old projects importable; no automatic modification of their user-defined Julia metric functions.
-- Show the correction hook in the Metrics panel; both the cost and correction are edited in the existing `user_cost_and_performance.jl` source.
+- Provide three compact editor entry points in Metrics & constraints: **Cost** (`user_cost`), **Performance** (`user_performance`), and **Nonlinear correction** (`user_nonlinear_correction`). Each opens the complete, existing `user_cost_and_performance.jl` file with the cursor at the chosen function. No brittle Julia source splitting, numerical contract change, or `.jco` schema change.
 - Default the setting to off for new projects. Existing projects retain their configured cycle count.
 - Reject saves with enabled cycles but missing or nonfinite reference currents, including `NaN`, while allowing zero and negative currents.
 
 ## Verification
 
-- Added targeted GUI editor tests for cycles, enable state, current editing and hook visibility.
+- Added targeted GUI editor tests for cycles, enable state, current editing, function-specific editor navigation, and preservation of the full shared source.
 - Added Node serialization tests for round-trip and invalid-source-current rejection.
 - The original branch's npm checks passed before reconciliation. Re-run automated npm tests/build and desktop packaging on the v0.4.3 head; real Julia HB and scientific feedback-loop validation still require independent execution. Do not claim them completed until performed.
 - Before a v0.4.3 release, confirm the packaging workflow and correction-cycle results with a representative .jco.
