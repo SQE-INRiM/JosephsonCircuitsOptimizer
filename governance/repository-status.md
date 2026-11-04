@@ -77,8 +77,8 @@ Conservative just-finished empty-run cleanup, saved per-run source display units
 
 - **v0.4.2 published** on GitHub at `abd2663380e1e8853605d1a6482dc3294a942d38` with three desktop assets: Windows installer/portable and Linux AppImage.
 - Existing draft PR **#24**, with the historical branch name `feat/nonlinear-feedback-v0.4.2`, is now reconciled with the complete published `main` tree and targets **v0.4.3**.
-- This candidate exposes existing nonlinear correction hooks and serializes feedback input through the established project keys. It does not establish scientific validity of multicycle HB corrections or guarantee optimization improvement.
-- Check merged branch npm/desktop CI, editable source hooks, serialized `.jco` roundtrips and real Julia feedback output before moving the PR out of draft. No version 0.4.3 release has been issued.
+- Draft PR #24 now standardizes `user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)` on two complete JC solutions and provides distinct Cost / Performance / Nonlinear correction editors. Both Julia and desktop HB sweeps reuse the linear solution per source-frequency configuration; legacy feedback functions that index the first argument as an S dictionary require manual migration (ADR_009). Existing `.jco` schema keys are unchanged. This does not establish scientific validity of multicycle HB corrections or guarantee optimization improvement.
+- Check rebased branch GUI tests/build, desktop packaging, editable source hooks, serialized `.jco` roundtrips and real Julia feedback output before moving PR #24 out of draft. Real Julia/HB validation of this new hook has not been performed; no version 0.4.3 release has been issued.
 
 ## Packaging validation state
 
