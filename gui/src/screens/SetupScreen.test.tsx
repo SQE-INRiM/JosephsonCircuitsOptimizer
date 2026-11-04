@@ -223,12 +223,12 @@ describe('Nonlinear feedback setup', () => {
     expect((screen.getByRole('textbox', { name: 'Source 1 reference amplitude (A)' }) as HTMLInputElement).value).toBe('1e-6')
   })
 
-  it('documents the current two-solution correction hook precisely', () => {
+  it('documents full linear and nonlinear hbsolve inputs to the correction hook', () => {
     useAppStore.setState({ setupStep: 2 })
     render(<SetupScreen />)
     expect(screen.getByRole('button', { name: 'Edit correction' })).toBeTruthy()
-    expect(screen.getByText(/S_linear is the extracted linear S-parameter dictionary/)).toBeTruthy()
-    expect(screen.getByText(/sol is the complete nonlinear hbsolve solution/)).toBeTruthy()
+    expect(screen.getByText(/user_nonlinear_correction\(sol_linear, sol_nonlinear, device_params_set\)/)).toBeTruthy()
+    expect(screen.getByText(/Both inputs are complete hbsolve solutions/)).toBeTruthy()
   })
 
   it.each([
@@ -253,8 +253,8 @@ describe('Nonlinear feedback setup', () => {
     const editor = screen.getByRole('textbox', { name: 'user_cost_and_performance.jl' })
     const original = useAppStore.getState().project.metricsCode
     const modified = original.replace(
-      'function user_nonlinear_correction(S_linear, sol, device_params_set)',
-      'function user_nonlinear_correction(S_linear, sol, device_params_set)\n    # custom feedback',
+      'function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)',
+      'function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)\n    # custom feedback',
     )
     fireEvent.change(editor, { target: { value: modified } })
     expect(useAppStore.getState().project.metricsCode).toBe(modified)
