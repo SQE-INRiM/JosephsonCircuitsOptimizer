@@ -96,7 +96,7 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
     render(<SetupScreen />)
     const guidance = screen.getByText(/For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1/)
     expect(guidance.closest('.MuiAlert-root')?.getAttribute('role')).toBe('status')
-    expect(screen.getByText(/changing it also affects the nonlinear HB stage/)).toBeTruthy()
+    expect(screen.queryByText(/changing it also affects the nonlinear HB stage/)).toBeNull()
   })
 
   it('shows first-order guidance when all three truncations are 1', () => {
