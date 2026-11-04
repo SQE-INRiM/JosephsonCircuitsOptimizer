@@ -5,8 +5,8 @@ import type { ResultTable, RunResults } from '../types'
 import { OptimizationResultsView } from './OptimizationResultsView'
 
 vi.mock('@mui/x-charts/LineChart', () => ({
-  LineChart: ({ series }: { series: Array<{ label: string }> }) =>
-    <div data-testid="optimizer-history-chart" data-series={series.map((item) => item.label).join(',')} />,
+  LineChart: ({ series, height }: { series: Array<{ label: string }>; height: number }) =>
+    <div data-testid="optimizer-history-chart" data-height={height} data-series={series.map((item) => item.label).join(',')} />,
 }))
 
 const optimization: ResultTable = {
@@ -53,6 +53,7 @@ describe('Optimization Results landscape and history views', () => {
     expect(charts).toHaveLength(4)
     expect(charts[0].getAttribute('data-series')).toBe('Evaluated objective,Best so far')
     expect(charts.slice(1).map((chart) => chart.getAttribute('data-series'))).toEqual(['I0', 'Cg', 'Ladd'])
+    expect(charts.map((chart) => Number(chart.getAttribute('data-height')))).toEqual([290, 215, 215, 215])
 
     fireEvent.click(screen.getByRole('button', { name: 'Landscape' }))
     expect(screen.getByRole('heading', { name: 'Optimization landscape' })).toBeTruthy()
@@ -64,7 +65,10 @@ describe('Optimization Results landscape and history views', () => {
     expect((screen.getByRole('button', { name: 'Slice · Linear' }) as HTMLButtonElement).disabled).toBe(false)
     expect(screen.getByText(/Pale: off-slice/)).toBeTruthy()
     expect(screen.getByTestId('optimizer-trajectory')).toBeTruthy()
-    expect(screen.queryByText(/Lowest Linear grid cell/)).toBeNull()
+    expect(screen.getByTestId('linear-slice-minimum')).toBeTruthy()
+    expect(screen.getByText('◆ Linear slice min')).toBeTruthy()
+    expect(screen.queryByText('Start')).toBeNull()
+    expect(screen.queryByText('Latest')).toBeNull()
     expect(screen.getByText(/Evaluation order/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Trajectory' }))
     expect(screen.queryByTestId('optimizer-trajectory')).toBeNull()
@@ -77,6 +81,7 @@ describe('Optimization Results landscape and history views', () => {
     expect(screen.getByText('Projected (off slice)')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Projection' }))
     expect(screen.getByRole('button', { name: 'Projection' }).getAttribute('class')).toContain('contained')
+    expect(screen.queryByTestId('linear-slice-minimum')).toBeNull()
   })
 
   it('keeps objective and parameter histories available in runs without a Linear table', () => {
