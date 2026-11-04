@@ -232,51 +232,76 @@ function trace_files(run_path; max_files=24, max_points=2000)
     traces
 end
 
-outputs = joinpath(workspace, "outputs")
-runs = Any[]
 first_file(paths) = begin
     selected = filter(isfile, paths)
     isempty(selected) ? "" : first(selected)
 end
-if isdir(outputs)
-    for run_path in sort(filter(isdir, [joinpath(outputs, entry) for entry in readdir(outputs)]), rev=true)
-        startswith(basename(run_path), "output_") || continue
-        linear_file = first_file([joinpath(run_path, name) for name in ["df_uniform_analysis.h5", "df_uniform_analysis_lin.h5"]])
-        optimization_file = first_file([joinpath(run_path, "df_optimization_analysis.h5")])
-        nonlinear_file = first_file([joinpath(run_path, name) for name in ["df_nonlinear_analysis.h5", "df_uniform_analysis_nonlin.h5"]])
-        if isempty(linear_file)
-            candidates = filter(path -> occursin("lin", lowercase(basename(path))), [joinpath(run_path, f) for f in readdir(run_path) if endswith(lowercase(f), ".h5")])
-            linear_file = isempty(candidates) ? "" : first(candidates)
-        end
-        if isempty(nonlinear_file)
-            candidates = filter(path -> occursin("nonlin", lowercase(basename(path))) || occursin("gain", lowercase(basename(path))), [joinpath(run_path, f) for f in readdir(run_path) if endswith(lowercase(f), ".h5")])
-            nonlinear_file = isempty(candidates) ? "" : first(candidates)
-        end
-        metadata = read_json(joinpath(run_path, "simulation_info", "run_config.json"))
-        status = read_json(joinpath(run_path, "simulation_info", "status.json"))
-        linear = isempty(linear_file) ? nothing : matrix_table(linear_file, "df_matrix", "df_column_names"; filtered_key="df_filtered_matrix")
-        optimization = isempty(optimization_file) ? nothing : matrix_table(optimization_file, "df_optimization_matrix", "df_optimization_column_names")
-        if optimization === nothing && get(status isa AbstractDict ? status : Dict{String,Any}(), "status", "") != "running"
-            optimization = optimization_from_bookkeeping(metadata, linear)
-        end
-        nonlinear = isempty(nonlinear_file) ? nothing : matrix_table(nonlinear_file, "df_nonlinear_matrix", "df_nonlinear_column_names"; filtered_key="df_nonlinear_conveging_results_matrix")
-        if nonlinear === nothing && !isempty(nonlinear_file)
-            nonlinear = matrix_table(nonlinear_file, "df_matrix", "df_column_names"; filtered_key="df_filtered_matrix")
-        end
-        push!(runs, Dict(
-            "id" => basename(run_path),
-            "status" => status,
-            "metadata" => metadata,
-            "optimalParameters" => read_json(joinpath(run_path, "optimal_device_parameters.json")),
-            "setupSnapshot" => setup_snapshot(run_path),
-            "linear" => linear,
-            "optimization" => optimization,
-            "nonlinear" => nonlinear,
-            "savedLinear" => saved_data_catalog(joinpath(run_path, "saved_data", "linear.h5")),
-            "savedNonlinear" => saved_data_catalog(joinpath(run_path, "saved_data", "nonlinear.h5")),
-            "traces" => trace_files(run_path),
-        ))
+
+function index_run(run_path)
+    linear_file = first_file([joinpath(run_path, name) for name in ["df_uniform_analysis.h5", "df_uniform_analysis_lin.h5"]])
+    optimization_file = first_file([joinpath(run_path, "df_optimization_analysis.h5")])
+    nonlinear_file = first_file([joinpath(run_path, name) for name in ["df_nonlinear_analysis.h5", "df_uniform_analysis_nonlin.h5"]])
+    if isempty(linear_file)
+        candidates = filter(path -> occursin("lin", lowercase(basename(path))), [joinpath(run_path, f) for f in readdir(run_path) if endswith(lowercase(f), ".h5")])
+        linear_file = isempty(candidates) ? "" : first(candidates)
     end
+    if isempty(nonlinear_file)
+        candidates = filter(path -> occursin("nonlin", lowercase(basename(path))) || occursin("gain", lowercase(basename(path))), [joinpath(run_path, f) for f in readdir(run_path) if endswith(lowercase(f), ".h5")])
+        nonlinear_file = isempty(candidates) ? "" : first(candidates)
+    end
+    metadata = read_json(joinpath(run_path, "simulation_info", "run_config.json"))
+    status = read_json(joinpath(run_path, "simulation_info", "status.json"))
+    linear = isempty(linear_file) ? nothing : matrix_table(linear_file, "df_matrix", "df_column_names"; filtered_key="df_filtered_matrix")
+    optimization = isempty(optimization_file) ? nothing : matrix_table(optimization_file, "df_optimization_matrix", "df_optimization_column_names")
+    if optimization === nothing && get(status isa AbstractDict ? status : Dict{String,Any}(), "status", "") != "running"
+        optimization = optimization_from_bookkeeping(metadata, linear)
+    end
+    nonlinear = isempty(nonlinear_file) ? nothing : matrix_table(nonlinear_file, "df_nonlinear_matrix", "df_nonlinear_column_names"; filtered_key="df_nonlinear_conveging_results_matrix")
+    if nonlinear === nothing && !isempty(nonlinear_file)
+        nonlinear = matrix_table(nonlinear_file, "df_matrix", "df_column_names"; filtered_key="df_filtered_matrix")
+    end
+    return Dict(
+        "id" => basename(run_path),
+        "status" => status,
+        "metadata" => metadata,
+        "optimalParameters" => read_json(joinpath(run_path, "optimal_device_parameters.json")),
+        "setupSnapshot" => setup_snapshot(run_path),
+        "linear" => linear,
+        "optimization" => optimization,
+        "nonlinear" => nonlinear,
+        "savedLinear" => saved_data_catalog(joinpath(run_path, "saved_data", "linear.h5")),
+        "savedNonlinear" => saved_data_catalog(joinpath(run_path, "saved_data", "nonlinear.h5")),
+        "traces" => trace_files(run_path),
+    )
 end
 
+# A Results refresh can overlap with automatic empty-run cleanup. Discovering a
+# directory is not a promise that it still exists when its contents are read.
+# Isolate each run: skip only a folder that disappeared, never hide errors from
+# folders that are still present (e.g. corrupt HDF5 or permission failures).
+function read_result_runs(outputs; before_index=(_ -> nothing))
+    runs = Any[]
+    isdir(outputs) || return runs
+    entries = try
+        readdir(outputs)
+    catch
+        isdir(outputs) && rethrow()
+        return runs
+    end
+    paths = sort(filter(isdir, [joinpath(outputs, entry) for entry in entries]), rev=true)
+    for run_path in paths
+        startswith(basename(run_path), "output_") || continue
+        before_index(run_path)  # also enables deterministic race regression tests
+        isdir(run_path) || continue
+        try
+            push!(runs, index_run(run_path))
+        catch
+            isdir(run_path) && rethrow()
+            # Removed by empty-run cleanup during this read; other runs survive.
+        end
+    end
+    return runs
+end
+
+runs = read_result_runs(joinpath(workspace, "outputs"))
 print(JSON.json(Dict("schemaVersion" => "jco.results/4", "workspace" => workspace, "runs" => runs)))

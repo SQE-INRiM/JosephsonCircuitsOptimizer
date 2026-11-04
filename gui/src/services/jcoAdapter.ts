@@ -57,7 +57,7 @@ export interface CircuitPreviewData {
 }
 
 export type RunEvent =
-  | { type: 'run-started'; runId: string; timestamp: string }
+  | { type: 'run-started'; runId: string; timestamp: string; stages?: StageId[] }
   | { type: 'stage-status'; runId: string; stage: StageId; status: StageStatus; timestamp: string; durationSeconds?: number }
   | { type: 'progress'; runId: string; stage: StageId; completed: number; total: number; etaSeconds?: number; timestamp: string }
   | { type: 'log'; runId: string; level: 'INFO' | 'WARN' | 'ERROR'; message: string; timestamp: string }
@@ -86,6 +86,7 @@ export interface JcoAdapter {
   setSettings(patch: Partial<{ juliaPath: string; threads: number }>): Promise<{ juliaPath: string; threads: number }>
   setupRuntime(): Promise<{ ok: boolean; message: string }>
   showWorkspace(): Promise<string | null>
+  openExternal?(url: string): Promise<void>
   getZoom?(): Promise<number>
   setZoom?(percent: number): Promise<number>
   onZoomChanged?(listener: (percent: number) => void): () => void

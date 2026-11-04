@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from '../store'
 import { SetupScreen } from './SetupScreen'
@@ -92,10 +92,18 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
 
   afterEach(() => cleanup())
 
-  it('warns when the shared intermodulation order is unlimited', () => {
+  it('shows informational guidance when the shared intermodulation order is unlimited', () => {
     render(<SetupScreen />)
-    expect(screen.getByText(/For first-order linear simulations, set both linear harmonic counts and Max intermodulation order to 1/)).toBeTruthy()
-    expect(screen.getByText(/changing it also affects the nonlinear HB stage/)).toBeTruthy()
+    const guidance = screen.getByText(/For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1/)
+    expect(guidance.closest('.MuiAlert-root')?.getAttribute('role')).toBe('status')
+    expect(screen.queryByText(/changing it also affects the nonlinear HB stage/)).toBeNull()
+    expect(screen.queryByText(/DC inclusion is determined automatically/)).toBeNull()
+    expect(screen.queryByText(/Shared by linear and nonlinear stages/)).toBeNull()
+
+    const batchesHint = screen.getByText(/Set Frequency batches to 0 to use all Julia threads configured in/)
+    expect(batchesHint.classList.contains('MuiTypography-caption')).toBe(true)
+    expect(batchesHint.closest('.MuiAlert-root')).toBeNull()
+    expect(batchesHint.textContent).toContain('Julia settings')
   })
 
   it('shows first-order guidance when all three truncations are 1', () => {
@@ -103,22 +111,86 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
     render(<SetupScreen />)
 
     expect(screen.getByText(/Linear-stage harmonic and intermodulation limits are set to first order/)).toBeTruthy()
-    expect(screen.queryByText(/For first-order linear simulations, set both linear harmonic counts/)).toBeNull()
+    expect(screen.queryByText(/For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics/)).toBeNull()
   })
 
   it.each([
     { linearStrongToneHarmonics: 2 },
     { linearModulationHarmonics: 2 },
-  ])('warns when a linear harmonic count is increased (%o)', (patch) => {
+  ])('shows info when a linear harmonic count is increased (%o)', (patch) => {
     useAppStore.getState().updateComputation({ maxIntermodOrder: '1', ...patch })
     render(<SetupScreen />)
-    expect(screen.getByText(/For first-order linear simulations, set both linear harmonic counts/)).toBeTruthy()
+    const guidance = screen.getByText(/For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics/)
+    expect(guidance.closest('.MuiAlert-root')?.getAttribute('role')).toBe('status')
   })
 
   it('updates the guidance when the shared intermodulation order changes', () => {
     render(<SetupScreen />)
     fireEvent.change(screen.getByRole('textbox', { name: 'Max intermodulation order' }), { target: { value: '1' } })
     expect(screen.getByText(/Linear-stage harmonic and intermodulation limits are set to first order/)).toBeTruthy()
+  })
+})
+
+describe('Single-point optimization panel', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: {
+        ...structuredClone(originalProject),
+        parameters: originalProject.parameters.map((parameter) => ({
+          ...parameter, mode: 'Fixed' as const, value: '250',
+        })),
+      },
+      setupStep: 1,
+      dirty: false,
+    })
+  })
+
+  afterEach(() => cleanup())
+
+  it('shows a muted panel and disables all optimization controls for one configuration', () => {
+    render(<SetupScreen />)
+
+    const panel = screen.getByText('Optimization').closest('.MuiCard-root')
+    expect(panel?.getAttribute('aria-disabled')).toBe('true')
+    expect(panel?.querySelectorAll('.Mui-disabled').length).toBeGreaterThan(0)
+    expect(screen.getByText(/Optimization skipped — only one device configuration in Linear/)).toBeTruthy()
+    for (const label of ['Iterations', 'Samples / iteration', 'Random seed']) {
+      expect((screen.getByRole('spinbutton', { name: label }) as HTMLInputElement).disabled).toBe(true)
+    }
+    for (const label of ['Surrogate', 'Strategy', 'Sampler']) {
+      expect(screen.getByRole('combobox', { name: label }).getAttribute('aria-disabled')).toBe('true')
+    }
+  })
+
+  it('keeps a single-value List disabled and automatically re-enables optimization for multiple points', () => {
+    render(<SetupScreen />)
+    const startingIterations = useAppStore.getState().project.computation.optimizerIterations
+
+    act(() => {
+      useAppStore.setState((state) => ({
+        project: {
+          ...state.project,
+          parameters: state.project.parameters.map((parameter, index) =>
+            index === 0 ? { ...parameter, mode: 'List' as const, values: '250' } : parameter),
+        },
+      }))
+    })
+    expect((screen.getByRole('spinbutton', { name: 'Iterations' }) as HTMLInputElement).disabled).toBe(true)
+
+    act(() => {
+      useAppStore.setState((state) => ({
+        project: {
+          ...state.project,
+          parameters: state.project.parameters.map((parameter, index) =>
+            index === 0 ? { ...parameter, mode: 'List' as const, values: '250, 350' } : parameter),
+        },
+      }))
+    })
+    expect(screen.getByText(/Optimization enabled/)).toBeTruthy()
+    expect(screen.getByText('Optimization').closest('.MuiCard-root')?.getAttribute('aria-disabled')).toBe('false')
+    expect((screen.getByRole('spinbutton', { name: 'Iterations' }) as HTMLInputElement).disabled).toBe(false)
+    expect(screen.getByRole('combobox', { name: 'Surrogate' }).getAttribute('aria-disabled')).not.toBe('true')
+    expect(useAppStore.getState().project.computation.optimizerIterations).toBe(startingIterations)
   })
 })
 
@@ -183,6 +255,82 @@ describe('Device parameter mode editor regression', () => {
     expect(value.disabled).toBe(false)
     fireEvent.change(value, { target: { value: '300' } })
     expect(useAppStore.getState().project.parameters[0]).toMatchObject({ mode: 'Fixed', value: '300' })
+  })
+})
+
+describe('Setup navigation across Model & inputs substeps', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: structuredClone(originalProject),
+      setupStep: 0,
+      setupPanel: 'circuit',
+      dirty: false,
+    })
+  })
+  afterEach(() => cleanup())
+
+  it('walks through Circuit, Device parameters and Sources before Computation', () => {
+    render(<SetupScreen />)
+    const next = screen.getByRole('button', { name: 'Next' })
+    const back = screen.getByRole('button', { name: 'Back' })
+
+    const titleRow = screen.getByText('Project setup').parentElement?.parentElement
+    expect(titleRow?.contains(next)).toBe(true)
+    expect(titleRow?.contains(back)).toBe(true)
+    expect(next.closest('.MuiPaper-root')).toBeNull()
+    expect(back.classList.contains('MuiButton-outlined')).toBe(true)
+    expect(next.classList.contains('MuiButton-contained')).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Run remaining' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Stop run' })).toBeNull()
+
+    expect(back.hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('tab', { name: 'Circuit' }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(next)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'parameters' })
+    expect(screen.getByRole('tab', { name: /Device parameters/ }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(next)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
+    expect(screen.getByRole('tab', { name: /Sources/ }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(next)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 1, setupPanel: 'sources' })
+    expect(screen.getByText('Harmonic and solver settings')).toBeTruthy()
+
+    fireEvent.click(next)
+    expect(useAppStore.getState().setupStep).toBe(2)
+    expect(next.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('traverses the same substeps backwards from Metrics to Circuit', () => {
+    useAppStore.setState({ setupStep: 2, setupPanel: 'circuit' })
+    render(<SetupScreen />)
+    const back = screen.getByRole('button', { name: 'Back' })
+
+    fireEvent.click(back)
+    expect(useAppStore.getState().setupStep).toBe(1)
+
+    fireEvent.click(back)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
+
+    fireEvent.click(back)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'parameters' })
+
+    fireEvent.click(back)
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'circuit' })
+    expect(back.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('respects manually selected sub-tabs when using Next and Back', () => {
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('tab', { name: /Sources/ }))
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(useAppStore.getState().setupStep).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
   })
 })
 
@@ -264,28 +412,4 @@ describe('Nonlinear feedback setup', () => {
   })
 })
 
-describe('Setup footer navigation', () => {
-  beforeEach(() => {
-    useAppStore.setState({
-      project: structuredClone(originalProject),
-      setupStep: 2,
-      dirty: false,
-    })
-  })
-  afterEach(() => cleanup())
 
-  it('contains Back and Next without a simulation action', () => {
-    render(<SetupScreen />)
-
-    const back = screen.getByRole('button', { name: 'Back' })
-    const next = screen.getByRole('button', { name: 'Next' })
-    const footer = next.closest('.MuiPaper-root')
-    expect(footer).not.toBeNull()
-    expect(footer?.contains(back)).toBe(true)
-    expect(screen.queryByRole('button', { name: 'Run remaining' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Stop run' })).toBeNull()
-
-    fireEvent.click(back)
-    expect(useAppStore.getState().setupStep).toBe(1)
-  })
-})

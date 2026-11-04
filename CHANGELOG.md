@@ -12,6 +12,51 @@ This changelog records completed user-relevant and development-process changes. 
 - Store cycles and reference currents in the existing `.jco` input keys; default feedback to off (0 cycles) for new projects and validate numeric source values when enabled.
 - Add renderer/serialization regression tests. Real multi-cycle Julia harmonic-balance runs and scientific correction behavior remain to be validated before a v0.4.3 release.
 
+
+## 0.4.3 - 2026-11-04
+
+[Complete release notes](docs/releases/v0.4.3.md) · Stable GUI/Results baseline after v0.4.2; nonlinear feedback remains in a separate feature branch.
+
+### Project menu and appearance
+- Group the ⋮ menu into New/Open/Save/Save As, bundled Examples, Julia settings/About, and Dark/Light choices; remove the obsolete Import legacy folder, Export editable workspace, and Export Data menu entries.
+- Retain legacy workspace import and ZIP export support internally for possible future access; existing Results CSV/data export actions remain available.
+- Distinguish Save (current .jco project) from Save As: a format-choice dialog offers editable workspace ZIP by default and an additional .jco project copy; ZIP exports do not change the active project or its dirty state.
+- Default to Dark on first launch, preserve explicitly saved Light selections, and migrate the old System preference to Dark.
+- Expand About JCO with the package-derived version, Emanuele Palumbo as developer (INRiM – Politecnico di Torino), MIT license, GitHub repository/issues, published paper DOI and copyable citation; open approved reference links in the system browser.
+- Center the About logo; keep the Developer and other section headings larger than Emanuele Palumbo's name, with the smaller italic INRiM – Politecnico di Torino affiliation and institutional contact link.
+
+### Desktop launch
+- Avoid Node.js DEP0190 warnings on Windows by calling the npm JavaScript CLI directly rather than passing arguments through a command shell.
+
+### Results navigation
+- Remove the duplicated running-simulation information alert from Results (the header already displays Run in progress).
+- Split Optimization Results into Landscape and History: keep colored sample projection/exact Linear slice with a chronological optional arrowed trajectory and evaluation slider, label the smaller Linear-slice minimum diamond separately from optimizer best, and use more compact objective/parameter charts in History.
+- Remove the redundant retained-array selection hint from both Linear and Harmonic Balance result inspectors.
+- Place one shared Run selector and its run-specific actions above the Linear / Optimization / Harmonic balance tabs.
+- Keep the selected historical run across stage changes, page navigation and Results refresh; fall back to the latest surviving run only when the selected run disappears. Keep CSV export, deletion and Simulation info aligned with the selected run.
+- Give Run controls and result-stage tabs clearer visual separation, and remove the redundant Stored JCO data / retained-data points badges.
+- Align Export CSV, Simulation info and Delete run immediately after the Run picker; place Manage runs in the header beside Refresh results.
+
+### Application header
+- Show one inline-editable project title in the top bar instead of a separate filename badge and Setup project-name field. Keep underlying .jco filename handling unchanged and remove the Desktop bridge / Schema v1 developer labels.
+- Keep compact, high-contrast Setup Back/Next controls in the page-title row (outlined Back, prominent Next) without adding vertical space to the Stepper; navigate through Circuit → Device parameters → Sources before Computation and Metrics. Start new/opened projects at Circuit and keep Back symmetric.
+
+### Setup computation usability
+- Remove repeated DC inclusion and shared-stage wording from solver guidance; explain Frequency batches = 0 in a small caption pointing to Julia thread settings under the ⋮ menu, rather than in an info alert.
+- Present the first-order Linear harmonic/intermodulation guidance as information rather than a warning when higher-order mixing remains enabled.
+- Grey out and disable Optimization settings when Linear has a single device configuration, while retaining saved settings and re-enabling controls when a multi-point parameter sweep is configured.
+- Simplify the first-order Linear guidance text. In Results, always disable the Optimization tab for single-point setups (including when older runs contain optimizer data); disable Correlation and 1D density views when the selected Linear dataset contains no parameter sweep while keeping its point data accessible.
+
+### Simulation Run controls
+- Replace Run remaining/Run all and manual stage selection with one fresh **Run** and a context-sensitive **Run Linear / Run Optimization / Run Nonlinear** action.
+- Invalidate only dependent stages when Setup changes; retain Linear data for optimizer-only and nonlinear-only changes where valid. Prevent a Results refresh from revalidating stages marked stale.
+- Before reusing earlier stage files, compare current inputs with the saved scientific input snapshot; reject incompatible datasets.
+- Make Results indexing robust when automatic cleanup removes an empty run while its folder is being scanned. Skip only vanished output folders, preserve results from surviving runs, and surface genuine read errors instead of hiding them.
+- Keep cancelled/failed stages incomplete even after a Results refresh discovers older successful outputs. When retrying a partial run, search for the newest compatible saved Linear dataset/optimized point instead of assuming LATEST still refers to a complete stage. Reset each requested stage at run start and retain only stages with explicit completion events; cancelling Optimization keeps Linear complete and Nonlinear pending. Materialize the exact fixed-device optimum after Linear-only runs so Nonlinear can follow when Optimization is skipped.
+
+### Windows desktop packaging
+- Recreate the `JCO GUI` Windows desktop shortcut when reinstalling/upgrading through the NSIS installer so legacy Electron shortcuts no longer retain their original icon. Preserve the configured native JCO `.ico` and the installer/portable target names. Existing published v0.4.2 downloads are unchanged.
+
 ## 0.4.2 - 2026-10-30
 
 [Complete release notes](docs/releases/v0.4.2.md) · Windows installer/portable and Linux AppImage are published by the tag-driven GitHub Actions workflow.

@@ -19,11 +19,12 @@ afterEach(() => {
 
 it('runs the stage named by the selected-stage button', async () => {
   const onRunStage = vi.fn().mockResolvedValue(undefined)
+  useAppStore.setState({ stages: structuredClone(initialStages).map((stage) => ({ ...stage, status: 'ready' as const })) })
   render(
     <RunScreen
       desktop
       cancelling={false}
-      onRunRemaining={vi.fn()}
+      onRunAll={vi.fn()}
       onRunStage={onRunStage}
       onStop={vi.fn()}
     />,
@@ -38,9 +39,37 @@ it('runs the stage named by the selected-stage button', async () => {
   expect(onRunStage).toHaveBeenCalledWith('linear')
 })
 
+  it('offers Optimization after a valid Linear run', async () => {
+    const stages = structuredClone(initialStages)
+    stages[1] = { ...stages[1], status: 'stale' }
+    useAppStore.setState({ stages })
+    const onRunStage = vi.fn().mockResolvedValue(undefined)
+    render(<RunScreen desktop cancelling={false} onRunAll={vi.fn()} onRunStage={onRunStage} onStop={vi.fn()} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Run Optimization' }))
+      await Promise.resolve()
+    })
+
+    expect(onRunStage).toHaveBeenCalledWith('optimization')
+  })
+
+  it('runs all stages when the main Run control is clicked', async () => {
+    const onRunAll = vi.fn().mockResolvedValue(undefined)
+    render(<RunScreen desktop cancelling={false} onRunAll={onRunAll} onRunStage={vi.fn()} onStop={vi.fn()} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+      await Promise.resolve()
+    })
+
+    expect(onRunAll).toHaveBeenCalledOnce()
+    expect(screen.queryByText('Run remaining')).toBeNull()
+  })
+
   it('shows a stopping state and prevents duplicate cancellation clicks', () => {
     useAppStore.setState({ running: true })
-    render(<RunScreen desktop cancelling onRunRemaining={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
+    render(<RunScreen desktop cancelling onRunAll={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
 
     expect(screen.getByRole('button', { name: 'Stopping Julia…' }).hasAttribute('disabled')).toBe(true)
   })
@@ -49,7 +78,7 @@ it('runs the stage named by the selected-stage button', async () => {
     const stages = structuredClone(initialStages)
     stages[0] = { ...stages[0], status: 'running', progress: 0, points: 1 }
     useAppStore.setState({ stages, running: true })
-    render(<RunScreen desktop cancelling={false} onRunRemaining={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
+    render(<RunScreen desktop cancelling={false} onRunAll={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
 
     expect(screen.getAllByText(/Starting…/).length).toBeGreaterThan(0)
     expect(screen.queryByText('0 / 1')).toBeNull()

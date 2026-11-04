@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { carthagoParameters, carthagoSources, initialStages } from './data/carthago'
 import { nextManualParameter, reconcileDeviceParameters } from './utils/deviceParameters'
 import { metricsFromCode } from './utils/metrics'
+import { hasVaryingDeviceParameters } from './utils/runSummary'
+import { affectedComputationStage, affectedSourceStage, finishRunStages, invalidateFrom, prepareStagesForRun } from './utils/runStages'
 import type {
   ComputationConfig,
   LogEntry,
@@ -98,18 +100,21 @@ interface AppStore {
   setupStep: SetupStep
   setupPanel: 'circuit' | 'parameters' | 'sources'
   resultsStage: StageId
+  selectedResultsRunId: string | null
   project: ProjectModel
   dirty: boolean
   stages: StageState[]
   logs: LogEntry[]
   running: boolean
   currentRunId: string | null
+  activeRunStages: StageId[]
   selectedPumpAmplitude: number
   results: ResultsBundle | null
   setSection: (section: NavigationSection) => void
   setSetupStep: (step: SetupStep) => void
   setSetupPanel: (panel: 'circuit' | 'parameters' | 'sources') => void
   setResultsStage: (stage: StageId) => void
+  setSelectedResultsRunId: (runId: string) => void
   setSelectedPumpAmplitude: (amplitude: number) => void
   updateProjectName: (name: string) => void
   updateParameter: (id: string, patch: Partial<ParameterSpec>) => void
@@ -135,30 +140,26 @@ interface AppStore {
 
 let timer: ReturnType<typeof setInterval> | null = null
 
-function staleStages(stages: StageState[]): StageState[] {
-  return stages.map((stage) => {
-    if (stage.id === 'optimization' && stage.status === 'skipped') return stage
-    return { ...stage, status: stage.status === 'running' ? stage.status : 'stale', progress: 0 }
-  })
-}
-
 export const useAppStore = create<AppStore>((set, get) => ({
   section: 'setup',
   setupStep: 0,
-  setupPanel: 'parameters',
+  setupPanel: 'circuit',
   resultsStage: 'linear',
+  selectedResultsRunId: null,
   project: initialProject,
   dirty: false,
   stages: initialStages,
   logs: initialLogs,
   running: false,
   currentRunId: null,
+  activeRunStages: [],
   selectedPumpAmplitude: 1.122,
   results: null,
   setSection: (section) => set({ section }),
   setSetupStep: (setupStep) => set({ setupStep }),
   setSetupPanel: (setupPanel) => set({ setupPanel }),
   setResultsStage: (resultsStage) => set({ resultsStage }),
+  setSelectedResultsRunId: (selectedResultsRunId) => set({ selectedResultsRunId }),
   setSelectedPumpAmplitude: (selectedPumpAmplitude) => set({ selectedPumpAmplitude }),
   updateProjectName: (name) =>
     set((state) => {
@@ -182,15 +183,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return {
         dirty: true,
         project: { ...state.project, parameters: reconcileDeviceParameters(state.project.circuitCode, parameters) },
-        stages: staleStages(state.stages),
+        stages: invalidateFrom(state.stages, { ...state.project, parameters: reconcileDeviceParameters(state.project.circuitCode, parameters) }, 'linear'),
       }
     }),
   addParameter: () =>
-    set((state) => ({
-      dirty: true,
-      project: { ...state.project, parameters: [...state.project.parameters, nextManualParameter(state.project.parameters)] },
-      stages: staleStages(state.stages),
-    })),
+    set((state) => {
+      const project = { ...state.project, parameters: [...state.project.parameters, nextManualParameter(state.project.parameters)] }
+      return { dirty: true, project, stages: invalidateFrom(state.stages, project, 'linear') }
+    }),
   removeParameter: (id) =>
     set((state) => {
       const parameter = state.project.parameters.find((item) => item.id === id)
@@ -198,15 +198,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return {
         dirty: true,
         project: { ...state.project, parameters: state.project.parameters.filter((item) => item.id !== id) },
-        stages: staleStages(state.stages),
+        stages: invalidateFrom(state.stages, { ...state.project, parameters: state.project.parameters.filter((item) => item.id !== id) }, 'linear'),
       }
     }),
   updateSource: (id, patch) =>
-    set((state) => ({
-      dirty: true,
-      project: { ...state.project, sources: state.project.sources.map((source) => source.id === id ? { ...source, ...patch } : source) },
-      stages: state.stages.map((stage) => stage.status === 'running' ? stage : { ...stage, status: stage.id === 'optimization' && stage.status === 'skipped' ? 'skipped' : 'stale', progress: 0 }),
-    })),
+    set((state) => {
+      const current = state.project.sources.find((source) => source.id === id)
+      if (!current) return state
+      const affected = affectedSourceStage(current, { ...current, ...patch })
+      const project = { ...state.project, sources: state.project.sources.map((source) => source.id === id ? { ...source, ...patch } : source) }
+      return {
+        dirty: true,
+        project,
+        stages: affected ? invalidateFrom(state.stages, project, affected) : state.stages,
+      }
+    }),
   addSource: () =>
     set((state) => {
       const number = state.project.sources.length + 1
@@ -223,7 +229,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return {
         dirty: true,
         project: { ...state.project, sources: [...state.project.sources, source] },
-        stages: staleStages(state.stages),
+        stages: invalidateFrom(state.stages, state.project, 'linear'),
       }
     }),
   removeSource: (id) =>
@@ -237,34 +243,35 @@ export const useAppStore = create<AppStore>((set, get) => ({
           name: `Source ${index + 1}`,
         })),
       },
-      stages: staleStages(state.stages),
+      stages: invalidateFrom(state.stages, state.project, 'linear'),
     })),
   updateCircuitCode: (circuitCode) =>
     set((state) => ({
       dirty: true,
       project: { ...state.project, circuitCode, parameters: reconcileDeviceParameters(circuitCode, state.project.parameters, false) },
-      stages: staleStages(state.stages),
+      stages: invalidateFrom(state.stages, { ...state.project, circuitCode, parameters: reconcileDeviceParameters(circuitCode, state.project.parameters, false) }, 'linear'),
     })),
   updateMetricsCode: (metricsCode) =>
     set((state) => ({
       dirty: true,
       project: { ...state.project, metricsCode, metrics: metricsFromCode(metricsCode) },
-      stages: state.stages.map((stage) => stage.status === 'running' ? stage : { ...stage, status: stage.id === 'optimization' && stage.status === 'skipped' ? 'skipped' : 'stale', progress: 0 }),
+      stages: invalidateFrom(state.stages, state.project, 'linear'),
     })),
   updateParametricSourcesCode: (parametricSourcesCode) =>
     set((state) => ({
       dirty: true,
       project: { ...state.project, parametricSourcesCode },
-      stages: state.stages.map((stage) => stage.status === 'running' ? stage : { ...stage, status: stage.id === 'optimization' && stage.status === 'skipped' ? 'skipped' : 'stale', progress: 0 }),
+      stages: invalidateFrom(state.stages, state.project, 'linear'),
     })),
   updateComputation: (patch) =>
-    set((state) => ({
-      dirty: true,
-      project: { ...state.project, computation: { ...state.project.computation, ...patch } },
-      stages: state.stages.map((stage) => stage.id === 'hb' ? { ...stage, status: 'stale', progress: 0 } : stage),
-    })),
+    set((state) => {
+      const affected = affectedComputationStage(state.project.computation, patch)
+      if (!affected) return state
+      const project = { ...state.project, computation: { ...state.project.computation, ...patch } }
+      return { dirty: true, project, stages: invalidateFrom(state.stages, project, affected) }
+    }),
   markSaved: () => set({ dirty: false }),
-  resetProject: () => set({ project: initialProject, dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null }),
+  resetProject: () => set({ project: initialProject, setupStep: 0, setupPanel: 'circuit', dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, activeRunStages: [], results: null, selectedResultsRunId: null }),
   setStage: (id, patch) => set((state) => ({ stages: state.stages.map((stage) => (stage.id === id ? { ...stage, ...patch } : stage)) })),
   addLog: (entry) =>
     set((state) => ({
@@ -272,12 +279,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
     })),
   loadProject: (project) => {
     const reconciled = { ...project, parameters: reconcileDeviceParameters(project.circuitCode, project.parameters) }
-    const singlePoint = reconciled.parameters.every((parameter) => parameter.mode === 'Fixed')
+    const singlePoint = !hasVaryingDeviceParameters(reconciled)
     set({
       project: reconciled,
       dirty: false,
       section: 'setup',
       setupStep: 0,
+      setupPanel: 'circuit',
       stages: initialStages.map((stage) => ({
         ...stage,
         status: stage.id === 'optimization' && singlePoint ? 'skipped' : 'ready',
@@ -286,26 +294,31 @@ export const useAppStore = create<AppStore>((set, get) => ({
       })),
       logs: [{ id: 1, time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: `Loaded ${project.filename}` }],
       results: null,
+      selectedResultsRunId: null,
       currentRunId: null,
+      activeRunStages: [],
     })
   },
-  setResults: (results) => set((state) => {
-    const latest = results?.runs[0]
-    if (!latest) return { results }
-    const failedStage = latest.status?.status === 'error' ? String(latest.status?.stage ?? '').toLowerCase() : ''
-    return {
-      results,
-      stages: state.stages.map((stage) => {
-        if ((stage.id === 'linear' && failedStage === 'lin') || (stage.id === 'optimization' && failedStage === 'bo') || (stage.id === 'hb' && failedStage === 'hb')) return { ...stage, status: 'failed' }
-        if (stage.id === 'linear' && latest.linear) return { ...stage, status: 'completed', progress: 100, completedAt: latest.id.replace('output_', '').replace('_', ' · ') }
-        if (stage.id === 'hb' && latest.nonlinear) return { ...stage, status: 'completed', progress: 100, completedAt: latest.id.replace('output_', '').replace('_', ' · ') }
-        return stage
-      }),
-    }
-  }),
+  // Historical Results are for browsing only: a saved optimum or an old Linear
+  // table is not evidence that the current (possibly cancelled) stage completed.
+  setResults: (results) => set((state) => ({
+    results,
+    // Keep the user's chosen run when refreshing/indexing; only fall back if it disappears.
+    selectedResultsRunId: results?.runs.some((run) => run.id === state.selectedResultsRunId)
+      ? state.selectedResultsRunId
+      : results?.runs[0]?.id ?? null,
+  })),
   applyRunEvent: (event) => {
-    if (event.type === 'run-started') { set({ running: true, section: 'run', currentRunId: event.runId }); return }
+    if (event.type === 'run-started') {
+      set((state) => ({
+        running: true, section: 'run', currentRunId: event.runId,
+        activeRunStages: event.stages ?? [],
+        stages: event.stages?.length ? prepareStagesForRun(state.stages, state.project, event.stages) : state.stages,
+      }))
+      return
+    }
     if (event.type === 'stage-status') {
+      if (event.runId !== get().currentRunId) return
       const patch: Partial<StageState> = { status: event.status, progress: event.status === 'running' ? 0 : event.status === 'completed' ? 100 : undefined }
       if (event.status === 'completed') {
         patch.completedAt = new Date(event.timestamp).toLocaleString('en-GB', { hour12: false })
@@ -314,15 +327,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
       get().setStage(event.stage, patch); return
     }
     if (event.type === 'progress') {
+      if (event.runId !== get().currentRunId) return
       const progress = event.total ? Math.min(100, Math.round((event.completed / event.total) * 100)) : 0
       get().setStage(event.stage, { status: 'running', progress, points: event.total }); return
     }
     if (event.type === 'log') { get().addLog({ level: event.level, message: event.message }); return }
     if (event.type === 'run-finished') {
-      set((state) => ({
-        running: false,
-        stages: state.stages.map((stage) => stage.status === 'running' ? { ...stage, status: event.outcome === 'completed' ? 'completed' : event.outcome, progress: event.outcome === 'completed' ? 100 : stage.progress, completedAt: stage.completedAt } : stage),
-      }))
+      set((state) => {
+        if (event.runId !== state.currentRunId) return state
+        const stages = state.activeRunStages.length
+          ? finishRunStages(state.stages, state.activeRunStages, event.outcome)
+          : state.stages.map((stage) => stage.status === 'running'
+            ? { ...stage, status: event.outcome === 'completed' ? 'failed' as const : event.outcome }
+            : stage)
+        return { running: false, activeRunStages: [], stages }
+      })
     }
   },
   startDemoRun: () => {

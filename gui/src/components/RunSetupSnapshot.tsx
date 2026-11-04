@@ -107,7 +107,7 @@ function JuliaFilesView({ files }: { files?: Record<string, string> | null }) {
   </Stack>
 }
 
-export function RunSetupSnapshot({ runs }: { runs: RunResults[] }) {
+export function RunSetupSnapshot({ runs, initialRunId }: { runs: RunResults[]; initialRunId?: string | null }) {
   const [open, setOpen] = useState(false)
   const [selectedRunId, setSelectedRunId] = useState(runs[0]?.id ?? '')
   const [sectionIndex, setSectionIndex] = useState(0)
@@ -121,7 +121,7 @@ export function RunSetupSnapshot({ runs }: { runs: RunResults[] }) {
   const section = sections[Math.min(sectionIndex, sections.length - 1)]
 
   return <>
-    <Button size="small" variant="contained" startIcon={<DescriptionRoundedIcon />} onClick={() => setOpen(true)}>Simulation info</Button>
+    <Button size="small" variant="contained" startIcon={<DescriptionRoundedIcon />} onClick={() => { setSelectedRunId(initialRunId ?? runs[0]?.id ?? ''); setOpen(true) }}>Simulation info</Button>
     <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="lg">
       <DialogTitle sx={{ pb: 1 }}>
         <Typography variant="h6">Simulation info</Typography>
