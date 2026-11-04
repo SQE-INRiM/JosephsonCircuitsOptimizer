@@ -82,7 +82,7 @@ describe('Optimization Results landscape and history views', () => {
   it('keeps objective and parameter histories available in runs without a Linear table', () => {
     render(<OptimizationResultsView run={run(false)} table={optimization} />)
     expect((screen.getByRole('button', { name: 'Slice · Linear' }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText(/compatible two-parameter Linear grid is unavailable/)).toBeTruthy()
+    expect(screen.getByText(/Linear slice unavailable for these axes/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'History' }))
     expect(screen.getAllByTestId('optimizer-history-chart')).toHaveLength(4)
   })
