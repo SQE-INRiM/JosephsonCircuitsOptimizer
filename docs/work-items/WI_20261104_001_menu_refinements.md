@@ -11,11 +11,13 @@
 - Remove menu entries for Import legacy folder, Export editable workspace, and Export Data. Preserve their existing desktop bridge implementations for potential future maintenance or restoration; this change intentionally removes the menu access, not internal support.
 - Results-area filtered and plotted CSV/data exports are independent and remain accessible there.
 - Default to Dark when no preference has been saved, and migrate the removed System value to Dark. Keep an explicitly saved Light or Dark choice across restarts.
+- Distinguish Save and Save As for both saved and unsaved projects. Save writes a .jco (prompting for a path on first save). Save As opens a small dialog with primary **Editable workspace (.zip)** using the retained export implementation, and secondary **JCO project (.jco)** to make another .jco copy.
+- Exporting a ZIP must not overwrite, rename, or mark the active .jco project saved. Cancelling either export must leave project identity and unsaved state unchanged.
 - Maintain the .jco project schema, save/open behavior, runtime settings and scientific simulations unchanged.
 
 ## Tests and verification
 
-- React/jsdom: verify menu content and order with a mocked example, Save As wiring and Dark/Light selection.
+- React/jsdom: verify menu content and order with a mocked example, regular Save, both Save As format paths, unchanged .jco/dirty state after ZIP export and Dark/Light selection.
 - Theme tests: verify first-launch Dark default, old System migration and explicit Light preservation.
 - GitHub Actions PR test/build, Windows/Linux packaging and governance checks; manual Windows GUI inspection remains the user's acceptance step.
 
