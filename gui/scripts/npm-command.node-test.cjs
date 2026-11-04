@@ -18,7 +18,7 @@ test('finds npm installed beside Node when invoked without npm_execpath', () => 
 
 test('finds npm in the parent directory of a portable Node installation', () => {
   const nodePath = '/opt/node/bin/node'
-  const expected = path.join('/opt/node', 'node_modules', 'npm', 'bin', 'npm-cli.js')
+  const expected = path.resolve(path.dirname(nodePath), '..', 'node_modules', 'npm', 'bin', 'npm-cli.js')
   const result = resolveNpmCli(nodePath, undefined, (candidate) => candidate === expected)
   assert.equal(result, expected)
 })
