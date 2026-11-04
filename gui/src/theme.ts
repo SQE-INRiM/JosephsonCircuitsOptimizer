@@ -58,4 +58,4 @@ export function createJcoTheme(mode: ThemeMode) {
 }
 
 // Retained for consumers requiring a static theme (e.g. existing tests).
-export const jcoTheme = createJcoTheme('light')
+export const jcoTheme = createJcoTheme('dark')
