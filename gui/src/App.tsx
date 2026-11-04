@@ -310,7 +310,7 @@ export default function App({ themePreference = 'dark', onThemePreferenceChange 
               </IconButton>
             </span>
           </Tooltip>
-          <IconButton color="inherit" onClick={(event) => { setMenuAnchor(event.currentTarget); void refreshExamples() }}><MoreVertRoundedIcon /></IconButton>
+          <IconButton color="inherit" aria-label="Project menu" onClick={(event) => { setMenuAnchor(event.currentTarget); void refreshExamples() }}><MoreVertRoundedIcon /></IconButton>
           <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
             <MenuItem disabled={running} onClick={() => perform(async () => { const loaded = await getJcoAdapter()?.newProject(); if (loaded) loadProject(loaded) })}>New project</MenuItem>
             <MenuItem disabled={running} onClick={openProject}>Open project…</MenuItem>
