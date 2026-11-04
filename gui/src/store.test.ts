@@ -201,3 +201,35 @@ describe('GUI device parameter workflow', () => {
     expect(linear?.progress).toBe(100)
   })
 })
+
+describe('Shared Results run selection', () => {
+  const resultsFor = (ids: string[]) => ({
+    schemaVersion: 'jco.results/1',
+    workspace: '/tmp/jco-test',
+    runs: ids.map((id) => ({ id, traces: [] })),
+  })
+
+  beforeEach(() => {
+    useAppStore.setState({ results: null, selectedResultsRunId: null })
+  })
+
+  it('selects the latest initially, preserves an older run on refresh, and falls back only if removed', () => {
+    useAppStore.getState().setResults(resultsFor(['latest', 'older']))
+    expect(useAppStore.getState().selectedResultsRunId).toBe('latest')
+    useAppStore.getState().setSelectedResultsRunId('older')
+    useAppStore.getState().setResults(resultsFor(['newer', 'latest', 'older']))
+    expect(useAppStore.getState().selectedResultsRunId).toBe('older')
+    useAppStore.getState().setResults(resultsFor(['newer', 'latest']))
+    expect(useAppStore.getState().selectedResultsRunId).toBe('newer')
+    useAppStore.getState().setResults(resultsFor([]))
+    expect(useAppStore.getState().selectedResultsRunId).toBeNull()
+  })
+
+  it('clears the selected run when switching projects', () => {
+    useAppStore.getState().setResults(resultsFor(['latest', 'older']))
+    useAppStore.getState().setSelectedResultsRunId('older')
+    useAppStore.getState().loadProject(structuredClone(originalProject))
+    expect(useAppStore.getState().selectedResultsRunId).toBeNull()
+    expect(useAppStore.getState().results).toBeNull()
+  })
+})

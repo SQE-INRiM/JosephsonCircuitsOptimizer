@@ -3,8 +3,8 @@ import { ConnectedResults as CompactConnectedResults } from './ConnectedResultsC
 import { EnhancedStageResults } from './EnhancedStageResults'
 import { HarmonicBalanceResultsWithUnits } from './HarmonicBalanceResultsWithUnits'
 
-export function ConnectedResults({ results, stage, onResultsChanged, activeRunId }: { results: ResultsBundle; stage: StageId; onResultsChanged: (results: ResultsBundle) => void; activeRunId?: string | null }) {
-  if (stage === 'linear') return <CompactConnectedResults results={results} stage={stage} onResultsChanged={onResultsChanged} activeRunId={activeRunId} />
-  if (stage === 'hb') return <HarmonicBalanceResultsWithUnits results={results} activeRunId={activeRunId} />
-  return <EnhancedStageResults results={results} stage={stage} onResultsChanged={onResultsChanged} activeRunId={activeRunId} />
+export function ConnectedResults({ results, stage, selectedRunId }: { results: ResultsBundle; stage: StageId; selectedRunId?: string | null }) {
+  if (stage === 'linear') return <CompactConnectedResults results={results} stage={stage} selectedRunId={selectedRunId} />
+  if (stage === 'hb') return <HarmonicBalanceResultsWithUnits results={results} selectedRunId={selectedRunId} />
+  return <EnhancedStageResults results={results} stage={stage} selectedRunId={selectedRunId} />
 }

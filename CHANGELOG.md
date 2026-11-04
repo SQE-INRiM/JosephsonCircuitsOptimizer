@@ -4,6 +4,15 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Desktop launch
+- Avoid Node.js DEP0190 warnings on Windows by calling the npm JavaScript CLI directly rather than passing arguments through a command shell.
+
+### Results navigation
+- Place one shared Run selector and its run-specific actions above the Linear / Optimization / Harmonic balance tabs.
+- Keep the selected historical run across stage changes, page navigation and Results refresh; fall back to the latest surviving run only when the selected run disappears. Keep CSV export, deletion and Simulation info aligned with the selected run.
+- Give Run controls and result-stage tabs clearer visual separation, and remove the redundant Stored JCO data / retained-data points badges.
+- Align Export CSV, Simulation info and Delete run immediately after the Run picker; place Manage runs in the header beside Refresh results.
+
 ### Application header
 - Show one inline-editable project title in the top bar instead of a separate filename badge and Setup project-name field. Keep underlying .jco filename handling unchanged and remove the Desktop bridge / Schema v1 developer labels.
 - Keep compact, high-contrast Setup Back/Next controls in the page-title row (outlined Back, prominent Next) without adding vertical space to the Stepper; navigate through Circuit → Device parameters → Sources before Computation and Metrics. Start new/opened projects at Circuit and keep Back symmetric.

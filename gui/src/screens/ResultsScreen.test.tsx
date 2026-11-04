@@ -1,15 +1,15 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResultsBundle, StageId } from '../types'
 import { useAppStore } from '../store'
 import { ResultsScreen } from './ResultsScreen'
 
 vi.mock('../components/ConnectedResults', () => ({
-  ConnectedResults: ({ stage }: { stage: StageId }) => <div data-testid="visible-results-stage">{stage}</div>,
+  ConnectedResults: ({ stage, selectedRunId }: { stage: StageId; selectedRunId?: string | null }) => <><div data-testid="visible-results-stage">{stage}</div><div data-testid="selected-results-run">{selectedRunId}</div></>,
 }))
-vi.mock('../components/ResultsRunManager', () => ({ ResultsRunManager: () => null }))
-vi.mock('../components/RunSetupSnapshot', () => ({ RunSetupSnapshot: () => null }))
+vi.mock('../components/ResultsRunManager', () => ({ ResultsRunManager: () => <button type="button">Manage runs</button> }))
+vi.mock('../components/RunSetupSnapshot', () => ({ RunSetupSnapshot: () => <button type="button">Simulation info</button> }))
 
 const originalProject = structuredClone(useAppStore.getState().project)
 const onePoint = { columns: ['point_id', 'Cg', 'metric'], rows: [[1, 250, -20]], file: 'linear.h5' }
@@ -31,6 +31,7 @@ describe('Results stage availability for a fixed-parameter project', () => {
         parameters: originalProject.parameters.map((parameter) => ({ ...parameter, mode: 'Fixed' as const, value: '250' })),
       },
       results: bundle(),
+      selectedResultsRunId: 'run-1',
       resultsStage: 'optimization',
       running: false,
     })
@@ -64,5 +65,83 @@ describe('Results stage availability for a fixed-parameter project', () => {
     render(<ResultsScreen />)
     expect((screen.getByRole('tab', { name: 'Optimization' }) as HTMLButtonElement).disabled).toBe(false)
     expect(screen.getByTestId('visible-results-stage').textContent).toBe('optimization')
+  })
+})
+
+describe('Shared Results run navigation', () => {
+  const multiRun: ResultsBundle = {
+    schemaVersion: 'jco.results/1',
+    workspace: '/tmp/jco-test',
+    runs: [
+      { id: 'newest', linear: onePoint, optimization, traces: [] },
+      { id: 'older', linear: onePoint, optimization, traces: [] },
+    ],
+  }
+
+  beforeEach(() => {
+    useAppStore.setState({
+      project: {
+        ...structuredClone(originalProject),
+        parameters: originalProject.parameters.map((parameter, index) =>
+          index === 0 ? { ...parameter, mode: 'List' as const, values: '250, 350' } : parameter),
+      },
+      results: multiRun,
+      selectedResultsRunId: 'newest',
+      resultsStage: 'linear',
+      running: false,
+    })
+  })
+  afterEach(() => cleanup())
+
+  it('places Manage runs before Refresh and orders actions immediately after the Run selector', () => {
+    render(<ResultsScreen />)
+    const manage = screen.getByRole('button', { name: 'Manage runs' })
+    const refresh = screen.getByRole('button', { name: 'Refresh results' })
+    const selector = screen.getByRole('combobox', { name: 'Run' })
+    const csv = screen.getByRole('button', { name: 'Export CSV…' })
+    const info = screen.getByRole('button', { name: 'Simulation info' })
+    const deleteRun = screen.getByRole('button', { name: 'Delete run' })
+    const linearTab = screen.getByRole('tab', { name: 'Linear' })
+
+    expect(manage.parentElement).toBe(refresh.parentElement)
+    for (const [first, second] of [[manage, refresh], [refresh, selector], [selector, csv], [csv, info], [info, deleteRun], [deleteRun, linearTab]]) {
+      expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
+  })
+
+  it('places one Run selector above the three stage tabs and shares the same historical run', () => {
+    render(<ResultsScreen />)
+    const selector = screen.getByRole('combobox', { name: 'Run' })
+    const linearTab = screen.getByRole('tab', { name: 'Linear' })
+    expect(selector.compareDocumentPosition(linearTab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getAllByRole('combobox', { name: 'Run' })).toHaveLength(1)
+    expect(screen.queryByText('Stored JCO data')).toBeNull()
+    expect(screen.queryByText(/retained-data points/)).toBeNull()
+    fireEvent.mouseDown(selector)
+    fireEvent.click(screen.getByRole('option', { name: 'older' }))
+    expect(useAppStore.getState().selectedResultsRunId).toBe('older')
+    expect(screen.getByTestId('selected-results-run').textContent).toBe('older')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Optimization' }))
+    expect(screen.getByTestId('visible-results-stage').textContent).toBe('optimization')
+    expect(screen.getByTestId('selected-results-run').textContent).toBe('older')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Harmonic balance' }))
+    expect(screen.getByTestId('visible-results-stage').textContent).toBe('hb')
+    expect(screen.getByTestId('selected-results-run').textContent).toBe('older')
+  })
+
+  it('keeps the selected run on refresh and page re-entry, falling back only if deleted', () => {
+    const { unmount } = render(<ResultsScreen />)
+    act(() => {
+      useAppStore.getState().setSelectedResultsRunId('older')
+      useAppStore.getState().setResults({ ...multiRun, runs: [{ id: 'newer', linear: onePoint, traces: [] }, ...multiRun.runs] })
+    })
+    expect(screen.getByTestId('selected-results-run').textContent).toBe('older')
+    unmount()
+    render(<ResultsScreen />)
+    expect(screen.getByTestId('selected-results-run').textContent).toBe('older')
+    act(() => useAppStore.getState().setResults({ ...multiRun, runs: [multiRun.runs[0]] }))
+    expect(screen.getByTestId('selected-results-run').textContent).toBe('newest')
   })
 })

@@ -37,7 +37,7 @@ export function ResultsRunManager({ results, activeRunId, onResultsChanged }: { 
   }
 
   return <>
-    <Button size="small" variant="outlined" onClick={() => setOpen(true)}>{deleting ? 'Deleting runs…' : 'Manage runs'}</Button>
+    <Button variant="outlined" onClick={() => setOpen(true)}>{deleting ? 'Deleting runs…' : 'Manage runs'}</Button>
     <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
       <DialogTitle>Manage stored runs</DialogTitle>
       <DialogContent><Stack spacing={1.2} sx={{ pt: 0.5 }}>
