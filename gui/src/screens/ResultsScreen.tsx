@@ -123,7 +123,6 @@ export function ResultsScreen() {
       </Paper>
     </Box>
 
-    {running && <Alert severity="info">A new simulation is running. Previously stored runs remain available below. The active run is refreshed when its run state changes rather than continuously re-indexing all stored data.</Alert>}
     {refreshError && <Alert severity="warning">Stored Results could not be refreshed: {refreshError}. The last successfully indexed runs remain visible.</Alert>}
     {actionStatus && <Alert severity={actionStatus.startsWith('Exported') ? 'success' : 'warning'} onClose={() => setActionStatus('')}>{actionStatus}</Alert>}
     {visibleStage === 'optimization' && selectedRun && !selectedRun.optimization && <Alert severity={selectedHistoryCount > 0 ? 'warning' : 'info'}><strong>Selected-run Optimization diagnostic:</strong> {selectedRun.id} · status {runStatus(selectedRun)} · Linear table {selectedRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {selectedHistoryCount} evaluations.{selectedHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>}
