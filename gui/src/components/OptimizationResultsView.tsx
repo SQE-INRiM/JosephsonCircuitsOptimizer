@@ -40,7 +40,7 @@ function cellEdges(centers: number[], fallback: number): Array<[number, number]>
 }
 
 function OptimizerScatter({
-  samples, allSamples, selectedIndex, onSelect, xName, yName, mode, slice, fixed, parameters,
+  samples, allSamples, selectedIndex, onSelect, xName, yName, mode, slice, fixed, parameters, showPath,
 }: {
   samples: OptimizerSample[]
   allSamples: OptimizerSample[]
@@ -52,6 +52,7 @@ function OptimizerScatter({
   slice: LinearSlice | null
   fixed: Record<string, number>
   parameters: ParameterSpec[]
+  showPath: boolean
 }) {
   const theme = useTheme()
   const clipId = useId().replace(/:/g, '')
@@ -89,15 +90,18 @@ function OptimizerScatter({
   const min = colorValues.length ? Math.min(...colorValues) : 0
   const max = colorValues.length ? Math.max(...colorValues) : 1
   const best = bestSample(samples)
-  const bestIndex = best ? samples.indexOf(best) : -1
-  const gridBest = mode === 'slice' && slice
-    ? slice.values.flatMap((row, yi) => row.map((value, xi) => value == null
-      ? null : { x: slice.x[xi], y: slice.y[yi], value })).filter((point): point is { x: number; y: number; value: number } => point !== null)
-      .reduce<{ x: number; y: number; value: number } | null>((lowest, point) => !lowest || point.value < lowest.value ? point : lowest, null)
-    : null
+
   const dark = theme.palette.mode === 'dark'
   const ticks = Array.from({ length: 5 }, (_, index) => index / 4)
   const plotColor = theme.palette.text.secondary
+  const points = visible.map(({ sample }) => ({
+    x: xPosition(sample.values[xName]),
+    y: yPosition(sample.values[yName]),
+  }))
+  const pathLine = points.map(({ x, y }) => x + ',' + y).join(' ')
+  // Cap direction markers so exploration remains readable for long histories.
+  const arrowEvery = Math.max(1, Math.ceil((points.length - 1) / 12))
+  const pathColor = dark ? '#e5eaf0' : '#273d51'
 
   return <Stack spacing={1}>
     <Box sx={{ width: '100%', maxWidth: 1100, mx: 'auto' }}>
@@ -122,6 +126,26 @@ function OptimizerScatter({
               <title>{xName + '=' + displayNumber(slice.x[xi]) + ', ' + yName + '=' + displayNumber(slice.y[yi]) + ': ' + (value == null ? 'masked / unavailable' : displayNumber(value))}</title>
             </rect>
           }))}
+          {showPath && points.length > 1 && <>
+            <polyline data-testid="optimizer-trajectory" points={pathLine} fill="none" stroke={dark ? '#122236' : '#ffffff'} strokeWidth={4} strokeLinejoin="round" opacity={0.88} pointerEvents="none" />
+            <polyline points={pathLine} fill="none" stroke={pathColor} strokeWidth={1.7} strokeLinejoin="round" opacity={0.88} pointerEvents="none" />
+            {points.slice(1).map((point, index) => {
+              if (index % arrowEvery !== 0) return null
+              const previous = points[index]
+              const dx = point.x - previous.x
+              const dy = point.y - previous.y
+              const length = Math.hypot(dx, dy)
+              if (length < 22) return null
+              const ux = dx / length
+              const uy = dy / length
+              const centerX = previous.x + dx * 0.63
+              const centerY = previous.y + dy * 0.63
+              const tip = [centerX + ux * 7, centerY + uy * 7]
+              const left = [centerX - ux * 5 - uy * 4.5, centerY - uy * 5 + ux * 4.5]
+              const right = [centerX - ux * 5 + uy * 4.5, centerY - uy * 5 - ux * 4.5]
+              return <polygon key={'direction-' + index} points={[tip, left, right].map((p) => p.join(',')).join(' ')} fill={pathColor} pointerEvents="none" />
+            })}
+          </>}
           {visible.map(({ sample, index }) => {
             const onSlice = mode !== 'slice' || sampleOnSlice(sample, fixed)
             const isSelected = selectedIndex === index
@@ -142,16 +166,7 @@ function OptimizerScatter({
           })}
           {best && Number.isFinite(best.values[xName]) && Number.isFinite(best.values[yName]) && <circle
             cx={xPosition(best.values[xName])} cy={yPosition(best.values[yName])} r={11} fill="none" stroke="#d18a23" strokeWidth={3.6} pointerEvents="none" />}
-          {gridBest && <polygon
-            points={[
-              [xPosition(gridBest.x), yPosition(gridBest.y) - 10],
-              [xPosition(gridBest.x) + 10, yPosition(gridBest.y)],
-              [xPosition(gridBest.x), yPosition(gridBest.y) + 10],
-              [xPosition(gridBest.x) - 10, yPosition(gridBest.y)],
-            ].map((point) => point.join(',')).join(' ')}
-            fill="#183951" stroke="#ffffff" strokeWidth={2} pointerEvents="none">
-            <title>{'Lowest stored Linear cell: ' + displayNumber(gridBest.value)}</title>
-          </polygon>}
+
         </g>
         <rect x={left} y={top} width={chartWidth} height={chartHeight} fill="none" stroke={theme.palette.divider} />
         {ticks.map((fraction) => {
@@ -167,18 +182,17 @@ function OptimizerScatter({
       </svg>
     </Box>
     <Stack direction="row" useFlexGap spacing={2} sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
-      <Typography variant="caption" color="text.secondary">{samples.length.toLocaleString()} evaluations displayed</Typography>
       <Typography variant="caption" sx={{ color: '#b67b21', fontWeight: 700 }}>◯ Best sampled</Typography>
-      {mode === 'slice' && <><Typography variant="caption" color="text.secondary">● White: on slice · Grey: projected</Typography><Typography variant="caption" color="text.secondary">◆ Lowest Linear grid cell</Typography></>}
+      {showPath && samples.length > 1 && <Typography variant="caption" color="text.secondary">→ Evaluation order</Typography>}
+      {mode === 'slice' && <Typography variant="caption" color="text.secondary">● Pale: off-slice</Typography>}
       <Box sx={{ flexGrow: 1 }} />
       <Typography variant="caption" color="text.secondary">{displayNumber(min)}</Typography>
       <Box sx={{ width: 150, height: 8, borderRadius: 8, background: 'linear-gradient(90deg,#edf4fa,#4489ab,#eaad38)' }} />
       <Typography variant="caption" color="text.secondary">{displayNumber(max)}</Typography>
       <Typography variant="caption" color="text.secondary">{mode === 'slice' ? 'Linear metric' : 'Sampled metric'}</Typography>
     </Stack>
-    {bestIndex >= 0 && <Typography variant="body2" color="text.secondary">
-      Best sampled through evaluation {displayNumber(samples[bestIndex].evaluation)}: {displayNumber(best!.metric)}.
-      A lowest sampled or gridded value is not evidence of the global minimum.
+    {best && <Typography variant="caption" color="text.secondary">
+      Best sampled: {displayNumber(best.metric)} · eval {displayNumber(best.evaluation)}
     </Typography>}
   </Stack>
 }
@@ -188,6 +202,8 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   const samples = useMemo(() => optimizerSamples(table), [table])
   const names = useMemo(() => optimizerParameterNames(table), [table])
   const varying = names.filter((name) => new Set(samples.map((sample) => sample.values[name]).filter(Number.isFinite)).size > 1)
+  const [view, setView] = useState<'landscape' | 'history'>('landscape')
+  const [showPath, setShowPath] = useState(true)
   const [x, setX] = useState(varying[0] ?? names[0] ?? '')
   const [y, setY] = useState(varying[1] ?? names.find((name) => name !== x) ?? '')
   const [mode, setMode] = useState<LandscapeMode>(run.linear ? 'slice' : 'projection')
@@ -224,9 +240,9 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     ? linearObjectiveSlice(linear, x, y, fixed) : null,
   [canSlice, effectiveMode, linear, x, y, fixedKey])
 
-  const evaluations = shown.map((sample) => sample.evaluation)
-  const metrics = shown.map((sample) => sample.metric)
-  const bestHistory = runningBest(shown)
+  const evaluations = samples.map((sample) => sample.evaluation)
+  const metrics = samples.map((sample) => sample.metric)
+  const bestHistory = runningBest(samples)
   const selected = selectedIndex == null || selectedIndex >= shown.length ? null : shown[selectedIndex]
   const display = (name: string) => parameterLabel(parameters, name)
   const canPlot = x !== y && names.length >= 2
@@ -241,13 +257,17 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
 
   if (!samples.length) return <Alert severity="info">No optimizer evaluations with finite objective values are available.</Alert>
 
-  return <Stack spacing={2}>
-    <Paper variant="outlined" sx={{ p: 1.6 }}>
+  return <Stack spacing={1.5}>
+    <Paper variant="outlined" sx={{ p: 1.2 }}>
+      <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <Button size="small" variant={view === 'landscape' ? 'contained' : 'outlined'} onClick={() => setView('landscape')}>Landscape</Button>
+        <Button size="small" variant={view === 'history' ? 'contained' : 'outlined'} onClick={() => setView('history')}>History</Button>
+        <Chip size="small" variant="outlined" sx={{ ml: { md: 'auto' } }} label={samples.length.toLocaleString() + ' evaluations'} />
+      </Stack>
+    </Paper>
+    {view === 'landscape' && <Paper variant="outlined" sx={{ p: 1.6 }}>
       <Stack spacing={1.6}>
-        <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-          <Typography variant="h6">Optimization landscape</Typography>
-          <Chip size="small" label={samples.length.toLocaleString() + ' optimizer evaluations'} variant="outlined" />
-        </Stack>
+        <Typography variant="h6">Optimization landscape</Typography>
         {canPlot ? <>
           <Stack direction="row" useFlexGap spacing={1.1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <FormControl size="small" sx={{ minWidth: 170 }}>
@@ -264,9 +284,10 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
             </FormControl>
             <Button size="small" variant={effectiveMode === 'projection' ? 'contained' : 'outlined'} onClick={() => setMode('projection')}>Projection</Button>
             <Button size="small" variant={effectiveMode === 'slice' ? 'contained' : 'outlined'} disabled={!canSlice} onClick={() => setMode('slice')}>Slice · Linear</Button>
+            <Button size="small" variant={showPath ? 'contained' : 'outlined'} color="inherit" onClick={() => setShowPath((current) => !current)} aria-pressed={showPath}>Trajectory</Button>
           </Stack>
           {effectiveMode === 'slice' && otherNames.length > 0 && <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <Typography variant="body2" color="text.secondary">Fixed Linear coordinates:</Typography>
+ 
             {otherNames.map((name) => <FormControl size="small" sx={{ minWidth: 155 }} key={name}>
               <InputLabel id={'optimizer-fixed-' + name}>{display(name)}</InputLabel>
               <Select labelId={'optimizer-fixed-' + name} label={display(name)} value={fixed[name] ?? ''} onChange={(event) => setFixedOverrides((previous) => ({ ...previous, [name]: Number(event.target.value) }))}>
@@ -274,14 +295,9 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
               </Select>
             </FormControl>)}
           </Stack>}
-          {effectiveMode === 'slice' ? <Typography variant="body2" color="text.secondary">
-            Exact stored Linear metric cells, with no interpolation. Only points matching all fixed coordinates belong to this slice; grey points are 2D projections of other optimizer evaluations.
-          </Typography> : <Typography variant="body2" color="text.secondary">
-            Every evaluated configuration projected onto two selected parameters. Point color encodes its own evaluated objective; no surrogate surface is assumed.
-            {!canSlice ? ' A compatible two-parameter Linear grid is unavailable for this run and axis pair.' : ''}
-          </Typography>}
+          {!canSlice && effectiveMode === 'projection' && <Typography variant="caption" color="text.secondary">Linear slice unavailable for these axes</Typography>}
           <OptimizerScatter samples={shown} allSamples={samples} selectedIndex={selectedIndex} onSelect={setSelectedIndex}
-            xName={x} yName={y} mode={effectiveMode} slice={slice} fixed={fixed} parameters={parameters} />
+            xName={x} yName={y} mode={effectiveMode} slice={slice} fixed={fixed} parameters={parameters} showPath={showPath} />
           {selected && <Paper variant="outlined" sx={{ p: 1.1 }}>
             <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
               <Typography variant="subtitle2">Selected evaluation {displayNumber(selected.evaluation)}</Typography>
@@ -291,40 +307,40 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
             </Stack>
           </Paper>}
           <Box sx={{ maxWidth: 670, width: '100%', mx: 'auto', px: 1 }}>
-            <Typography variant="body2" sx={{ mb: 0.8 }} color="text.secondary">
-              Evaluations shown: {shown.length} / {samples.length} · current best: {displayNumber(currentBest?.metric)}
+            <Typography variant="caption" sx={{ mb: 0.6, display: 'block' }} color="text.secondary">
+              {shown.length} / {samples.length} evaluations · best {displayNumber(currentBest?.metric)}
             </Typography>
             <Slider aria-label="Evaluations shown" value={shownCount} min={1} max={samples.length} step={1}
               disabled={samples.length <= 1} valueLabelDisplay="auto" onChange={(_, value) => setCount(value as number)} />
           </Box>
         </> : <Alert severity="info">At least two parameter columns are required to display a two-dimensional optimization landscape.</Alert>}
       </Stack>
-    </Paper>
+    </Paper>}
+    {view === 'history' && <Stack spacing={1.5}>
     <Paper variant="outlined" sx={{ p: 1.7 }}>
-      <Typography variant="h6">Best sampled objective</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Evaluated objective and running minimum versus evaluation number. The plotted history follows the same evaluation limit as the landscape.</Typography>
+      <Typography variant="h6" sx={{ mb: 1 }}>Objective</Typography>
       <LineChart height={355} margin={{ bottom: 55, left: 90 }}
         xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => displayNumber(value) }]}
         yAxis={[{ label: 'metric', width: 80, valueFormatter: (value: number | null) => displayNumber(value) }]}
         series={[
-          { data: metrics, label: 'Evaluated objective', showMark: shown.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
-          { data: bestHistory, label: 'Best so far', showMark: shown.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
+          { data: metrics, label: 'Evaluated objective', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
+          { data: bestHistory, label: 'Best so far', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
         ]} grid={{ horizontal: true }} />
     </Paper>
     <Divider sx={{ my: 0.6 }} />
     <Stack spacing={1}>
-      <Typography variant="h6">Parameter history</Typography>
-      <Typography variant="body2" color="text.secondary">Every optimizer parameter, including constant ones, plotted at its raw stored value. No metric weighting or normalization.</Typography>
+      <Typography variant="h6">Parameters</Typography>
       {names.length ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: 'repeat(2, minmax(0, 1fr))' }, gap: 1.4 }}>
         {names.map((name) => <Paper key={name} variant="outlined" sx={{ p: 1.3, minWidth: 0 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.8 }}>{display(name)}</Typography>
           <LineChart height={280} margin={{ bottom: 45, left: 95 }}
             xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => displayNumber(value) }]}
             yAxis={[{ label: display(name), width: 84, valueFormatter: (value: number | null) => displayNumber(value) }]}
-            series={[{ data: shown.map((sample) => Number.isFinite(sample.values[name]) ? sample.values[name] : null), label: display(name), showMark: shown.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) }]}
+            series={[{ data: samples.map((sample) => Number.isFinite(sample.values[name]) ? sample.values[name] : null), label: display(name), showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) }]}
             grid={{ horizontal: true }} />
         </Paper>)}
       </Box> : <Alert severity="info">No optimizer parameter columns are available.</Alert>}
     </Stack>
+    </Stack>}
   </Stack>
 }
