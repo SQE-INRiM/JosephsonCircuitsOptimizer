@@ -290,6 +290,7 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     {view === 'landscape' && <Paper variant="outlined" sx={{ p: 1.6 }}>
       <Stack spacing={1.6}>
         <Typography variant="h6">Optimization landscape</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: '-8px !important' }}>Surrogate-guided search for lower objective values; each point is an evaluated configuration.</Typography>
         {canPlot ? <>
           <Stack direction="row" useFlexGap spacing={1.1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <FormControl size="small" sx={{ minWidth: 170 }}>
