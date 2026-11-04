@@ -205,6 +205,10 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
         println("Frequency sweep point:")
         println("Source frequencies used: ", current_source_freqs)
 
+        # Reuse the full linear hbsolve solution at this source-frequency
+        # configuration for every pumped amplitude (same device parameters).
+        sol_linear = linear_solution(optimal_params, circuit, local_sim_vars)
+
         failed_idx_by_source2 = Dict{Int, Int}()
 
         for amp_idx in amp_indices
@@ -244,7 +248,6 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
                 continue
             end
 
-            S_lin = linear_simulation(optimal_params, circuit, local_sim_vars)
             point_id = length(results) + 1
 
             _gui_begin_point!("nonlinear", point_id;
@@ -252,7 +255,7 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
             try
                 perf = performance(nl.sol, optimal_params, amps, current_source_freqs)
                 nonlin_correction_term = Base.invokelatest(
-                    user_nonlinear_correction, S_lin, nl.sol, optimal_params
+                    user_nonlinear_correction, sol_linear, nl.sol, optimal_params
                 )
 
                 nonlinear_S = store_all && nl.sol !== nothing ?
