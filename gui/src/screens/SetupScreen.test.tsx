@@ -101,7 +101,7 @@ describe('Linear-stage harmonic and intermodulation guidance', () => {
     expect(screen.queryByText(/Shared by linear and nonlinear stages/)).toBeNull()
 
     const batchesHint = screen.getByText(/Set Frequency batches to 0 to use all Julia threads configured in/)
-    expect(batchesHint.tagName).toBe('SPAN')
+    expect(batchesHint.classList.contains('MuiTypography-caption')).toBe(true)
     expect(batchesHint.closest('.MuiAlert-root')).toBeNull()
     expect(batchesHint.textContent).toContain('Julia settings')
   })
