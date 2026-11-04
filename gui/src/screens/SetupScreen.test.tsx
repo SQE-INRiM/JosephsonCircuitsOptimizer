@@ -267,9 +267,11 @@ describe('Setup navigation across Model & inputs substeps', () => {
     const next = screen.getByRole('button', { name: 'Next' })
     const back = screen.getByRole('button', { name: 'Back' })
 
-    const title = screen.getByText('Project setup')
-    expect(title.parentElement?.parentElement?.contains(next)).toBe(true)
-    expect(title.parentElement?.parentElement?.contains(back)).toBe(true)
+    const stepperCard = next.closest('.MuiPaper-root')
+    expect(stepperCard).not.toBeNull()
+    expect(stepperCard?.querySelector('.MuiStepper-root')).not.toBeNull()
+    expect(stepperCard?.contains(back)).toBe(true)
+    expect(screen.getByText('Project setup').parentElement?.contains(next)).toBe(false)
     expect(screen.queryByRole('button', { name: 'Run remaining' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Stop run' })).toBeNull()
 
