@@ -58,9 +58,12 @@ describe('JCO project menu', () => {
   })
 
   it('offers editable ZIP as the primary Save As action without changing the current .jco project', async () => {
-    useAppStore.setState({ dirty: true })
     render(<App themePreference="dark" />)
     fireEvent.click(screen.getByRole('button', { name: 'Project menu' }))
+    // The desktop startup loads a fresh project asynchronously. Mark edits
+    // only after initialization, as a user would do in the running GUI.
+    await screen.findByRole('menuitem', { name: 'Demo JTWPA' })
+    useAppStore.setState({ dirty: true })
     fireEvent.click(screen.getByRole('menuitem', { name: 'Save As…' }))
 
     const dialog = screen.getByRole('dialog', { name: 'Save As…' })
