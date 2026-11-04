@@ -73,13 +73,14 @@ function SectionHeading({ icon, title, description }: { icon: React.ReactElement
   )
 }
 
-function CodeDialog({ open, onClose, title, filename, value, onChange }: {
+function CodeDialog({ open, onClose, title, filename, value, onChange, focusFunction }: {
   open: boolean
   onClose: () => void
   title: string
   filename: string
   value: string
   onChange: (value: string) => void
+  focusFunction?: string
 }) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
@@ -93,7 +94,7 @@ function CodeDialog({ open, onClose, title, filename, value, onChange }: {
         </Stack>
       </DialogTitle>
       <DialogContent sx={{ pt: '8px !important' }}>
-        <JuliaCodeEditor label={filename} value={value} onChange={onChange} />
+        <JuliaCodeEditor label={filename} value={value} onChange={onChange} focusFunction={focusFunction} />
       </DialogContent>
     </Dialog>
   )
@@ -549,8 +550,7 @@ function ComputationStep() {
 function MetricsStep() {
   const project = useAppStore((state) => state.project)
   const updateMetricsCode = useAppStore((state) => state.updateMetricsCode)
-  const [metricsOpen, setMetricsOpen] = useState(false)
-  const [metricsEditorTitle, setMetricsEditorTitle] = useState('Cost & performance')
+  const [metricsEditorFunction, setMetricsEditorFunction] = useState<'user_cost' | 'user_performance' | 'user_nonlinear_correction' | null>(null)
   const [helpersOpen, setHelpersOpen] = useState(false)
   const hasCorrection = /\bfunction\s+user_nonlinear_correction\s*\(/.test(project.metricsCode.replace(/#=[\s\S]*?=#/g, '').replace(/#.*$/gm, ''))
   const feedbackEnabled = project.computation.nonlinearCorrectionCycles > 0
@@ -566,12 +566,21 @@ function MetricsStep() {
   return (
     <Stack spacing={2}>
       <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <SectionHeading icon={<FunctionsRoundedIcon />} title="Cost & performance outputs" description="The list is generated from the named values returned by the two Julia functions." />
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" startIcon={<CodeRoundedIcon />} onClick={() => { setMetricsEditorTitle('Cost & performance'); setMetricsOpen(true) }}>Cost & performance</Button>
-            <Button variant="outlined" startIcon={<CodeRoundedIcon />} onClick={() => setHelpersOpen(true)}>Metric helpers</Button>
-          </Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+          <SectionHeading icon={<FunctionsRoundedIcon />} title="Cost & performance" description="Edit each Julia function or its shared helpers." />
+          <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setHelpersOpen(true)}>Metric helpers</Button>
+        </Stack>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mt: 2 }}>
+          <Paper variant="outlined" sx={{ p: 1.5, flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle2">Cost function</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>user_cost · minimized objective</Typography>
+            <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setMetricsEditorFunction('user_cost')}>Edit cost</Button>
+          </Paper>
+          <Paper variant="outlined" sx={{ p: 1.5, flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle2">Performance function</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>user_performance · maximized objective</Typography>
+            <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setMetricsEditorFunction('user_performance')}>Edit performance</Button>
+          </Paper>
         </Stack>
         <Alert severity="info" sx={{ my: 2 }}>The first value returned by <code>user_cost</code> is minimized. The first value returned by <code>user_performance</code> is maximized. Every later named value is saved for data analysis.</Alert>
         {(!hasCost || !hasPerformance) && <Alert severity="warning" sx={{ mb: 2 }}>Missing {!hasCost && !hasPerformance ? <><code>user_cost</code> and <code>user_performance</code></> : !hasCost ? <code>user_cost</code> : <code>user_performance</code>} definition.</Alert>}
@@ -582,19 +591,29 @@ function MetricsStep() {
       </Paper>
       <Paper variant="outlined" sx={{ p: 2.5 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: { md: 'center' }, justifyContent: 'space-between' }}>
-          <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear feedback function" description="The optional correction is defined in the same user_cost_and_performance.jl file." />
-          <Button variant="outlined" startIcon={<CodeRoundedIcon />} onClick={() => { setMetricsEditorTitle('Nonlinear feedback'); setMetricsOpen(true) }}>Edit feedback function</Button>
+          <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear correction" description="Optional user-defined feedback, stored alongside cost and performance." />
+          <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setMetricsEditorFunction('user_nonlinear_correction')}>Edit correction</Button>
         </Stack>
         <Typography variant="body2" sx={{ mt: 2, fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
           user_nonlinear_correction(S_linear, sol, device_params_set)
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          S_linear contains the linear S-parameters; sol is the complete nonlinear HB solution. The returned correction is supplied as the third argument of user_cost. It is not added to the metric automatically.
+          S_linear is the extracted linear S-parameter dictionary; sol is the complete nonlinear hbsolve solution. The returned correction is passed to user_cost, which decides how to use it. All three editors open the same Julia file at the selected function.
         </Typography>
         {feedbackEnabled && !hasCorrection && <Alert severity="warning" sx={{ mt: 2 }}>Nonlinear feedback is enabled, but <code>user_nonlinear_correction</code> is not defined.</Alert>}
         {!hasCorrection && !feedbackEnabled && <Alert severity="info" sx={{ mt: 2 }}>Define <code>user_nonlinear_correction</code> before enabling feedback. The nonlinear sweep also expects this hook to exist.</Alert>}
       </Paper>
-      <CodeDialog open={metricsOpen} onClose={() => setMetricsOpen(false)} title={metricsEditorTitle} filename="user_cost_and_performance.jl" value={project.metricsCode} onChange={updateMetricsCode} />
+      <CodeDialog
+        open={metricsEditorFunction !== null}
+        onClose={() => setMetricsEditorFunction(null)}
+        title={metricsEditorFunction === 'user_cost' ? 'Cost function'
+          : metricsEditorFunction === 'user_performance' ? 'Performance function'
+          : 'Nonlinear correction'}
+        filename="user_cost_and_performance.jl"
+        focusFunction={metricsEditorFunction ?? undefined}
+        value={project.metricsCode}
+        onChange={updateMetricsCode}
+      />
       <CodeDialog open={helpersOpen} onClose={() => setHelpersOpen(false)} title="Metric helper functions" filename="user_metric_utils.jl" value={project.helpersCode ?? ''} onChange={updateHelpersCode} />
     </Stack>
   )
