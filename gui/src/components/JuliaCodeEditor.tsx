@@ -26,20 +26,25 @@ export function JuliaCodeEditor({ value, onChange, label, focusFunction }: Julia
     [value],
   )
 
-  // This editor always edits the entire shared Julia file. Navigate only on
-  // opening/target change: editing text must never reset the user's selection.
+  // This editor always edits the entire Julia file. Navigate only on
+  // opening/target change: typing must not reset the cursor.
   useLayoutEffect(() => {
-    if (!focusFunction || !/^[A-Za-z_]\\w*$/.test(focusFunction) || !inputRef.current) return
-    const match = new RegExp('^[ \\t]*function[ \\t]+' + focusFunction + '[ \\t]*\\(', 'm').exec(value)
-    if (!match) return
+    if (!focusFunction || !inputRef.current) return
+    const lines = value.split(String.fromCharCode(10))
+    const definition = 'function ' + focusFunction
+    const lineIndex = lines.findIndex((line) => {
+      const trimmed = line.trimStart()
+      return trimmed.startsWith(definition) &&
+        trimmed.slice(definition.length).trimStart().startsWith('(')
+    })
+    if (lineIndex < 0) return
+    const position = lines.slice(0, lineIndex).reduce((n, line) => n + line.length + 1, 0)
     const editor = inputRef.current
-    const lineStart = match.index
-    const lineNumber = value.slice(0, lineStart).split('\\n').length - 1
     editor.focus()
-    editor.setSelectionRange(lineStart, lineStart)
-    editor.scrollTop = Math.max(0, lineNumber - 2) * 20
+    editor.setSelectionRange(position, position)
+    editor.scrollTop = Math.max(0, lineIndex - 2) * 20
     syncScroll(editor)
-  // Only re-run for a different function target, not on keystrokes.
+  // Deliberately exclude the changing source text from the dependencies.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusFunction])
 
