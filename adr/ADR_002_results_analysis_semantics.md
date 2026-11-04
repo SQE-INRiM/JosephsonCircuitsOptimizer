@@ -22,21 +22,22 @@ Higher-dimensional uniform sweeps also require an explicit way to inspect a two-
 4. When the Landscape slice changes, Point data follows a point contained in the active slice so the inspector remains consistent with the visible heatmap.
 5. Linear 1D density analysis preserves the JCO weighting definition for each parameter value: `weighted_count = sample_count / mean(metric)`. The displayed weight is normalized to `[0, 1]` with min-max normalization across the finite weighted counts for that parameter. This replaces division by the maximum alone, which can produce sign/clamping artefacts for negative objectives while preserving the ordering of the original weighted-count quantity.
 6. The 1D density view uses only the uniform Linear table. It therefore does not encode optimizer sampling behavior even though it retains JCO's count contribution.
-7. Optimization Results contains optimizer diagnostics only: best sampled objective and raw sampled parameter history versus evaluation number.
+7. Optimization Results presents optimizer diagnostics in one continuous page: a two-dimensional sample-location landscape, evaluated and best-so-far objective versus evaluation number, then raw histories for every stored optimizer parameter (including constant columns).
 8. Parameter-history values are never metric-weighted or normalized.
-9. Results presents one principal analysis view at a time to reduce vertical scrolling. The selected Point data is colocated directly below the Linear Landscape because it is the immediate detail view of the clicked landscape cell.
+10. A fixed dimension in Optimization Slice defaults to the closest stored Linear coordinate to the overall best optimizer sample. Samples with different coordinates are never treated as if they belonged to that exact slice; if the run has no compatible Linear dataset, only Projection is offered.
+9. Linear Results presents one principal analysis view at a time to reduce vertical scrolling. The selected Point data is colocated directly below the Linear Landscape because it is the immediate detail view of the clicked landscape cell. Optimization instead keeps the landscape, metric and all parameter histories together on one scrollable page.
 
 ## Consequences
 - Correlation/density views no longer encode optimizer sampling density.
 - High-dimensional Linear landscapes remain inspectable as explicit 2D slices while preserving the meaning of the other parameter coordinates.
 - Correlation starts with a compact parameter-only matrix; users can deliberately include all metrics when they need parameter–metric and metric–metric correlations.
 - Linear density plots remain directly comparable in meaning to JCO's existing `plot_1d_density_heatmap`, with bounded display normalization that works for negative metrics.
-- Optimizer-specific sampling-density diagnostics may be added later, but must be explicitly labeled as optimizer behavior.
+- The Optimization landscape is a plot of evaluated samples, not a reconstruction of the surrogate model. Projection draws all samples at their chosen X/Y coordinates and colors them by their own evaluated metric. Slice draws only the exact persisted Linear grid at selected fixed coordinates, without averaging or interpolation; evaluations at other fixed-coordinate values remain visible as explicitly subdued projections. A ring marks the best sampled optimizer point; a separate marker marks the lowest *stored Linear cell* in the displayed slice. Neither proves a global minimum.
 - Optimization chart formatting may use scientific notation for very small or large stored values; this changes presentation only, never the stored parameter or metric values.
 - No `.jco` schema or numerical engine change is required; these are presentation/analysis-semantics changes over already persisted tables.
 
 ## Validation expectations
 - Automated helper tests should verify exact fixed-coordinate slicing, JCO `count / mean(metric)` weighting, bounded normalization for negative metrics, and both correlation dimension modes.
 - Formatting tests should verify that small non-zero optimizer values remain visibly non-zero.
-- GUI build/runtime validation should confirm X/Y selection, fixed-coordinate selectors, landscape-to-point consistency, correlation `None`/`Metrics` switching, retained Point data behavior, optimizer chart tooltips, and view switching.
+- GUI build/runtime validation should confirm X/Y selection, fixed-coordinate selectors, landscape-to-point consistency, correlation `None`/`Metrics` switching, retained Point data behavior, optimizer Projection/Slice semantics, chronological evaluation limit, best-sampled highlight, complete parameter histories and objective values.
 - Scientific validation must not claim that Pearson correlation or weighted-count density is a causal or complete parameter-importance measure.
