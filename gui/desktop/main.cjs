@@ -31,6 +31,7 @@ const EXTERNAL_ABOUT_LINKS = new Set([
   'https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/issues',
   'https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/blob/main/LICENSE.md',
   'https://doi.org/10.1109/TASC.2026.3679488',
+  'mailto:emanuele.palumbo@polito.it',
 ])
 
 function resourcesRoot() {
