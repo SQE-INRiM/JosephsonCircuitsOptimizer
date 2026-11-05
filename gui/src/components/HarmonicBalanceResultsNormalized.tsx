@@ -27,6 +27,27 @@ function sourceCoordinateColumns(table: ResultTable) { return table.columns.filt
 function amplitudeColumns(table: ResultTable) { return sourceCoordinateColumns(table).filter((column) => /_amplitude$/i.test(column)) }
 function metricColumns(table: ResultTable) { const coords = new Set(sourceCoordinateColumns(table)); return table.columns.filter((column) => column !== 'point_id' && column !== 'converged' && !coords.has(column)) }
 function columnValues(table: ResultTable, column: string) { const index = table.columns.indexOf(column); return index < 0 ? [] : unique(rowsAsNumbers(table).map((row) => row[index])) }
+
+// A valid response needs two distinct amplitudes at the same other source
+// coordinates; multiple isolated points do not form an amplitude sweep.
+export function hasHbAmplitudeResponse(table: ResultTable): boolean {
+  const coordinates = sourceCoordinateColumns(table)
+  return amplitudeColumns(table).some((amplitude) => {
+    const amplitudeIndex = table.columns.indexOf(amplitude)
+    const fixedIndices = coordinates.filter((column) => column !== amplitude).map((column) => table.columns.indexOf(column))
+    const groups = new Map<string, Set<number>>()
+    for (const row of rowsAsNumbers(table)) {
+      const value = row[amplitudeIndex]
+      if (!Number.isFinite(value)) continue
+      const key = fixedIndices.map((index) => String(row[index])).join('|')
+      const values = groups.get(key) ?? new Set<number>()
+      values.add(value)
+      if (values.size >= 2) return true
+      groups.set(key, values)
+    }
+    return false
+  })
+}
 function rowMatchesFixed(table: ResultTable, row: NumericRow, fixed: Record<string, number>) { return Object.entries(fixed).every(([column, value]) => row[table.columns.indexOf(column)] === value) }
 function convergenceMatches(table: ResultTable, row: NumericRow, filter: ConvergenceFilter) { if (filter === 'all') return true; const index = table.columns.indexOf('converged'); if (index < 0) return filter === 'converged'; return filter === 'converged' ? row[index] === 1 : row[index] !== 1 }
 function traceLabel(trace: Pick<SavedTraceData, 'quantityName' | 'arrayName'>) { return trace.quantityName === trace.arrayName ? trace.quantityName : `${trace.quantityName} · ${trace.arrayName}` }
