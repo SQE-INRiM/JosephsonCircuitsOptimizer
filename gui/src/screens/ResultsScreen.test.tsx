@@ -189,7 +189,7 @@ describe('Feedback cycle navigation within Results', () => {
     const tabs = screen.getByRole('tab', { name: 'Linear' })
     const cycle = screen.getByRole('combobox', { name: 'Cycle' })
     expect(run.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(tabs.parentElement?.parentElement?.contains(cycle)).toBeTruthy()
+    expect(tabs.closest('.MuiPaper-root')?.contains(cycle)).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Nonlinear feedback' })).toBeTruthy()
     expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('0')
     expect(screen.getByTestId('selected-linear-file').textContent).toBe('baseline.h5')
