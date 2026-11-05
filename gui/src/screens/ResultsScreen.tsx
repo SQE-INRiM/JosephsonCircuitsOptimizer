@@ -158,7 +158,7 @@ export function ResultsScreen() {
           <Box sx={{ display: 'flex', gap: 0.5, overflowX: 'auto', flex: 1, minWidth: 0, py: 0.5, scrollbarWidth: 'thin' }}>
             {availableCycles.map((cycle) => {
               const status = selectedRun?.cycles?.find((entry) => entry.cycle === cycle)?.status
-              return <Tooltip key={cycle} title={cycle === 0 ? 'Original run (before correction)' : status === 'completed' ? 'Completed feedback cycle' : 'Cycle data may be incomplete'}>
+              return <Tooltip key={cycle} describeChild title={cycle === 0 ? 'Original run (before correction)' : status === 'completed' ? 'Completed feedback cycle' : 'Cycle data may be incomplete'}>
                 <Button size="small" sx={{ flexShrink: 0, minWidth: 'auto', px: 1.5 }}
                   variant={activeCycle === cycle ? 'contained' : 'outlined'}
                   aria-pressed={activeCycle === cycle} onClick={() => selectCycle(cycle)}>
