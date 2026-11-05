@@ -264,6 +264,9 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
 
   const evaluations = samples.map((sample) => sample.evaluation)
   const { evaluated: metrics, bestSoFar: bestHistory } = objectiveHistoryForPlot(samples)
+  // A single evaluated (or unmasked) point is not a history curve.
+  const historyAvailable = metrics.filter((value) => value !== null).length >= 2
+  useEffect(() => { if (!historyAvailable) setView('landscape') }, [historyAvailable])
   const selected = selectedIndex == null || selectedIndex >= shown.length ? null : shown[selectedIndex]
   const display = (name: string) => parameterLabel(parameters, name)
   const canPlot = x !== y && names.length >= 2
@@ -282,7 +285,7 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     <Paper variant="outlined" sx={{ p: 1.2 }}>
       <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <Button size="small" variant={view === 'landscape' ? 'contained' : 'outlined'} onClick={() => setView('landscape')}>Landscape</Button>
-        <Button size="small" variant={view === 'history' ? 'contained' : 'outlined'} onClick={() => setView('history')}>History</Button>
+        <Button size="small" variant={view === 'history' ? 'contained' : 'outlined'} disabled={!historyAvailable} onClick={() => setView('history')}>History</Button>
         <Chip size="small" variant="outlined" sx={{ ml: { md: 'auto' } }} label={samples.length.toLocaleString() + ' evaluations'} />
       </Stack>
     </Paper>
@@ -338,16 +341,16 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
         </> : <Alert severity="info">At least two parameter columns are required to display a two-dimensional optimization landscape.</Alert>}
       </Stack>
     </Paper>}
-    {view === 'history' && <Stack spacing={1.5}>
+    {view === 'history' && historyAvailable && <Stack spacing={1.5}>
     <Paper variant="outlined" sx={{ p: 1.7 }}>
       <Typography variant="h6" sx={{ mb: 1 }}>Objective</Typography>
-      {metrics.some((value) => value !== null) ? <LineChart height={290} margin={{ bottom: 45, left: 80 }}
+      <LineChart height={290} margin={{ bottom: 45, left: 80 }}
         xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => displayNumber(value) }]}
         yAxis={[{ label: 'metric', width: 80, valueFormatter: (value: number | null) => displayNumber(value) }]}
         series={[
           { data: metrics, label: 'Evaluated objective', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
           { data: bestHistory, label: 'Best so far', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
-        ]} grid={{ horizontal: true }} /> : <Alert severity="info">All objective evaluations are masked; there are no values to plot.</Alert>}
+        ]} grid={{ horizontal: true }} />
     </Paper>
     <Divider sx={{ my: 0.6 }} />
     <Stack spacing={1}>
