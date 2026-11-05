@@ -212,6 +212,14 @@ npm test
 npm run build
 ```
 
+## Continuous integration and desktop packaging
+
+Every pull request runs GUI tests, Electron syntax checks, and a frontend build without producing a downloadable installer. The Windows and Linux packaging workflows run on pull requests only when packaging-sensitive inputs change (Electron desktop files, bundled runtime resources, icons, packaging configuration, or packaging workflow files). These PR builds check whether packaging succeeds but do not upload installers as Actions artifacts.
+
+For an on-demand executable, open **Actions** on GitHub, select **Build Windows desktop packages** or **Build Linux AppImage**, and choose **Run workflow**. The manually generated packages are downloadable from that run for **7 days**. Regular pushes and merges to `main` do not automatically produce installers.
+
+Official `v*` tags trigger **Publish desktop release**, which builds both platforms and publishes their packages as persistent GitHub Release assets; its intermediate Actions artifacts are retained for **3 days**. A successful packaging build does not substitute for a launch-and-simulation smoke test of the packaged app, particularly the Julia integration. Perform that check before announcing a release.
+
 ## Citation
 
 If you use JCO in scientific work, please cite:
