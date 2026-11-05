@@ -65,6 +65,7 @@ include("Bookkeeping.jl")
 using .Bookkeeping
 include("CircuitModule.jl")
 include("CostModule.jl")
+include("FeedbackConvergence.jl")
 include("simulator.jl")
 include("optimizer.jl")
 include("FeedbackResults.jl")
@@ -340,13 +341,36 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         # --- Nonlinear correction (optional) ---
         feedback_count = single_point_mode ? 0 : Int(sim_vars[:n_iterations_nonlinear_correction])
         if feedback_count > 0
+            correction_terms = Float64[]
+            reference_amplitudes = get_delta_correction_amplitudes()
+            feedback_stop_mode = lowercase(String(get(sim_vars, :nonlinear_feedback_stop_mode, "cycles")))
+            feedback_metric = lowercase(String(get(sim_vars, :nonlinear_feedback_metric, "correction")))
+            tolerance_type = lowercase(String(get(sim_vars, :nonlinear_feedback_tolerance_type, "absolute")))
+            feedback_tolerance = Float64(get(sim_vars, :nonlinear_feedback_tolerance, 0.01))
+            maximum_correction_cycles = Int(sim_vars[:n_iterations_nonlinear_correction])
+            feedback_stop_mode in ("cycles", "convergence") ||
+                error("Unknown nonlinear feedback stop mode: $feedback_stop_mode")
+            if feedback_stop_mode == "convergence"
+                maximum_correction_cycles >= 2 ||
+                    error("Convergence stopping requires at least two correction cycles.")
+                tolerance_type in ("absolute", "relative") ||
+                    error("Unsupported feedback tolerance type: $tolerance_type")
+                isfinite(feedback_tolerance) && feedback_tolerance > 0 ||
+                    error("Feedback convergence tolerance must be positive and finite.")
+                feedback_metric in ("cost", "performance", "correction") ||
+                    error("Unsupported feedback convergence metric: $feedback_metric")
+            end
+            previous_feedback_value = nothing
+            feedback_values = Float64[]
+            feedback_converged = false
+            completed_correction_cycles = 0
+
+
             # Cycle 0 is the original Linear / BO / HB run at the run root.
             feedback_history = Any[_jco_feedback_cycle(0, optimal_params, optimal_metric, best_performance, 0.0)]
             _jco_save_feedback_summary(output_path, feedback_count, feedback_history)
-            correction_terms = Any[]
-            reference_amplitudes = get_delta_correction_amplitudes()
 
-            for i in 1:feedback_count
+            for i in 1:maximum_correction_cycles
                 stop_if_requested!(config.WORKING_SPACE)
                 println("-----------------------------------------------------")
                 @info "Implementing nonlinear correction: iteration $i"
@@ -408,10 +432,53 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                     push!(feedback_history, _jco_feedback_cycle(
                         i, optimal_params, optimal_metric, cycle_best_performance, delta_correction))
                     _jco_save_feedback_summary(output_path, feedback_count, feedback_history)
+                    completed_correction_cycles = i
+
+                let p = plot_delta_vs_amplitude(results)
+                    if p !== nothing
+                        plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="delta_vs_amplitude")
+                    end
+                end
+
+                let p = plot_performance_vs_amplitude(results)
+                    if p !== nothing
+                        plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="performance_vs_amplitude")
+                    end
+                end
+
+                if feedback_stop_mode == "convergence"
+                    # Observe only *completed corrected cycles*: comparing the
+                    # first corrected cost with the uncorrected baseline would
+                    # conflate a changed objective with actual convergence.
+                    observed = feedback_observed_value(
+                        feedback_metric, optimal_metric, cycle_best_performance, delta_correction)
+                    push!(feedback_values, observed)
+                    if feedback_has_converged(
+                            previous_feedback_value, observed, tolerance_type, feedback_tolerance)
+                        feedback_converged = true
+                        @info "Nonlinear feedback converged" cycle=i metric=feedback_metric value=observed tolerance=feedback_tolerance type=tolerance_type
+                        break
+                    end
+                    previous_feedback_value = observed
+                end
                 finally
                     CURRENT_OUTPUT_PATH[] = output_path
                 end
             end
+
+            # Keep an explicit record of why the feedback sequence stopped.
+            # This can be inspected alongside corrected-cycle datasets, without
+            # interpreting a stabilization criterion as physical validation.
+            save_output_file(Dict(
+                "stopping_mode" => feedback_stop_mode,
+                "monitored_metric" => feedback_stop_mode == "convergence" ? feedback_metric : nothing,
+                "tolerance_type" => feedback_stop_mode == "convergence" ? tolerance_type : nothing,
+                "tolerance" => feedback_stop_mode == "convergence" ? feedback_tolerance : nothing,
+                "monitored_values" => feedback_values,
+                "cycles_completed" => completed_correction_cycles,
+                "maximum_cycles" => maximum_correction_cycles,
+                "stop_reason" => feedback_converged ? "converged" : "cycle_limit"
+            ), joinpath(optimal_params_dir, "nonlinear_feedback_stopping.json"))
 
             # Direct Julia users retain the convergence figure; GUI runs suppress it.
             p = _jco_plot_correction_convergence(correction_terms)

@@ -4,21 +4,23 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
-### Nonlinear feedback Results (parallel draft)
+### Cycle-aware nonlinear feedback Results (parallel draft)
 
-- Preserve separate Linear, Optimization and HB datasets for each corrected feedback cycle while retaining the original Cycle 0 outputs; save an atomic per-run convergence summary.
-- Add a cycle selector within the existing Results stage bar and a subtly accented Nonlinear feedback tab with performance and parameter convergence charts.
-- Make stage inspection, saved arrays, A/B comparisons and CSV export cycle-aware, including partial cycles, without changing existing single-cycle or legacy project behavior.
-- Keep this Results/persistence work in a separate draft branch from the concurrently edited nonlinear-feedback Setup/Metrics UI; scientific Julia/HB reference validation is still pending.
+- Store corrected-cycle Linear, Optimization and HB datasets in individual folders, with an atomic run-level feedback convergence summary and Cycle 0 remaining at the run root.
+- Add the feedback cycle selector inside the Results stage row plus a dedicated, subtly accented Nonlinear feedback view for performance and parameter convergence; keep saved traces, A/B selection and CSV exports cycle-aware.
+- The numerical feedback loop is integrated with the fixed-cycle or convergence stopping available on `main`. Multi-cycle Julia/HB validation remains pending; this change stays in the parallel draft PR.
 
-### v0.4.3 candidate — Nonlinear feedback GUI (draft PR #24)
+### Nonlinear feedback (development; scientific validation pending)
 
-- Add optional nonlinear-feedback controls in the Setup computation panel: enable/disable, correction-cycle count, and per-source fixed reference current in amperes, independent from the swept nonlinear pump amplitudes.
-- Offer three function-specific, focused Julia editor entry points in Metrics for `user_cost`, `user_performance` and `user_nonlinear_correction`; all edit the complete `user_cost_and_performance.jl` without changing the `.jco` schema.
+- Add optional nonlinear-feedback stopping in Computation: fixed correction cycles **or** convergence on corrected cost, best pumped HB performance or nonlinear correction, with absolute/relative tolerance and a maximum cycle budget. Place the feedback card below Harmonic and solver settings; retain source currents in A while removing redundant checkbox and field-help wording. Remove redundant explanatory text from Metrics.
+- Provide three genuinely isolated Julia editors in Metrics for `user_cost`, `user_performance` and `user_nonlinear_correction`. Each shows only its function and saves only that function back into the original `user_cost_and_performance.jl`; preserve helper code and provide a full-file fallback for unsupported Julia layouts. No `.jco` schema change.
 - Standardize `user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)` on two full JC `hbsolve` solutions, matching the existing `user_cost`/`user_performance` API; reuse the linear solution across amplitude points at fixed source frequencies. Older feedback functions that index a linear S dictionary require manual migration (ADR_009).
 - Store cycles and reference currents in the existing `.jco` input keys; default feedback to off (0 cycles) for new projects and validate numeric source values when enabled.
-- Add renderer/serialization regression tests. Real multi-cycle Julia harmonic-balance runs and scientific correction behavior remain to be validated before a v0.4.3 release.
+- Record feedback stop mode, monitored values and completion reason in each run's `nonlinear_feedback_stopping.json`; fix corrected-cycle HB optimum-amplitude indexing. Add renderer/serialization and standalone Julia convergence tests. Real multi-cycle Julia harmonic-balance validation remains pending before any release.
 
+### Results
+- Disable HB **Amplitude response** when no source-amplitude sweep exists (including single-point nonlinear runs).
+- Exclude masked optimizer objective penalties (>= 1e8) from the **History** chart's vertical scale while keeping evaluation numbering, running best, and parameter histories intact.
 
 ## 0.4.3 - 2026-11-04
 

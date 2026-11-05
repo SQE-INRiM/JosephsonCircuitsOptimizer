@@ -538,57 +538,6 @@ function ComputationStep() {
       </Stack>
 
       <Card variant="outlined"><CardContent>
-        <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear feedback" description="Optional iterative correction of the linear objective using pumped HB results." />
-        <Stack spacing={2} sx={{ mt: 2.5 }}>
-          <FormControlLabel
-            control={<Checkbox checked={feedbackEnabled} onChange={(event) => update({ nonlinearCorrectionCycles: event.target.checked ? 1 : 0 })} />}
-            label="Enable nonlinear feedback (full runs only)"
-          />
-          {feedbackEnabled && (
-            <>
-              <Box sx={{ maxWidth: 260 }}>
-                <NumberField
-                  label="Correction cycles"
-                  value={config.nonlinearCorrectionCycles}
-                  onChange={(value) => update({ nonlinearCorrectionCycles: Math.max(1, Math.floor(value || 1)) })}
-                />
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                Specify one fixed reference amplitude for each source. These are separate from the nonlinear sweep values and are passed to the HB correction calculation in amperes.
-              </Typography>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                {project.sources.map((source) => (
-                  <TextField
-                    key={source.id}
-                    size="small"
-                    label={source.name + ' reference amplitude (A)'}
-                    value={String(source.extras?.non_linear_amplitude_for_delta_correction ?? '')}
-                    onChange={(event) => {
-                      const extras = { ...source.extras }
-                      const value = event.target.value.trim()
-                      if (value === '') delete extras.non_linear_amplitude_for_delta_correction
-                      else extras.non_linear_amplitude_for_delta_correction = event.target.value
-                      updateSource(source.id, { extras })
-                    }}
-                    error={invalidFeedbackSources.some((item) => item.id === source.id)}
-                    helperText={source.isDc ? 'DC bias current in A' : 'Pump current in A (not dBm)'}
-                    sx={{ flex: 1 }}
-                  />
-                ))}
-              </Stack>
-              {invalidFeedbackSources.length > 0 && (
-                <Alert severity="warning">Every source needs a finite reference amplitude (in A) before a feedback run can be saved and executed.</Alert>
-              )}
-              {variableParameterCount === 0 && (
-                <Alert severity="warning">Feedback cycles are skipped for a single fixed device configuration. At least one design parameter must vary.</Alert>
-              )}
-              <Alert severity="info">The correction is computed by <code>user_nonlinear_correction</code> and passed to <code>user_cost</code>. The user-defined cost function decides how to apply it. You can edit both functions under Metrics &amp; constraints.</Alert>
-            </>
-          )}
-        </Stack>
-      </CardContent></Card>
-
-      <Card variant="outlined"><CardContent>
         <SectionHeading icon={<MemoryRoundedIcon />} title="Harmonic and solver settings" description="Stage-specific harmonic truncation and shared JosephsonCircuits hbsolve controls." />
         <Stack spacing={2.5} sx={{ mt: 2.5 }}>
           <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
@@ -621,6 +570,127 @@ function ComputationStep() {
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Set Frequency batches to 0 to use all Julia threads configured in ⋮ → Julia settings.</Typography>
             </Stack>
           </Box>
+        </Stack>
+      </CardContent></Card>
+
+      <Card variant="outlined"><CardContent>
+        <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear feedback" description="Optional iterative correction of the linear objective using pumped HB results." />
+        <Stack spacing={2} sx={{ mt: 2.5 }}>
+          <FormControlLabel
+            control={<Checkbox checked={feedbackEnabled} onChange={(event) => update({
+              nonlinearCorrectionCycles: event.target.checked
+                ? (config.nonlinearFeedbackStopMode === 'convergence' ? 8 : 1) : 0,
+            })} />}
+            label="Enable nonlinear feedback"
+          />
+          {feedbackEnabled && (
+            <>
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2">Stopping criterion</Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={config.nonlinearFeedbackStopMode ?? 'cycles'}
+                  onChange={(_event, mode: 'cycles' | 'convergence' | null) => {
+                    if (!mode) return
+                    update({
+                      nonlinearFeedbackStopMode: mode,
+                      nonlinearCorrectionCycles: mode === 'convergence'
+                        ? Math.max(8, config.nonlinearCorrectionCycles)
+                        : Math.max(1, config.nonlinearCorrectionCycles),
+                    })
+                  }}
+                  aria-label="Feedback stopping criterion"
+                  sx={{ alignSelf: 'flex-start' }}
+                >
+                  <ToggleButton value="cycles">Fixed cycles</ToggleButton>
+                  <ToggleButton value="convergence">Metric convergence</ToggleButton>
+                </ToggleButtonGroup>
+                {(config.nonlinearFeedbackStopMode ?? 'cycles') === 'cycles' ? (
+                  <Box sx={{ maxWidth: 220 }}>
+                    <NumberField
+                      label="Correction cycles"
+                      value={config.nonlinearCorrectionCycles}
+                      onChange={(value) => update({ nonlinearCorrectionCycles: Math.max(1, Math.floor(value || 1)) })}
+                    />
+                  </Box>
+                ) : (
+                  <>
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
+                      <TextField
+                        select
+                        label="Monitor"
+                        value={config.nonlinearFeedbackMetric ?? 'correction'}
+                        onChange={(event) => update({ nonlinearFeedbackMetric: event.target.value as 'cost' | 'performance' | 'correction' })}
+                        sx={{ flex: 1 }}
+                      >
+                        <MenuItem value="cost">Cost</MenuItem>
+                        <MenuItem value="performance">Performance</MenuItem>
+                        <MenuItem value="correction">Nonlinear correction</MenuItem>
+                      </TextField>
+                      <TextField
+                        select
+                        label="Change"
+                        value={config.nonlinearFeedbackToleranceType ?? 'absolute'}
+                        onChange={(event) => update({ nonlinearFeedbackToleranceType: event.target.value as 'absolute' | 'relative' })}
+                        sx={{ flex: 1 }}
+                      >
+                        <MenuItem value="absolute">Absolute</MenuItem>
+                        <MenuItem value="relative">Relative (%)</MenuItem>
+                      </TextField>
+                    </Stack>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                      <TextField
+                        label={(config.nonlinearFeedbackToleranceType ?? 'absolute') === 'relative' ? 'Tolerance (%)' : 'Tolerance'}
+                        type="number"
+                        value={config.nonlinearFeedbackTolerance ?? 0.01}
+                        onChange={(event) => update({ nonlinearFeedbackTolerance: Number(event.target.value) })}
+                        error={!Number.isFinite(config.nonlinearFeedbackTolerance) || config.nonlinearFeedbackTolerance <= 0}
+                        sx={{ flex: 1 }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <NumberField
+                          label="Maximum cycles"
+                          value={config.nonlinearCorrectionCycles}
+                          onChange={(value) => update({ nonlinearCorrectionCycles: Math.max(2, Math.floor(value || 2)) })}
+                        />
+                      </Box>
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      Stops when the selected value changes less than the tolerance between two consecutive corrected cycles. The maximum limits HB evaluations.
+                    </Typography>
+                  </>
+                )}
+              </Stack>
+              <Typography variant="subtitle2">Reference source currents (A)</Typography>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                {project.sources.map((source) => (
+                  <TextField
+                    key={source.id}
+                    size="small"
+                    label={source.name + ' reference amplitude (A)'}
+                    value={String(source.extras?.non_linear_amplitude_for_delta_correction ?? '')}
+                    onChange={(event) => {
+                      const extras = { ...source.extras }
+                      const value = event.target.value.trim()
+                      if (value === '') delete extras.non_linear_amplitude_for_delta_correction
+                      else extras.non_linear_amplitude_for_delta_correction = event.target.value
+                      updateSource(source.id, { extras })
+                    }}
+                    error={invalidFeedbackSources.some((item) => item.id === source.id)}
+                    sx={{ flex: 1 }}
+                  />
+                ))}
+              </Stack>
+              {invalidFeedbackSources.length > 0 && (
+                <Alert severity="warning">Every source needs a finite reference amplitude (in A) before a feedback run can be saved and executed.</Alert>
+              )}
+              {variableParameterCount === 0 && (
+                <Alert severity="warning">Feedback cycles are skipped for a single fixed device configuration. At least one design parameter must vary.</Alert>
+              )}
+
+            </>
+          )}
         </Stack>
       </CardContent></Card>
     </Stack>
@@ -666,7 +736,7 @@ function MetricsStep() {
             <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setMetricsEditorFunction('user_performance')}>Edit performance</Button>
           </Paper>
         </Stack>
-        <Alert severity="info" sx={{ my: 2 }}>The first value returned by <code>user_cost</code> is minimized. The first value returned by <code>user_performance</code> is maximized. Every later named value is saved for data analysis.</Alert>
+
         {(!hasCost || !hasPerformance) && <Alert severity="warning" sx={{ mb: 2 }}>Missing {!hasCost && !hasPerformance ? <><code>user_cost</code> and <code>user_performance</code></> : !hasCost ? <code>user_cost</code> : <code>user_performance</code>} definition.</Alert>}
         <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small"><TableHead><TableRow><TableCell width={80}>Order</TableCell><TableCell>Julia function</TableCell><TableCell>Returned name</TableCell><TableCell>Use</TableCell></TableRow></TableHead><TableBody>{project.metrics.map((metric) => <TableRow key={metric.id} hover><TableCell>#{metric.position}</TableCell><TableCell><Chip size="small" variant="outlined" label={metric.source} /></TableCell><TableCell><Typography sx={{ fontFamily: 'monospace', fontSize: 13 }}>{metric.name}</Typography></TableCell><TableCell><Chip size="small" label={metric.purpose === 'Objective' ? `${metric.purpose} · ${metric.direction.toLowerCase()}` : 'Analysis metric'} color={metric.purpose === 'Objective' ? metric.source === 'user_cost' ? 'primary' : 'secondary' : 'default'} variant={metric.purpose === 'Objective' ? 'filled' : 'outlined'} /></TableCell></TableRow>)}</TableBody></Table>
@@ -678,12 +748,7 @@ function MetricsStep() {
           <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear correction" description="Optional user-defined feedback, stored alongside cost and performance." />
           <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setMetricsEditorFunction('user_nonlinear_correction')}>Edit correction</Button>
         </Stack>
-        <Typography variant="body2" sx={{ mt: 2, fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
-          user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-Both inputs are complete hbsolve solutions. Extract S-parameters from sol_linear.linearized.S(...) and sol_nonlinear.linearized.S(...). The correction is passed to user_cost, which decides how to use it.
-        </Typography>
+
         {feedbackEnabled && !hasCorrection && <Alert severity="warning" sx={{ mt: 2 }}>Nonlinear feedback is enabled, but <code>user_nonlinear_correction</code> is not defined.</Alert>}
         {!hasCorrection && !feedbackEnabled && <Alert severity="info" sx={{ mt: 2 }}>Define <code>user_nonlinear_correction</code> before enabling feedback. The nonlinear sweep also expects this hook to exist.</Alert>}
       </Paper>

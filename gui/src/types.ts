@@ -87,6 +87,10 @@ export interface ComputationConfig {
   threeWaveMixing: boolean
   fourWaveMixing: boolean
   nonlinearCorrectionCycles: number
+  nonlinearFeedbackStopMode: 'cycles' | 'convergence'
+  nonlinearFeedbackMetric: 'cost' | 'performance' | 'correction'
+  nonlinearFeedbackToleranceType: 'absolute' | 'relative'
+  nonlinearFeedbackTolerance: number
 }
 
 export interface ProjectModel {
@@ -214,7 +218,7 @@ export interface FeedbackCycleResults {
 
 export interface RunResults {
   id: string
-  /** Active inspected feedback cycle, 0 for the baseline; not a separate run ID. */
+  /** Active inspected feedback cycle (zero = baseline). */
   cycle?: number
   feedback?: FeedbackSummary | null
   cycles?: FeedbackCycleResults[]
