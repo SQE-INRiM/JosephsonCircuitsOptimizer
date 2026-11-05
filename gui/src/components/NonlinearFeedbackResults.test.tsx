@@ -5,7 +5,7 @@ import type { RunResults } from '../types'
 import { NonlinearFeedbackResults } from './NonlinearFeedbackResults'
 
 vi.mock('@mui/x-charts/LineChart', () => ({
-  LineChart: ({ series, xAxis, height, onMarkClick }: {
+  LineChart: ({ series, xAxis, height }: {
     series: Array<{ label: string; data: Array<number | null> }>
     xAxis: Array<{ data: number[] }>
     height: number
