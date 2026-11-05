@@ -5,6 +5,8 @@ import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded'
 import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded'
 import { alpha } from '@mui/material/styles'
 import { ConnectedResults } from '../components/ConnectedResults'
+import { ResultsAxesContext } from '../components/ResultAxesContext'
+import type { ResultAxesPair, ResultsAxesValue } from '../components/ResultAxesContext'
 import { NonlinearFeedbackResults } from '../components/NonlinearFeedbackResults'
 import { ResultsRunManager } from '../components/ResultsRunManager'
 import { RunSetupSnapshot } from '../components/RunSetupSnapshot'
@@ -36,6 +38,7 @@ export function ResultsScreen() {
   const [deleting, setDeleting] = useState(false)
   const [feedbackView, setFeedbackView] = useState(false)
   const [selectedCycle, setSelectedCycle] = useState(0)
+  const [axesByCycle, setAxesByCycle] = useState<Record<string, { linear?: ResultAxesPair; optimization?: ResultAxesPair }>>({})
 
   // Select the run once, independently of the currently displayed stage.
   const selectedRun = results?.runs.find((run) => run.id === selectedRunId) ?? results?.runs[0]
@@ -48,6 +51,16 @@ export function ResultsScreen() {
     .filter((cycle) => Number.isSafeInteger(cycle) && cycle >= 0).sort((a, b) => a - b)
   const activeCycle = availableCycles.includes(selectedCycle) ? selectedCycle : 0
   const cyclePosition = availableCycles.indexOf(activeCycle)
+  const axesKey = `${selectedRun?.id ?? ''}:${activeCycle}`
+  const axesValue: ResultsAxesValue = {
+    ...axesByCycle[axesKey],
+    onChange: (stage, axes) => setAxesByCycle((previous) => {
+      const current = previous[axesKey] ?? {}
+      return { ...previous, [axesKey]: stage === 'linear'
+        ? { ...current, linear: axes, optimization: undefined }
+        : { ...current, optimization: axes } }
+    }),
+  }
   const selectCycle = (cycle: number) => {
     setSelectedCycle(cycle)
     // A cycle is a stage-specific inspection, not a filter on the whole-run convergence chart.
@@ -226,8 +239,10 @@ export function ResultsScreen() {
     {hasResults && feedbackView && hasFeedback && selectedRun
       ? <NonlinearFeedbackResults run={selectedRun} />
       : hasResults && inspectedBundle
-        ? <ConnectedResults key={selectedRun?.id + ':' + activeCycle + ':' + visibleStage}
-            results={inspectedBundle} stage={visibleStage} selectedRunId={selectedRun?.id} />
+        ? <ResultsAxesContext.Provider value={axesValue}>
+            <ConnectedResults key={selectedRun?.id + ':' + activeCycle + ':' + visibleStage}
+              results={inspectedBundle} stage={visibleStage} selectedRunId={selectedRun?.id} />
+          </ResultsAxesContext.Provider>
         : <Alert severity="info">{running ? 'No completed numerical dataset is available yet for this project.' : 'Run a simulation to populate the Result explorer.'}</Alert>}
   </Stack>
 }
