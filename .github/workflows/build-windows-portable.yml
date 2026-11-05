@@ -5,25 +5,26 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
-      - main
     paths:
-      - 'src/**'
-      - 'Project.toml'
-      - 'Manifest.toml'
-      - 'gui/src/**'
       - 'gui/desktop/**'
+      - 'gui/build/**'
+      - 'gui/public/**'
       - 'gui/runtime/bridge/**'
       - 'gui/runtime/templates/**'
       - 'gui/runtime/examples/**'
       - 'gui/scripts/prepare-packaged-jco.cjs'
+      - 'gui/electron-builder.yml'
       - 'gui/package.json'
       - 'gui/package-lock.json'
+      - 'gui/index.html'
       - 'gui/vite.config.ts'
       - 'gui/tsconfig*.json'
-      - 'gui/electron-builder.yml'
+      - 'Project.toml'
+      - 'Manifest.toml'
+      - 'LICENSE.md'
       - '.github/workflows/build-windows-portable.yml'
+      - '.github/workflows/build-linux-appimage.yml'
+      - '.github/workflows/release-desktop.yml'
 
 permissions:
   contents: read
@@ -58,9 +59,10 @@ jobs:
         run: npm run package:win
 
       - name: Upload Windows desktop packages
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: JCO-GUI-Windows-x64
           path: gui/dist-electron/*.exe
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
