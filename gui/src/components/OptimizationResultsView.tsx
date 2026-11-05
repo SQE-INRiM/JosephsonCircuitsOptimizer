@@ -263,8 +263,7 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   [canSlice, effectiveMode, linear, x, y, fixedKey])
 
   const evaluations = samples.map((sample) => sample.evaluation)
-  const metrics = samples.map((sample) => sample.metric)
-  const bestHistory = runningBest(samples)
+  const { evaluated: metrics, bestSoFar: bestHistory } = objectiveHistoryForPlot(samples)
   const selected = selectedIndex == null || selectedIndex >= shown.length ? null : shown[selectedIndex]
   const display = (name: string) => parameterLabel(parameters, name)
   const canPlot = x !== y && names.length >= 2
