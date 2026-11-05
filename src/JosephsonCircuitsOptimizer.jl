@@ -67,6 +67,7 @@ include("CircuitModule.jl")
 include("CostModule.jl")
 include("simulator.jl")
 include("optimizer.jl")
+include("FeedbackResults.jl")
 # Analysis_plots.jl is loaded only by _ensure_plotting_loaded!().
 include("Resume.jl")
 using .Resume
@@ -337,94 +338,85 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         end
 
         # --- Nonlinear correction (optional) ---
-        if sim_vars[:n_iterations_nonlinear_correction] != 0 && !single_point_mode
-
+        feedback_count = single_point_mode ? 0 : Int(sim_vars[:n_iterations_nonlinear_correction])
+        if feedback_count > 0
+            # Cycle 0 is the original Linear / BO / HB run at the run root.
+            feedback_history = Any[_jco_feedback_cycle(0, optimal_params, optimal_metric, best_performance, 0.0)]
+            _jco_save_feedback_summary(output_path, feedback_count, feedback_history)
             correction_terms = Any[]
             reference_amplitudes = get_delta_correction_amplitudes()
 
-            for i in 1:sim_vars[:n_iterations_nonlinear_correction]
-
-                stop_if_requested!(config.WORKING_SPACE) 
+            for i in 1:feedback_count
+                stop_if_requested!(config.WORKING_SPACE)
                 println("-----------------------------------------------------")
                 @info "Implementing nonlinear correction: iteration $i"
                 println("-----------------------------------------------------")
 
-                term = nonlinear_correction(optimal_params, reference_amplitudes)
-                global delta_correction = term
-                @info "Nonlinear correction term: $delta_correction"
+                # The optimizer's HDF5 writer and save_datas() use CURRENT_OUTPUT_PATH.
+                # Switch it with the explicit stage outputs so no cycle overwrites another.
+                cycle_dir = joinpath(output_path, "feedback", "cycle_$(lpad(string(i), 3, '0'))")
+                mkpath(cycle_dir)
+                CURRENT_OUTPUT_PATH[] = cycle_dir
+                try
+                    term = nonlinear_correction(optimal_params, reference_amplitudes)
+                    global delta_correction = term
+                    @info "Nonlinear correction term: $delta_correction"
+                    push!(correction_terms, delta_correction)
 
-                push!(correction_terms, delta_correction)
+                    device_parameters_space = load_params(device_params_file; optimal=optimal_params)
+                    df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
+                    save_dataset(df, cycle_dir)
+                    optimal_params, optimal_metric = run_optimization(df)
 
-                device_parameters_space = load_params(device_params_file; optimal=optimal_params)
-                df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
-                optimal_params, optimal_metric = run_optimization(df)
+                    # The optimizer persists its own BO-only history into cycle_dir.
+                    results = run_nonlinear_simulations_sweep(optimal_params)
+                    nl_df = nonlinear_results_to_dataframe(results)
+                    save_nonlinear_dataset(nl_df, cycle_dir)
 
-                results = run_nonlinear_simulations_sweep(optimal_params)
-                
-                nl_df = nonlinear_results_to_dataframe(results)
-                save_nonlinear_dataset(
-                    nl_df,
-                    optimal_params_dir;
-                    filename="df_nonlinear_analysis_corrected_cycle_$(i).h5"
-                )
+                    cycle_best_performance = NaN
+                    cycle_best_amplitudes = nothing
+                    if results !== nothing && !isempty(results)
+                        cycle_best_idx = findmax(r -> r.performance, results)[2]
+                        cycle_best_performance = results[cycle_best_idx].performance
+                        cycle_best_amplitudes = results[cycle_best_idx].amps
+                    end
 
-                cycle_best_performance = NaN
-                if results !== nothing && !isempty(results)
-                    cycle_best_idx = findmax(r -> r.performance, results)[2]
-                    cycle_best_performance = results[cycle_best_idx].performance
-                    cycle_best_amplitudes = results[best_idx].amps
-                end
-
-                # Save corrected optimal params (cycle i)
-                header = Dict(
-                    "description" => "Optimal parameters after nonlinear correction (cycle $i)",
-                    "optimal_metric" => optimal_metric,
-                    "optimal_performance" => cycle_best_performance,
-                    "nonlinear correction value" => delta_correction
-                )
-
-                optimal_params_file = joinpath(
-                    optimal_params_dir,
-                    "optimal_device_parameters_corrected_cycle_$(i).json"
-                )
-                save_output_file(header, optimal_params, optimal_params_file)
-
-                # Save optimal physical quantities from final results (current working point)
-                if best_amplitudes !== nothing
-                    optimal_physical_quantities = update_physical_quantities(best_amplitudes)
-        
-                    header = Dict(
-                        "description" => "Optimal physical quantities (working point) of the circuit",
+                    device_header = Dict(
+                        "description" => "Optimal parameters after nonlinear correction (cycle $i)",
                         "optimal_metric" => optimal_metric,
                         "optimal_performance" => cycle_best_performance,
-                        "optimal amplitude" => cycle_best_amplitudes
+                        "nonlinear correction value" => delta_correction,
                     )
-                    
-                    optimal_quantities_file = joinpath(
-                        optimal_params_dir, 
-                        "optimal_physical_quantities_corrected_cycle_$(i).json"
+                    save_output_file(device_header, optimal_params,
+                        joinpath(cycle_dir, "optimal_device_parameters.json"))
+
+                    if cycle_best_amplitudes !== nothing
+                        quantities = update_physical_quantities(cycle_best_amplitudes)
+                        quantities_header = Dict(
+                            "description" => "Optimal physical quantities after correction (cycle $i)",
+                            "optimal_metric" => optimal_metric,
+                            "optimal_performance" => cycle_best_performance,
+                            "optimal amplitude" => cycle_best_amplitudes,
                         )
-                        save_output_file(header, optimal_physical_quantities, optimal_quantities_file)
-                end
-
-                let p = plot_delta_vs_amplitude(results)
-                    if p !== nothing
-                        plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="delta_vs_amplitude")
+                        save_output_file(quantities_header, quantities,
+                            joinpath(cycle_dir, "optimal_physical_quantities.json"))
                     end
-                end
 
-                let p = plot_performance_vs_amplitude(results)
-                    if p !== nothing
-                        plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="performance_vs_amplitude")
-                    end
+                    # Commit the summary only after all stages of this cycle succeed.
+                    # A stopped run retains the previous completed cycles and any
+                    # explicitly available partial datasets in the current directory.
+                    push!(feedback_history, _jco_feedback_cycle(
+                        i, optimal_params, optimal_metric, cycle_best_performance, delta_correction))
+                    _jco_save_feedback_summary(output_path, feedback_count, feedback_history)
+                finally
+                    CURRENT_OUTPUT_PATH[] = output_path
                 end
             end
 
-            # Direct Julia runs retain the original convergence plot; GUI runs
-            # override the helper to avoid loading graphics or allocating a figure.
+            # Direct Julia users retain the convergence figure; GUI runs suppress it.
             p = _jco_plot_correction_convergence(correction_terms)
-            plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="nonlinear_correction_convergence")
-
+            plot_update(p; params=optimal_params, metric=optimal_metric,
+                        plot_type="nonlinear_correction_convergence")
         end
 
         write_status(output_path; status="completed", stage="DONE")
