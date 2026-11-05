@@ -41,6 +41,10 @@ const computation: ComputationConfig = {
   threeWaveMixing: false,
   fourWaveMixing: true,
   nonlinearCorrectionCycles: 0,
+  nonlinearFeedbackStopMode: 'cycles',
+  nonlinearFeedbackMetric: 'correction',
+  nonlinearFeedbackToleranceType: 'absolute',
+  nonlinearFeedbackTolerance: 0.01,
 }
 
 const placeholderCode = `function create_user_circuit(device_params_set)
