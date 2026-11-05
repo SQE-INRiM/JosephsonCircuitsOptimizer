@@ -7,7 +7,7 @@ import { useAppStore } from '../store'
 import { parameterLabel } from '../utils/resultUnits'
 import {
   bestSample, linearObjectiveSlice, nearestStoredValue, optimizerParameterNames,
-  optimizerSamples, runningBest, sampleOnSlice, storedValues,
+  objectiveHistoryForPlot, optimizerSamples, sampleOnSlice, storedValues,
 } from '../utils/optimizationLandscape'
 import type { LinearSlice, OptimizerSample } from '../utils/optimizationLandscape'
 import { sequentialColor } from './HeatmapGrid'
