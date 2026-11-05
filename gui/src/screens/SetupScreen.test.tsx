@@ -346,6 +346,40 @@ describe('Nonlinear feedback setup', () => {
 
   afterEach(() => cleanup())
 
+  it('allows metric-convergence stopping with a monitored quantity, tolerance and maximum cycles', () => {
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Metric convergence' }))
+    expect(useAppStore.getState().project.computation).toMatchObject({
+      nonlinearFeedbackStopMode: 'convergence',
+      nonlinearCorrectionCycles: 8,
+    })
+    expect(screen.getByRole('spinbutton', { name: 'Maximum cycles' })).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: 'Monitor' })).toBeTruthy()
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Monitor' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Performance · best HB' }))
+    expect(useAppStore.getState().project.computation.nonlinearFeedbackMetric).toBe('performance')
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Change' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Relative (%)' }))
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Tolerance (%)' }), { target: { value: '2.5' } })
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Maximum cycles' }), { target: { value: '6' } })
+    expect(useAppStore.getState().project.computation).toMatchObject({
+      nonlinearFeedbackToleranceType: 'relative',
+      nonlinearFeedbackTolerance: 2.5,
+      nonlinearCorrectionCycles: 6,
+    })
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ }))
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(0)
+    fireEvent.click(screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ }))
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBeGreaterThanOrEqual(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Fixed cycles' }))
+    expect(screen.getByRole('spinbutton', { name: 'Correction cycles' })).toBeTruthy()
+    expect(screen.queryByRole('combobox', { name: 'Monitor' })).toBeNull()
+  })
+
   it('is disabled by default and preserves per-source reference currents when toggled', () => {
     render(<SetupScreen />)
     const enable = screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ })
@@ -372,12 +406,15 @@ describe('Nonlinear feedback setup', () => {
     expect((screen.getByRole('textbox', { name: 'Source 1 reference amplitude (A)' }) as HTMLInputElement).value).toBe('1e-6')
   })
 
-  it('documents full linear and nonlinear hbsolve inputs to the correction hook', () => {
+  it('keeps the Metrics screen compact without duplicate return-value or hbsolve explanations', () => {
     useAppStore.setState({ setupStep: 2 })
     render(<SetupScreen />)
     expect(screen.getByRole('button', { name: 'Edit correction' })).toBeTruthy()
-    expect(screen.getByText(/user_nonlinear_correction\(sol_linear, sol_nonlinear, device_params_set\)/)).toBeTruthy()
-    expect(screen.getByText(/Both inputs are complete hbsolve solutions/)).toBeTruthy()
+    expect(screen.getByText(/user_cost · minimized objective/)).toBeTruthy()
+    expect(screen.getByText(/user_performance · maximized objective/)).toBeTruthy()
+    expect(screen.queryByText(/The first value returned by/)).toBeNull()
+    expect(screen.queryByText(/Both inputs are complete hbsolve solutions/)).toBeNull()
+    expect(screen.queryByText(/user_nonlinear_correction\(sol_linear, sol_nonlinear, device_params_set\)/)).toBeNull()
   })
 
   it.each([
