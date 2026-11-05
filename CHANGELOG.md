@@ -4,7 +4,7 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
-### Nonlinear feedback GUI candidate — draft PR #24 (not yet released)
+### Nonlinear feedback (development; scientific validation pending)
 
 - Add optional nonlinear-feedback stopping in Computation: fixed correction cycles **or** convergence on corrected cost, best pumped HB performance or nonlinear correction, with absolute/relative tolerance and a maximum cycle budget. Place the feedback card below Harmonic and solver settings; retain source currents in A while removing redundant checkbox and field-help wording. Remove redundant explanatory text from Metrics.
 - Provide three genuinely isolated Julia editors in Metrics for `user_cost`, `user_performance` and `user_nonlinear_correction`. Each shows only its function and saves only that function back into the original `user_cost_and_performance.jl`; preserve helper code and provide a full-file fallback for unsupported Julia layouts. No `.jco` schema change.
@@ -12,6 +12,9 @@ This changelog records completed user-relevant and development-process changes. 
 - Store cycles and reference currents in the existing `.jco` input keys; default feedback to off (0 cycles) for new projects and validate numeric source values when enabled.
 - Record feedback stop mode, monitored values and completion reason in each run's `nonlinear_feedback_stopping.json`; fix corrected-cycle HB optimum-amplitude indexing. Add renderer/serialization and standalone Julia convergence tests. Real multi-cycle Julia harmonic-balance validation remains pending before any release.
 
+### Results
+- Disable HB **Amplitude response** when no source-amplitude sweep exists (including single-point nonlinear runs).
+- Exclude masked optimizer objective penalties (>= 1e8) from the **History** chart's vertical scale while keeping evaluation numbering, running best, and parameter histories intact.
 
 ## 0.4.3 - 2026-11-04
 

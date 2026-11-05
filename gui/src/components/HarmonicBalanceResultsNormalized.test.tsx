@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResultsBundle, RunResults, SavedTraceData } from '../types'
 import { HarmonicBalanceResultsNormalized } from './HarmonicBalanceResultsNormalized'
+import { HarmonicBalanceResultsWithUnits } from './HarmonicBalanceResultsWithUnits'
 
 const readSavedTrace = vi.hoisted(() => vi.fn())
 const exportPlotCsv = vi.hoisted(() => vi.fn())
@@ -68,8 +69,32 @@ describe('HB single-point plot CSV', () => {
     }, 'hb-run_hb_point_1_frequency_hz')
   })
 
+  it('disables amplitude response when the nonlinear dataset has no actual amplitude sweep', () => {
+    const source = run.nonlinear!
+    const datasets = [
+      [source.rows[0]], // One nonlinear point
+      [source.rows[0], [2, 8, 1e-6, 22, 2, 1]], // Frequency-only sweep
+      [source.rows[0], [2, 8, 2e-6, 22, 2, 1]], // Isolated amplitudes at different frequencies
+    ]
+    for (const rows of datasets) {
+      const singleRun: RunResults = { ...run, nonlinear: { ...source, rows } }
+      const { unmount } = render(<HarmonicBalanceResultsNormalized results={{ ...results, runs: [singleRun] }} unitByRun={{ 'hb-run': { 1: 'A' } }} />)
+      const button = screen.getByRole('button', { name: 'Amplitude response' }) as HTMLButtonElement
+      expect(button.disabled).toBe(true)
+      unmount()
+    }
+  })
+
+  it('disables amplitude response through the real HB Results unit-conversion wrapper', () => {
+    const singleRun: RunResults = { ...run, nonlinear: { ...run.nonlinear!, rows: [run.nonlinear!.rows[0]] } }
+    render(<HarmonicBalanceResultsWithUnits results={{ ...results, runs: [singleRun] }} selectedRunId="hb-run" />)
+    const button = screen.getByRole('button', { name: 'Amplitude response' }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+  })
+
   it('exports the plotted amplitude-response metrics with their displayed source units', async () => {
     render(<HarmonicBalanceResultsNormalized results={results} unitByRun={{ 'hb-run': { 1: 'A' } }} />)
+    expect((screen.getByRole('button', { name: 'Amplitude response' }) as HTMLButtonElement).disabled).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: 'Amplitude response' }))
     const buttons = screen.getAllByRole('button', { name: 'Export CSV' })
     expect(buttons).toHaveLength(2)
