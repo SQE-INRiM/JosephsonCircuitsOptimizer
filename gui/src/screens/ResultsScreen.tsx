@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Box, Button, Chip, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Tab, Tabs, Tooltip, Typography } from '@mui/material'
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded'
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded'
+import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded'
 import { ConnectedResults } from '../components/ConnectedResults'
 import { NonlinearFeedbackResults } from '../components/NonlinearFeedbackResults'
 import { ResultsRunManager } from '../components/ResultsRunManager'
@@ -155,7 +156,7 @@ export function ResultsScreen() {
             onClick={() => selectCycle(availableCycles[cyclePosition - 1])}>
             <ChevronLeftRoundedIcon fontSize="small" />
           </IconButton>
-          <Box sx={{ display: 'flex', gap: 0.5, overflowX: 'auto', flex: 1, minWidth: 0, py: 0.5, scrollbarWidth: 'thin' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, overflowX: 'auto', flex: '0 1 auto', minWidth: 0, py: 0.5, scrollbarWidth: 'thin' }}>
             {availableCycles.map((cycle) => {
               const status = selectedRun?.cycles?.find((entry) => entry.cycle === cycle)?.status
               return <Tooltip key={cycle} describeChild title={cycle === 0 ? 'Original run (before correction)' : status === 'completed' ? 'Completed feedback cycle' : 'Cycle data may be incomplete'}>
@@ -172,22 +173,37 @@ export function ResultsScreen() {
             <ChevronRightRoundedIcon fontSize="small" />
           </IconButton>
         </Box>}
-        <Tabs value={feedbackView && hasFeedback ? 3 : stageIndex} variant="scrollable" scrollButtons="auto"
-          onChange={(_, index) => {
-            if (index === 3) setFeedbackView(true)
-            else {
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 2, rowGap: 1, py: 0.5 }}>
+          <Tabs value={feedbackView ? false : stageIndex} variant="scrollable" scrollButtons="auto"
+            sx={{ minWidth: 0, maxWidth: '100%', flex: '0 1 auto' }}
+            onChange={(_, index) => {
               setFeedbackView(false)
               setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)
-            }
-          }}>
-          <Tab label="Linear" />
-          <Tab label="Optimization" disabled={optimizationDisabled} />
-          <Tab label="Harmonic balance" />
-          {hasFeedback && <Tab label="Nonlinear feedback" sx={(theme) => ({
-            color: theme.palette.secondary.main,
-            '&.Mui-selected': { color: theme.palette.secondary.main },
-          })} />}
-        </Tabs>
+            }}>
+            <Tab label="Linear" />
+            <Tab label="Optimization" disabled={optimizationDisabled} />
+            <Tab label="Harmonic balance" />
+          </Tabs>
+          {hasFeedback && <Button
+            size="small"
+            color="secondary"
+            variant={feedbackView ? 'contained' : 'outlined'}
+            startIcon={<InsightsRoundedIcon fontSize="small" />}
+            aria-pressed={feedbackView}
+            onClick={() => setFeedbackView(true)}
+            sx={{
+              ml: { xs: 0, sm: 'auto' },
+              flexShrink: 0,
+              borderRadius: 1.5,
+              px: 1.5,
+              py: 0.8,
+              fontWeight: 700,
+              textTransform: 'none',
+              boxShadow: 'none',
+            }}>
+            Nonlinear feedback
+          </Button>}
+        </Box>
       </Paper>
     </Box>
 
