@@ -192,7 +192,7 @@ export function ResultsScreen() {
             aria-pressed={feedbackView}
             onClick={() => setFeedbackView(true)}
             sx={{
-              ml: { xs: 0, sm: 'auto' },
+              ml: 0,
               flexShrink: 0,
               borderRadius: 1.5,
               px: 1.5,
