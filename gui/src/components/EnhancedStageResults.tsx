@@ -95,7 +95,7 @@ function HbPointInspector({ run, table, pointId, catalog }: { run: RunResults; t
 }
 
 function HarmonicBalanceResults({ run, table }: { run: RunResults; table: ResultTable }) {
-  const sourceCols = sourceCoordinateColumns(table); const varyingSources = varyingColumns(table, sourceCols); const metrics = metricColumns(table); const amps = amplitudeColumns(table)
+  const sourceCols = sourceCoordinateColumns(table); const varyingSources = varyingColumns(table, sourceCols); const metrics = metricColumns(table); const amps = amplitudeColumns(table); const canShowAmplitudeResponse = hasHbAmplitudeSweep(table)
   const defaultX = varyingSources.find((name) => /_frequency$/i.test(name)) ?? varyingSources[0] ?? sourceCols[0] ?? ''
   const defaultY = varyingSources.find((name) => /_amplitude$/i.test(name) && name !== defaultX) ?? varyingSources.find((name) => name !== defaultX) ?? sourceCols.find((name) => name !== defaultX) ?? ''
   const [view, setView] = useState<HbView>('landscape'); const [metric, setMetric] = useState(metrics.includes('performance') ? 'performance' : metrics[0] ?? ''); const [x, setX] = useState(defaultX); const [y, setY] = useState(defaultY); const [convergence, setConvergence] = useState<ConvergenceFilter>('all'); const [fixed, setFixed] = useState<Record<string, number>>(() => Object.fromEntries(sourceCols.map((column) => [column, columnValues(table, column)[0]]))); const [selectedPointId, setSelectedPointId] = useState<number | null>(null); const [responseAmplitude, setResponseAmplitude] = useState(amps[0] ?? '')
