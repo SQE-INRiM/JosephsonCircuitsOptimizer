@@ -383,33 +383,34 @@ describe('Nonlinear feedback setup', () => {
     { action: 'Edit cost', functionName: 'user_cost' },
     { action: 'Edit performance', functionName: 'user_performance' },
     { action: 'Edit correction', functionName: 'user_nonlinear_correction' },
-  ])('opens the shared Julia file at $functionName', ({ action, functionName }) => {
+  ])('opens only the $functionName editor', ({ action, functionName }) => {
     useAppStore.setState({ setupStep: 2 })
     render(<SetupScreen />)
     fireEvent.click(screen.getByRole('button', { name: action }))
-    const editor = screen.getByRole('textbox', { name: 'user_cost_and_performance.jl' }) as HTMLTextAreaElement
+    const editor = screen.getByRole('textbox', { name: functionName }) as HTMLTextAreaElement
     const original = useAppStore.getState().project.metricsCode
-    expect(editor.value).toBe(original)
-    expect(editor.selectionStart).toBe(original.indexOf('function ' + functionName + '('))
-    expect(editor.selectionEnd).toBe(editor.selectionStart)
+    expect(editor.value).toContain('function ' + functionName + '(')
+    expect(editor.value.length).toBeLessThan(original.length)
+    expect(useAppStore.getState().project.metricsCode).toBe(original)
   })
 
-  it('preserves every user function when editing the correction', () => {
+  it('preserves the complete shared Julia source when saving a correction edit', () => {
     useAppStore.setState({ setupStep: 2 })
     render(<SetupScreen />)
     fireEvent.click(screen.getByRole('button', { name: 'Edit correction' }))
-    const editor = screen.getByRole('textbox', { name: 'user_cost_and_performance.jl' })
     const original = useAppStore.getState().project.metricsCode
-    const modified = original.replace(
-      'function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)',
-      'function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)\n    # custom feedback',
-    )
+    const editor = screen.getByRole('textbox', { name: 'user_nonlinear_correction' }) as HTMLTextAreaElement
+    const modified = editor.value.replace('    return 0.0', '    # custom feedback\\n    return 0.0')
     fireEvent.change(editor, { target: { value: modified } })
-    expect(useAppStore.getState().project.metricsCode).toBe(modified)
-    expect(useAppStore.getState().project.metricsCode).toContain('function user_cost(')
-    expect(useAppStore.getState().project.metricsCode).toContain('function user_performance(')
+    expect(useAppStore.getState().project.metricsCode).toBe(original)
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    const saved = useAppStore.getState().project.metricsCode
+    expect(saved).toContain('# custom feedback')
+    expect(saved).toContain('function user_cost(')
+    expect(saved).toContain('function user_performance(')
     expect(useAppStore.getState().dirty).toBe(true)
   })
+
 })
 
 
