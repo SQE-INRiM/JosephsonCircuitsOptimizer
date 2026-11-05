@@ -541,7 +541,10 @@ function ComputationStep() {
         <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear feedback" description="Optional iterative correction of the linear objective using pumped HB results." />
         <Stack spacing={2} sx={{ mt: 2.5 }}>
           <FormControlLabel
-            control={<Checkbox checked={feedbackEnabled} onChange={(event) => update({ nonlinearCorrectionCycles: event.target.checked ? 1 : 0 })} />}
+            control={<Checkbox checked={feedbackEnabled} onChange={(event) => update({
+              nonlinearCorrectionCycles: event.target.checked
+                ? (config.nonlinearFeedbackStopMode === 'convergence' ? 8 : 1) : 0,
+            })} />}
             label="Enable nonlinear feedback (full runs only)"
           />
           {feedbackEnabled && (
