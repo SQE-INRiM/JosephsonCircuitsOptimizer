@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResultsBundle, RunResults, SavedTraceData } from '../types'
 import { HarmonicBalanceResultsNormalized } from './HarmonicBalanceResultsNormalized'
+import { HarmonicBalanceResultsWithUnits } from './HarmonicBalanceResultsWithUnits'
 
 const readSavedTrace = vi.hoisted(() => vi.fn())
 const exportPlotCsv = vi.hoisted(() => vi.fn())
@@ -82,6 +83,13 @@ describe('HB single-point plot CSV', () => {
       expect(button.disabled).toBe(true)
       unmount()
     }
+  })
+
+  it('disables amplitude response through the real HB Results unit-conversion wrapper', () => {
+    const singleRun: RunResults = { ...run, nonlinear: { ...run.nonlinear!, rows: [run.nonlinear!.rows[0]] } }
+    render(<HarmonicBalanceResultsWithUnits results={{ ...results, runs: [singleRun] }} selectedRunId="hb-run" />)
+    const button = screen.getByRole('button', { name: 'Amplitude response' }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
   })
 
   it('exports the plotted amplitude-response metrics with their displayed source units', async () => {
