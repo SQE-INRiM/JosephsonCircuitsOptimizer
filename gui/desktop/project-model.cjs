@@ -176,6 +176,10 @@ function normalizeComputation(drives, sim, opt) {
     threeWaveMixing: Boolean(sim.threewavemixing),
     fourWaveMixing: Boolean(sim.fourwavemixing),
     nonlinearCorrectionCycles: Number(sim.n_iterations_nonlinear_correction ?? 0),
+    nonlinearFeedbackStopMode: sim.nonlinear_feedback_stop_mode === 'convergence' ? 'convergence' : 'cycles',
+    nonlinearFeedbackMetric: ['cost', 'performance', 'correction'].includes(sim.nonlinear_feedback_metric) ? sim.nonlinear_feedback_metric : 'correction',
+    nonlinearFeedbackToleranceType: sim.nonlinear_feedback_tolerance_type === 'relative' ? 'relative' : 'absolute',
+    nonlinearFeedbackTolerance: Number(sim.nonlinear_feedback_tolerance ?? 0.01),
   }
 }
 
@@ -387,6 +391,19 @@ function saveProjectModel(workspace, project) {
   if (!Number.isInteger(feedbackCycles) || feedbackCycles < 0) {
     throw new Error('Nonlinear feedback cycles must be a nonnegative integer.')
   }
+  const feedbackStopMode = c.nonlinearFeedbackStopMode ?? 'cycles'
+  const feedbackMetric = c.nonlinearFeedbackMetric ?? 'correction'
+  const feedbackToleranceType = c.nonlinearFeedbackToleranceType ?? 'absolute'
+  const feedbackTolerance = Number(c.nonlinearFeedbackTolerance ?? 0.01)
+  if (!['cycles', 'convergence'].includes(feedbackStopMode)) throw new Error('Invalid nonlinear feedback stop mode.')
+  if (!['cost', 'performance', 'correction'].includes(feedbackMetric)) throw new Error('Invalid nonlinear feedback monitored metric.')
+  if (!['absolute', 'relative'].includes(feedbackToleranceType)) throw new Error('Invalid nonlinear feedback tolerance type.')
+  if (feedbackStopMode === 'convergence' && feedbackCycles > 0) {
+    if (feedbackCycles < 2) throw new Error('Convergence stopping needs at least two correction cycles.')
+    if (!Number.isFinite(feedbackTolerance) || feedbackTolerance <= 0) {
+      throw new Error('Nonlinear feedback convergence tolerance must be positive and finite.')
+    }
+  }
   if (feedbackCycles > 0) {
     if (!project.sources.length) throw new Error('Nonlinear feedback requires at least one configured source.')
     for (const source of project.sources) {
@@ -441,6 +458,10 @@ function saveProjectModel(workspace, project) {
     nbatches: c.solverBatches,
     sorting: c.nodeSorting,
     n_iterations_nonlinear_correction: c.nonlinearCorrectionCycles,
+    nonlinear_feedback_stop_mode: feedbackStopMode,
+    nonlinear_feedback_metric: feedbackMetric,
+    nonlinear_feedback_tolerance_type: feedbackToleranceType,
+    nonlinear_feedback_tolerance: Number.isFinite(feedbackTolerance) && feedbackTolerance > 0 ? feedbackTolerance : 0.01,
     threewavemixing: c.threeWaveMixing,
     fourwavemixing: c.fourWaveMixing,
   })
