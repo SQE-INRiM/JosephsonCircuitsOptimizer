@@ -130,7 +130,7 @@ export function PointComparisonPanel({
     setComponents({})
     setLoaded([])
     setReadErrors([])
-  }, [run.id, stage])
+  }, [run.id, run.cycle, stage])
 
   const firstId = ids[0]
   const secondId = ids[1]
@@ -158,7 +158,7 @@ export function PointComparisonPanel({
       if (!option || !other) throw new Error(key + ' is not retained for both points.')
       const [a, b] = await Promise.all([firstId, secondId].map((pointId) =>
         adapter.readSavedTrace({
-          runId: run.id, stage, pointId,
+          runId: run.id, cycle: run.cycle ?? 0, stage, pointId,
           quantityName: option.quantityKey, arrayName: option.arrayName,
         }),
       ))
@@ -172,7 +172,7 @@ export function PointComparisonPanel({
       setReadErrors(results.map((item) => item.error).filter(Boolean))
     }).finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [run.id, stage, firstId, secondId, chosenKey])
+  }, [run.id, run.cycle, stage, firstId, secondId, chosenKey])
 
   const parameterEnd = table.columns.indexOf('metric')
   const firstParameter = table.columns.indexOf('point_id') + 1

@@ -4,6 +4,13 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Cycle-aware nonlinear feedback Results (parallel draft)
+
+- Store corrected-cycle Linear, Optimization and HB datasets in individual folders, with an atomic run-level feedback convergence summary and Cycle 0 remaining at the run root.
+- Add compact clickable cycle navigation with previous/next arrows **above** the Results stage tabs and a subtly accented Nonlinear feedback view for performance and parameter convergence (without duplicate cycle buttons); keep saved traces, A/B selection and CSV exports cycle-aware.
+- Retain the full original design ranges for every corrected Linear/BO cycle rather than collapsing tagged parameters to one previous-optimum point. Add spacing below Setup's function editors; disable Optimization History for fewer than two valid evaluations and omit its masked-only warning.
+- The numerical feedback loop is integrated with the fixed-cycle or convergence stopping available on `main`. Multi-cycle Julia/HB validation remains pending; this change stays in the parallel draft PR.
+
 ### Nonlinear feedback (development; scientific validation pending)
 
 - Add optional nonlinear-feedback stopping in Computation: fixed correction cycles **or** convergence on corrected cost, best pumped HB performance or nonlinear correction, with absolute/relative tolerance and a maximum cycle budget. Place the feedback card below Harmonic and solver settings; retain source currents in A while removing redundant checkbox and field-help wording. Remove redundant explanatory text from Metrics.

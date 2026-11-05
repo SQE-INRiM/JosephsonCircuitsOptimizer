@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Alert, Box, Button, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Tab, Tabs, Tooltip, Typography } from '@mui/material'
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded'
+import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded'
+import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded'
+import { alpha } from '@mui/material/styles'
 import { ConnectedResults } from '../components/ConnectedResults'
+import { ResultsAxesContext } from '../components/ResultAxesContext'
+import type { ResultAxesPair, ResultsAxesValue } from '../components/ResultAxesContext'
+import { NonlinearFeedbackResults } from '../components/NonlinearFeedbackResults'
 import { ResultsRunManager } from '../components/ResultsRunManager'
 import { RunSetupSnapshot } from '../components/RunSetupSnapshot'
 import { getJcoAdapter } from '../services/jcoAdapter'
@@ -29,6 +36,9 @@ export function ResultsScreen() {
   const [actionStatus, setActionStatus] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [feedbackView, setFeedbackView] = useState(false)
+  const [selectedCycle, setSelectedCycle] = useState(0)
+  const [axesByCycle, setAxesByCycle] = useState<Record<string, { linear?: ResultAxesPair; optimization?: ResultAxesPair }>>({})
 
   // Select the run once, independently of the currently displayed stage.
   const selectedRun = results?.runs.find((run) => run.id === selectedRunId) ?? results?.runs[0]
@@ -36,12 +46,50 @@ export function ResultsScreen() {
   const visibleStage = optimizationDisabled && stage === 'optimization' ? 'linear' : stage
   const stageIndex = visibleStage === 'linear' ? 0 : visibleStage === 'optimization' ? 1 : 2
   const hasResults = Boolean(results?.runs.length)
-  const selectedTable = visibleStage === 'linear' ? selectedRun?.linear : visibleStage === 'optimization' ? selectedRun?.optimization : selectedRun?.nonlinear
-  const selectedHistoryCount = optimizerHistoryCount(selectedRun)
+  const hasFeedback = Boolean(selectedRun?.feedback || selectedRun?.cycles?.length)
+  const availableCycles = [...new Set([0, ...(selectedRun?.cycles?.map((entry) => entry.cycle) ?? [])])]
+    .filter((cycle) => Number.isSafeInteger(cycle) && cycle >= 0).sort((a, b) => a - b)
+  const activeCycle = availableCycles.includes(selectedCycle) ? selectedCycle : 0
+  const cyclePosition = availableCycles.indexOf(activeCycle)
+  const axesKey = `${selectedRun?.id ?? ''}:${activeCycle}`
+  const axesValue: ResultsAxesValue = {
+    ...axesByCycle[axesKey],
+    onChange: (stage, axes) => setAxesByCycle((previous) => {
+      const current = previous[axesKey] ?? {}
+      return { ...previous, [axesKey]: stage === 'linear'
+        ? { ...current, linear: axes, optimization: undefined }
+        : { ...current, optimization: axes } }
+    }),
+  }
+  const selectCycle = (cycle: number) => {
+    setSelectedCycle(cycle)
+    // A cycle is a stage-specific inspection, not a filter on the whole-run convergence chart.
+    setFeedbackView(false)
+  }
+  const cycleData = selectedRun?.cycles?.find((entry) => entry.cycle === activeCycle)
+  const inspectedRun = selectedRun && activeCycle > 0 && cycleData
+    ? {
+        ...selectedRun,
+        cycle: activeCycle,
+        linear: cycleData.linear,
+        optimization: cycleData.optimization,
+        nonlinear: cycleData.nonlinear,
+        optimalParameters: cycleData.optimalParameters,
+        savedLinear: cycleData.savedLinear,
+        savedNonlinear: cycleData.savedNonlinear,
+        traces: cycleData.traces,
+      } : selectedRun
+  const inspectedBundle = inspectedRun && activeCycle > 0 && results
+    ? { ...results, runs: [inspectedRun] } : results
+  const selectedTable = visibleStage === 'linear' ? inspectedRun?.linear
+    : visibleStage === 'optimization' ? inspectedRun?.optimization : inspectedRun?.nonlinear
+  const selectedHistoryCount = activeCycle === 0 ? optimizerHistoryCount(selectedRun) : 0
 
   useEffect(() => {
     if (optimizationDisabled && stage === 'optimization') setStage('linear')
   }, [optimizationDisabled, stage, setStage])
+  useEffect(() => { setSelectedCycle(0); setFeedbackView(false) }, [selectedRun?.id])
+  useEffect(() => { if (!hasFeedback && feedbackView) setFeedbackView(false) }, [hasFeedback, feedbackView])
 
   const refresh = async (cancelled?: () => boolean) => {
     const adapter = getJcoAdapter(); if (!adapter) return
@@ -80,7 +128,7 @@ export function ResultsScreen() {
     if (!adapter) return setActionStatus('Desktop result bridge is unavailable.')
     setActionStatus('')
     try {
-      const target = await adapter.exportData({ runId: selectedRun.id, stage: visibleStage, format: 'csv', metrics: [], filters: {} })
+      const target = await adapter.exportData({ runId: selectedRun.id, cycle: activeCycle, stage: visibleStage, format: 'csv', metrics: [], filters: {} })
       if (target) setActionStatus(`Exported to ${target}`)
     } catch (error) {
       setActionStatus(error instanceof Error ? error.message : String(error))
@@ -114,18 +162,87 @@ export function ResultsScreen() {
     </Paper>}
 
     <Box sx={{ pt: hasResults ? 2 : 0, borderTop: hasResults ? '1px solid' : 'none', borderColor: 'divider' }}>
-      <Paper variant="outlined" sx={{ px: 2 }}>
-        <Tabs value={stageIndex} onChange={(_, index) => setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)}>
-          <Tab label="Linear" />
-          <Tab label="Optimization" disabled={optimizationDisabled} />
-          <Tab label="Harmonic balance" />
-        </Tabs>
+      <Paper variant="outlined" sx={{ px: 1.5 }}>
+        {hasFeedback && <Box role="group" aria-label="Feedback cycles"
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.7, pt: 1.1, pb: 0.25, minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, pr: 0.5 }}>Cycles</Typography>
+          <IconButton aria-label="Previous cycle" size="small" disabled={cyclePosition <= 0}
+            onClick={() => selectCycle(availableCycles[cyclePosition - 1])}>
+            <ChevronLeftRoundedIcon fontSize="small" />
+          </IconButton>
+          <Box sx={{ display: 'flex', gap: 0.5, overflowX: 'auto', flex: '0 1 auto', minWidth: 0, py: 0.5, scrollbarWidth: 'thin' }}>
+            {availableCycles.map((cycle) => {
+              const status = selectedRun?.cycles?.find((entry) => entry.cycle === cycle)?.status
+              return <Tooltip key={cycle} describeChild title={cycle === 0 ? 'Original run (before correction)' : status === 'completed' ? 'Completed feedback cycle' : 'Cycle data may be incomplete'}>
+                <Button size="small" sx={{ flexShrink: 0, minWidth: 'auto', px: 1.5 }}
+                  variant={activeCycle === cycle ? 'contained' : 'outlined'}
+                  aria-pressed={activeCycle === cycle} onClick={() => selectCycle(cycle)}>
+                  {cycle === 0 ? '0 · baseline' : 'Cycle ' + cycle}
+                </Button>
+              </Tooltip>
+            })}
+          </Box>
+          <IconButton aria-label="Next cycle" size="small" disabled={cyclePosition >= availableCycles.length - 1}
+            onClick={() => selectCycle(availableCycles[cyclePosition + 1])}>
+            <ChevronRightRoundedIcon fontSize="small" />
+          </IconButton>
+        </Box>}
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 2, rowGap: 1, py: 0.5 }}>
+          <Tabs value={feedbackView ? false : stageIndex} variant="scrollable" scrollButtons="auto"
+            sx={{ minWidth: 0, maxWidth: '100%', flex: '0 1 auto' }}
+            onChange={(_, index) => {
+              setFeedbackView(false)
+              setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)
+            }}>
+            <Tab label="Linear" />
+            <Tab label="Optimization" disabled={optimizationDisabled} />
+            <Tab label="Harmonic balance" />
+          </Tabs>
+          {hasFeedback && <Button
+            size="small"
+            color="inherit"
+            variant="outlined"
+            startIcon={<InsightsRoundedIcon fontSize="small" />}
+            aria-pressed={feedbackView}
+            onClick={() => setFeedbackView(true)}
+            sx={{
+              ml: 0,
+              flexShrink: 0,
+              borderRadius: 1.5,
+              px: 1.25,
+              py: 0.7,
+              fontWeight: 600,
+              textTransform: 'none',
+              color: 'text.primary',
+              borderColor: (theme) => alpha(theme.palette.secondary.main, feedbackView ? 0.55 : 0.35),
+              bgcolor: (theme) => alpha(theme.palette.secondary.main, feedbackView ? 0.13 : 0.055),
+              '& .MuiButton-startIcon': { color: 'secondary.main' },
+              '&:hover': {
+                borderColor: (theme) => alpha(theme.palette.secondary.main, 0.65),
+                bgcolor: (theme) => alpha(theme.palette.secondary.main, feedbackView ? 0.17 : 0.1),
+              },
+              boxShadow: 'none',
+            }}>
+            Nonlinear feedback
+          </Button>}
+        </Box>
       </Paper>
     </Box>
 
     {refreshError && <Alert severity="warning">Stored Results could not be refreshed: {refreshError}. The last successfully indexed runs remain visible.</Alert>}
     {actionStatus && <Alert severity={actionStatus.startsWith('Exported') ? 'success' : 'warning'} onClose={() => setActionStatus('')}>{actionStatus}</Alert>}
-    {visibleStage === 'optimization' && selectedRun && !selectedRun.optimization && <Alert severity={selectedHistoryCount > 0 ? 'warning' : 'info'}><strong>Selected-run Optimization diagnostic:</strong> {selectedRun.id} · status {runStatus(selectedRun)} · Linear table {selectedRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {selectedHistoryCount} evaluations.{selectedHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>}
-    {hasResults ? <ConnectedResults results={results!} stage={visibleStage} selectedRunId={selectedRun?.id} /> : <Alert severity="info">{running ? 'No completed numerical dataset is available yet for this project.' : 'Run a simulation to populate the Result explorer.'}</Alert>}
+    {!feedbackView && visibleStage === 'optimization' && inspectedRun && !inspectedRun.optimization && (
+      activeCycle > 0
+        ? <Alert severity="info">Optimization data for Cycle {activeCycle} is not available yet.</Alert>
+        : <Alert severity={selectedHistoryCount > 0 ? 'warning' : 'info'}><strong>Selected-run Optimization diagnostic:</strong> {inspectedRun.id} · status {runStatus(inspectedRun)} · Linear table {inspectedRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {selectedHistoryCount} evaluations.{selectedHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>
+    )}
+    {hasResults && feedbackView && hasFeedback && selectedRun
+      ? <NonlinearFeedbackResults run={selectedRun} />
+      : hasResults && inspectedBundle
+        ? <ResultsAxesContext.Provider value={axesValue}>
+            <ConnectedResults key={selectedRun?.id + ':' + activeCycle + ':' + visibleStage}
+              results={inspectedBundle} stage={visibleStage} selectedRunId={selectedRun?.id} />
+          </ResultsAxesContext.Provider>
+        : <Alert severity="info">{running ? 'No completed numerical dataset is available yet for this project.' : 'Run a simulation to populate the Result explorer.'}</Alert>}
   </Stack>
 }

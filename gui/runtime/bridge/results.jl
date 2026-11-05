@@ -237,6 +237,53 @@ first_file(paths) = begin
     isempty(selected) ? "" : first(selected)
 end
 
+# Only explicitly named feedback cycle folders are indexed. Legacy runs with
+# no feedback folder retain their original Results contract unchanged.
+function index_feedback(run_path)
+    root = joinpath(run_path, "feedback")
+    isdir(root) || return nothing, Any[]
+    summary = read_json(joinpath(root, "summary.json"))
+    summary_rows = summary isa AbstractDict ? get(summary, "cycles", Any[]) : Any[]
+    summary_rows = summary_rows isa AbstractVector ? summary_rows : Any[]
+    by_cycle = Dict{Int,Any}()
+    for row in summary_rows
+        row isa AbstractDict || continue
+        cycle = try Int(get(row, "cycle", -1)) catch; -1 end
+        cycle >= 0 || continue
+        by_cycle[cycle] = row
+    end
+
+    cycles = Any[]
+    for name in sort(readdir(root))
+        occursin(r"^cycle_[0-9]{3,}$", name) || continue
+        directory = joinpath(root, name)
+        isdir(directory) || continue
+        cycle = something(tryparse(Int, name[7:end]), -1)
+        cycle > 0 || continue
+        linear = matrix_table(joinpath(directory, "df_uniform_analysis.h5"),
+            "df_matrix", "df_column_names"; filtered_key="df_filtered_matrix")
+        optimization = matrix_table(joinpath(directory, "df_optimization_analysis.h5"),
+            "df_optimization_matrix", "df_optimization_column_names")
+        nonlinear = matrix_table(joinpath(directory, "df_nonlinear_analysis.h5"),
+            "df_nonlinear_matrix", "df_nonlinear_column_names";
+            filtered_key="df_nonlinear_conveging_results_matrix")
+        push!(cycles, Dict(
+            "cycle" => cycle,
+            "status" => get(get(by_cycle, cycle, Dict{String,Any}()), "status", "incomplete"),
+            "linear" => linear,
+            "optimization" => optimization,
+            "nonlinear" => nonlinear,
+            "optimalParameters" => read_json(joinpath(directory, "optimal_device_parameters.json")),
+            "savedLinear" => saved_data_catalog(joinpath(directory, "saved_data", "linear.h5")),
+            "savedNonlinear" => saved_data_catalog(joinpath(directory, "saved_data", "nonlinear.h5")),
+            "traces" => trace_files(directory),
+        ))
+    end
+    # A saved Cycle 0 summary without any corrected cycle is meaningful: the
+    # user can still inspect the baseline and a partially completed feedback run.
+    return summary, cycles
+end
+
 function index_run(run_path)
     linear_file = first_file([joinpath(run_path, name) for name in ["df_uniform_analysis.h5", "df_uniform_analysis_lin.h5"]])
     optimization_file = first_file([joinpath(run_path, "df_optimization_analysis.h5")])
@@ -260,7 +307,10 @@ function index_run(run_path)
     if nonlinear === nothing && !isempty(nonlinear_file)
         nonlinear = matrix_table(nonlinear_file, "df_matrix", "df_column_names"; filtered_key="df_filtered_matrix")
     end
+    feedback, cycles = index_feedback(run_path)
     return Dict(
+        "feedback" => feedback,
+        "cycles" => cycles,
         "id" => basename(run_path),
         "status" => status,
         "metadata" => metadata,

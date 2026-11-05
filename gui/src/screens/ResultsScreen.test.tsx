@@ -1,12 +1,29 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useContext } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResultsBundle, StageId } from '../types'
 import { useAppStore } from '../store'
 import { ResultsScreen } from './ResultsScreen'
+import { ResultsAxesContext } from '../components/ResultAxesContext'
 
 vi.mock('../components/ConnectedResults', () => ({
-  ConnectedResults: ({ stage, selectedRunId }: { stage: StageId; selectedRunId?: string | null }) => <><div data-testid="visible-results-stage">{stage}</div><div data-testid="selected-results-run">{selectedRunId}</div></>,
+  ConnectedResults: ({ stage, selectedRunId, results }: { stage: StageId; selectedRunId?: string | null; results: ResultsBundle }) => {
+    const axes = useContext(ResultsAxesContext)
+    return <>
+      <div data-testid="visible-results-stage">{stage}</div>
+      <div data-testid="selected-results-run">{selectedRunId}</div>
+      <div data-testid="selected-feedback-cycle">{results.runs[0]?.cycle ?? 0}</div>
+      <div data-testid="selected-linear-file">{results.runs[0]?.linear?.file ?? 'missing'}</div>
+      <div data-testid="linear-axes">{JSON.stringify(axes?.linear ?? {})}</div>
+      <div data-testid="optimization-axes">{JSON.stringify(axes?.optimization ?? {})}</div>
+      <button type="button" onClick={() => axes?.onChange('linear', { x: 'Cg', y: 'I0' })}>Set Linear axes (test)</button>
+      <button type="button" onClick={() => axes?.onChange('optimization', { x: 'I0', y: 'Cg' })}>Set Optimizer axes (test)</button>
+    </>
+  },
+}))
+vi.mock('../components/NonlinearFeedbackResults', () => ({
+  NonlinearFeedbackResults: () => <div data-testid="feedback-convergence-view">Feedback convergence charts</div>,
 }))
 vi.mock('../components/ResultsRunManager', () => ({ ResultsRunManager: () => <button type="button">Manage runs</button> }))
 vi.mock('../components/RunSetupSnapshot', () => ({ RunSetupSnapshot: () => <button type="button">Simulation info</button> }))
@@ -143,5 +160,116 @@ describe('Shared Results run navigation', () => {
     expect(screen.getByTestId('selected-results-run').textContent).toBe('older')
     act(() => useAppStore.getState().setResults({ ...multiRun, runs: [multiRun.runs[0]] }))
     expect(screen.getByTestId('selected-results-run').textContent).toBe('newest')
+  })
+})
+
+describe('Feedback cycle navigation within Results', () => {
+  const feedbackBundle: ResultsBundle = {
+    schemaVersion: 'jco.results/4',
+    workspace: '/tmp/jco-feedback',
+    runs: [{
+      id: 'feedback-run', traces: [],
+      linear: { ...onePoint, file: 'baseline.h5' },
+      feedback: {
+        schemaVersion: 'jco.feedback/1', requestedCycles: 2,
+        cycles: [
+          { cycle: 0, status: 'completed', metric: -20, performance: 15, correction: 0, parameters: { Cg: 250 } },
+          { cycle: 1, status: 'completed', metric: -21, performance: 20, correction: 2, parameters: { Cg: 300 } },
+        ],
+      },
+      cycles: [{
+        cycle: 1, status: 'completed',
+        linear: { ...onePoint, file: 'cycle_001/df_uniform_analysis.h5' },
+        optimization: null, nonlinear: null, traces: [],
+      }],
+    }],
+  }
+
+  beforeEach(() => {
+    useAppStore.setState({
+      project: structuredClone(originalProject),
+      results: feedbackBundle,
+      selectedResultsRunId: 'feedback-run',
+      resultsStage: 'linear',
+      running: false,
+    })
+  })
+  afterEach(() => cleanup())
+
+  it('shows a compact navigable cycle strip between Run and stage tabs', () => {
+    render(<ResultsScreen />)
+    const run = screen.getByRole('combobox', { name: 'Run' })
+    const tabs = screen.getByRole('tab', { name: 'Linear' })
+    const group = screen.getByRole('group', { name: 'Feedback cycles' })
+    expect(run.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(group.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(tabs.closest('.MuiPaper-root')?.contains(group)).toBe(true)
+    expect(screen.getByRole('button', { name: 'Nonlinear feedback' })).toBeTruthy()
+    expect(screen.getAllByRole('tab')).toHaveLength(3)
+    // The feedback overview is a separate action, not a fourth simulation stage.
+    expect(screen.queryByRole('tab', { name: 'Nonlinear feedback' })).toBeNull()
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('0')
+    expect(screen.getByTestId('selected-linear-file').textContent).toBe('baseline.h5')
+
+    const previous = screen.getByRole('button', { name: 'Previous cycle' }) as HTMLButtonElement
+    const next = screen.getByRole('button', { name: 'Next cycle' }) as HTMLButtonElement
+    expect(previous.disabled).toBe(true)
+    fireEvent.click(next)
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
+    expect(screen.getByTestId('selected-linear-file').textContent).toBe('cycle_001/df_uniform_analysis.h5')
+    expect(next.disabled).toBe(true)
+    fireEvent.click(previous)
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('0')
+    fireEvent.click(screen.getByRole('button', { name: 'Cycle 1' }))
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
+  })
+
+  it('scopes inherited axes to each run/cycle and keeps optimizer overrides independent', () => {
+    render(<ResultsScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'Set Linear axes (test)' }))
+    expect(screen.getByTestId('linear-axes').textContent).toBe('{"x":"Cg","y":"I0"}')
+    fireEvent.click(screen.getByRole('button', { name: 'Set Optimizer axes (test)' }))
+    expect(screen.getByTestId('optimization-axes').textContent).toBe('{"x":"I0","y":"Cg"}')
+    expect(screen.getByTestId('linear-axes').textContent).toBe('{"x":"Cg","y":"I0"}')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cycle 1' }))
+    expect(screen.getByTestId('linear-axes').textContent).toBe('{}')
+    expect(screen.getByTestId('optimization-axes').textContent).toBe('{}')
+
+    fireEvent.click(screen.getByRole('button', { name: '0 · baseline' }))
+    expect(screen.getByTestId('linear-axes').textContent).toBe('{"x":"Cg","y":"I0"}')
+    expect(screen.getByTestId('optimization-axes').textContent).toBe('{"x":"I0","y":"Cg"}')
+    fireEvent.click(screen.getByRole('button', { name: 'Set Linear axes (test)' }))
+    expect(screen.getByTestId('optimization-axes').textContent).toBe('{}')
+  })
+
+  it('returns from whole-run feedback charts when a cycle is selected above the tabs', () => {
+    useAppStore.setState({ resultsStage: 'hb' })
+    render(<ResultsScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'Nonlinear feedback' }))
+    expect(screen.getByRole('button', { name: 'Nonlinear feedback' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByTestId('feedback-convergence-view')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cycle 1' }))
+    expect(screen.queryByTestId('feedback-convergence-view')).toBeNull()
+    expect(screen.getByTestId('visible-results-stage').textContent).toBe('hb')
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
+    expect(screen.getByRole('button', { name: 'Nonlinear feedback' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('returns to the numerical stage when selecting a stage tab from feedback overview', () => {
+    render(<ResultsScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'Nonlinear feedback' }))
+    expect(screen.getByTestId('feedback-convergence-view')).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: 'Harmonic balance' }))
+    expect(screen.queryByTestId('feedback-convergence-view')).toBeNull()
+    expect(screen.getByTestId('visible-results-stage').textContent).toBe('hb')
+    expect(screen.getByRole('button', { name: 'Nonlinear feedback' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('does not introduce feedback controls for historical runs without cycles', () => {
+    useAppStore.setState({ results: bundle() })
+    render(<ResultsScreen />)
+    expect(screen.queryByRole('button', { name: 'Nonlinear feedback' })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Feedback cycles' })).toBeNull()
   })
 })

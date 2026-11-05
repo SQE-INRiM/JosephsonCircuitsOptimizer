@@ -724,7 +724,7 @@ function MetricsStep() {
             <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setHelpersOpen(true)}>Metric helpers</Button>
           </Stack>
         </Stack>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mt: 2 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mt: 2, mb: 2.5 }}>
           <Paper variant="outlined" sx={{ p: 1.5, flex: 1, minWidth: 0 }}>
             <Typography variant="subtitle2">Cost function</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>user_cost · minimized objective</Typography>

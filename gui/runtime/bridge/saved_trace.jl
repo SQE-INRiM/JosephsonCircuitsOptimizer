@@ -8,12 +8,17 @@ stage = String(ARGS[3])
 point_id = parse(Int, ARGS[4])
 quantity_key = String(ARGS[5])
 array_key = String(ARGS[6])
+cycle = length(ARGS) >= 7 ? parse(Int, ARGS[7]) : 0
+cycle >= 0 || error("Feedback cycle must be nonnegative.")
 
 stage in ("linear", "nonlinear", "custom") || error("Unsupported saved-data stage: $stage")
 startswith(run_id, "output_") || error("Invalid run id")
 basename(run_id) == run_id || error("Invalid run id")
 
-file_path = joinpath(workspace, "outputs", run_id, "saved_data", "$(stage).h5")
+# Only known integer cycle folders may be addressed; never accept arbitrary paths.
+cycle_root = cycle == 0 ? joinpath(workspace, "outputs", run_id) :
+    joinpath(workspace, "outputs", run_id, "feedback", "cycle_$(lpad(string(cycle), 3, '0'))")
+file_path = joinpath(cycle_root, "saved_data", "$(stage).h5")
 isfile(file_path) || error("No saved-data file exists for run $run_id and stage $stage")
 
 point_name = "point_$(lpad(string(point_id), 6, '0'))"
@@ -56,6 +61,7 @@ result = h5open(file_path, "r") do file
 
     payload["storage"] = storage
     payload["runId"] = run_id
+    payload["cycle"] = cycle
     payload["stage"] = stage
     payload["pointId"] = point_id
     payload["quantityName"] = haskey(quantity_group, "quantity_name") ? String(read(quantity_group, "quantity_name")) : quantity_key

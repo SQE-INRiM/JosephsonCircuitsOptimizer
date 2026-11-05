@@ -426,8 +426,13 @@ async function exportData(request) {
   const results = await runJuliaJson('results.jl')
   const run = results.runs?.find((item) => item.id === request.runId)
   if (!run) throw new Error(`Run ${request.runId} is no longer available.`)
-  const table = request.stage === 'hb' ? run.nonlinear : run.linear
-  if (!table) throw new Error(`No ${request.stage} table is available for this run.`)
+  const cycle = request.cycle ?? 0
+  if (!Number.isSafeInteger(cycle) || cycle < 0) throw new Error('Invalid feedback cycle.')
+  const data = cycle === 0 ? run : run.cycles?.find((item) => item.cycle === cycle)
+  if (!data) throw new Error(`Cycle ${cycle} is not available for this run.`)
+  const table = request.stage === 'hb' ? data.nonlinear
+    : request.stage === 'optimization' ? data.optimization : data.linear
+  if (!table) throw new Error(`No ${request.stage} table is available for cycle ${cycle}.`)
   const selectedColumns = request.metrics?.length
     ? table.columns.filter((column) => request.metrics.includes(column))
     : table.columns
@@ -436,7 +441,7 @@ async function exportData(request) {
   const output = `${rows.map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n`
   const selected = await dialog.showSaveDialog(mainWindow, {
     title: 'Export JCO data',
-    defaultPath: `${request.runId}_${request.stage}.csv`,
+    defaultPath: `${request.runId}${cycle ? `_cycle_${cycle}` : ''}_${request.stage}.csv`,
     filters: [{ name: 'CSV data', extensions: ['csv'] }],
   })
   if (selected.canceled || !selected.filePath) return null
@@ -449,12 +454,15 @@ async function readSavedTrace(request) {
   if (!request || !request.runId || !request.stage || !Number.isInteger(request.pointId) || !request.quantityName || !request.arrayName) {
     throw new Error('Invalid saved trace request.')
   }
+  const cycle = request.cycle ?? 0
+  if (!Number.isSafeInteger(cycle) || cycle < 0) throw new Error('Invalid feedback cycle.')
   return runJuliaJson('saved_trace.jl', [
     String(request.runId),
     String(request.stage),
     String(request.pointId),
     String(request.quantityName),
     String(request.arrayName),
+    String(cycle),
   ])
 }
 

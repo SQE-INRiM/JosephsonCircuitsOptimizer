@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useContext, useEffect, useId, useMemo, useState } from 'react'
 import { Alert, Box, Button, Chip, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Slider, Stack, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { LineChart } from '@mui/x-charts/LineChart'
@@ -11,6 +11,7 @@ import {
 } from '../utils/optimizationLandscape'
 import type { LinearSlice, OptimizerSample } from '../utils/optimizationLandscape'
 import { sequentialColor } from './HeatmapGrid'
+import { preferredResultAxes, ResultsAxesContext } from './ResultAxesContext'
 
 type LandscapeMode = 'projection' | 'slice'
 
@@ -224,10 +225,17 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   const samples = useMemo(() => optimizerSamples(table), [table])
   const names = useMemo(() => optimizerParameterNames(table), [table])
   const varying = names.filter((name) => new Set(samples.map((sample) => sample.values[name]).filter(Number.isFinite)).size > 1)
+  const axesContext = useContext(ResultsAxesContext)
+  const initialAxes = preferredResultAxes(
+    names,
+    { x: varying[0] ?? names[0] ?? '', y: varying[1] ?? names.find((name) => name !== varying[0]) ?? '' },
+    axesContext?.optimization ?? axesContext?.linear,
+  )
   const [view, setView] = useState<'landscape' | 'history'>('landscape')
   const [showPath, setShowPath] = useState(true)
-  const [x, setX] = useState(varying[0] ?? names[0] ?? '')
-  const [y, setY] = useState(varying[1] ?? names.find((name) => name !== x) ?? '')
+  const [showFixedControls, setShowFixedControls] = useState(false)
+  const [x, setX] = useState(initialAxes.x)
+  const [y, setY] = useState(initialAxes.y)
   const [mode, setMode] = useState<LandscapeMode>(run.linear ? 'slice' : 'projection')
   const [count, setCount] = useState(samples.length)
   const [fixedOverrides, setFixedOverrides] = useState<Record<string, number>>({})
@@ -264,41 +272,49 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
 
   const evaluations = samples.map((sample) => sample.evaluation)
   const { evaluated: metrics, bestSoFar: bestHistory } = objectiveHistoryForPlot(samples)
+  // A single evaluated (or unmasked) point is not a history curve.
+  const historyAvailable = metrics.filter((value) => value !== null).length >= 2
+  useEffect(() => { if (!historyAvailable) setView('landscape') }, [historyAvailable])
   const selected = selectedIndex == null || selectedIndex >= shown.length ? null : shown[selectedIndex]
   const display = (name: string) => parameterLabel(parameters, name)
   const canPlot = x !== y && names.length >= 2
   const chooseX = (next: string) => {
+    const nextY = next === y ? (names.find((name) => name !== next) ?? '') : y
     setX(next)
-    if (next === y) setY(names.find((name) => name !== next) ?? '')
+    setY(nextY)
+    axesContext?.onChange('optimization', { x: next, y: nextY })
   }
   const chooseY = (next: string) => {
+    const nextX = next === x ? (names.find((name) => name !== next) ?? '') : x
+    setX(nextX)
     setY(next)
-    if (next === x) setX(names.find((name) => name !== next) ?? '')
+    axesContext?.onChange('optimization', { x: nextX, y: next })
   }
 
   if (!samples.length) return <Alert severity="info">No optimizer evaluations with finite objective values are available.</Alert>
 
-  return <Stack spacing={1.5}>
-    <Paper variant="outlined" sx={{ p: 1.2 }}>
-      <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+  return <Stack spacing={1.1}>
+    <Paper variant="outlined" sx={{ p: 0.9 }}>
+      <Stack direction="row" useFlexGap spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, mr: 'auto' }}>
+          {view === 'landscape' ? 'Optimization landscape' : 'Optimization history'}
+        </Typography>
         <Button size="small" variant={view === 'landscape' ? 'contained' : 'outlined'} onClick={() => setView('landscape')}>Landscape</Button>
-        <Button size="small" variant={view === 'history' ? 'contained' : 'outlined'} onClick={() => setView('history')}>History</Button>
-        <Chip size="small" variant="outlined" sx={{ ml: { md: 'auto' } }} label={samples.length.toLocaleString() + ' evaluations'} />
+        <Button size="small" variant={view === 'history' ? 'contained' : 'outlined'} disabled={!historyAvailable} onClick={() => setView('history')}>History</Button>
+        <Chip size="small" variant="outlined" label={samples.length.toLocaleString() + ' evaluations'} />
       </Stack>
     </Paper>
-    {view === 'landscape' && <Paper variant="outlined" sx={{ p: 1.6 }}>
-      <Stack spacing={1.6}>
-        <Typography variant="h6">Optimization landscape</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: '-8px !important' }}>Surrogate-guided search for lower objective values; each point is an evaluated configuration.</Typography>
+    {view === 'landscape' && <Paper variant="outlined" sx={{ p: 1.2 }}>
+      <Stack spacing={0.9}>
         {canPlot ? <>
-          <Stack direction="row" useFlexGap spacing={1.1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <FormControl size="small" sx={{ minWidth: 170 }}>
+          <Stack direction="row" useFlexGap spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 140, width: 148 }}>
               <InputLabel id="optimizer-x-label">X axis</InputLabel>
               <Select labelId="optimizer-x-label" label="X axis" value={x} onChange={(event) => chooseX(event.target.value)}>
                 {names.map((name) => <MenuItem key={name} value={name}>{display(name)}</MenuItem>)}
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 170 }}>
+            <FormControl size="small" sx={{ minWidth: 140, width: 148 }}>
               <InputLabel id="optimizer-y-label">Y axis</InputLabel>
               <Select labelId="optimizer-y-label" label="Y axis" value={y} onChange={(event) => chooseY(event.target.value)}>
                 {names.map((name) => <MenuItem key={name} value={name}>{display(name)}</MenuItem>)}
@@ -307,9 +323,18 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
             <Button size="small" variant={effectiveMode === 'projection' ? 'contained' : 'outlined'} onClick={() => setMode('projection')}>Projection</Button>
             <Button size="small" variant={effectiveMode === 'slice' ? 'contained' : 'outlined'} disabled={!canSlice} onClick={() => setMode('slice')}>Slice · Linear</Button>
             <Button size="small" variant={showPath ? 'contained' : 'outlined'} color="inherit" onClick={() => setShowPath((current) => !current)} aria-pressed={showPath}>Trajectory</Button>
+            {effectiveMode === 'slice' && otherNames.length > 0 && <>
+              <Button size="small" variant={showFixedControls ? 'outlined' : 'text'}
+                aria-expanded={showFixedControls} onClick={() => setShowFixedControls((current) => !current)}>
+                {showFixedControls ? 'Hide fixed' : 'Fixed values'} ({otherNames.length})
+              </Button>
+              <Typography variant="caption" color="text.secondary" title={otherNames.map((name) => display(name) + '=' + displayNumber(fixed[name])).join(' · ')}
+                sx={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {otherNames.map((name) => display(name) + '=' + displayNumber(fixed[name])).join(' · ')}
+              </Typography>
+            </>}
           </Stack>
-          {effectiveMode === 'slice' && otherNames.length > 0 && <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
- 
+          {effectiveMode === 'slice' && otherNames.length > 0 && showFixedControls && <Stack direction="row" useFlexGap spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             {otherNames.map((name) => <FormControl size="small" sx={{ minWidth: 155 }} key={name}>
               <InputLabel id={'optimizer-fixed-' + name}>{display(name)}</InputLabel>
               <Select labelId={'optimizer-fixed-' + name} label={display(name)} value={fixed[name] ?? ''} onChange={(event) => setFixedOverrides((previous) => ({ ...previous, [name]: Number(event.target.value) }))}>
@@ -338,16 +363,16 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
         </> : <Alert severity="info">At least two parameter columns are required to display a two-dimensional optimization landscape.</Alert>}
       </Stack>
     </Paper>}
-    {view === 'history' && <Stack spacing={1.5}>
+    {view === 'history' && historyAvailable && <Stack spacing={1.5}>
     <Paper variant="outlined" sx={{ p: 1.7 }}>
       <Typography variant="h6" sx={{ mb: 1 }}>Objective</Typography>
-      {metrics.some((value) => value !== null) ? <LineChart height={290} margin={{ bottom: 45, left: 80 }}
+      <LineChart height={290} margin={{ bottom: 45, left: 80 }}
         xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => displayNumber(value) }]}
         yAxis={[{ label: 'metric', width: 80, valueFormatter: (value: number | null) => displayNumber(value) }]}
         series={[
           { data: metrics, label: 'Evaluated objective', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
           { data: bestHistory, label: 'Best so far', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
-        ]} grid={{ horizontal: true }} /> : <Alert severity="info">All objective evaluations are masked; there are no values to plot.</Alert>}
+        ]} grid={{ horizontal: true }} />
     </Paper>
     <Divider sx={{ my: 0.6 }} />
     <Stack spacing={1}>

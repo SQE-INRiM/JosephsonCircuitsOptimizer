@@ -155,6 +155,7 @@ export interface SavedDataCatalog {
 
 export interface SavedTraceRequest {
   runId: string
+  cycle?: number
   stage: 'linear' | 'nonlinear' | 'custom'
   pointId: number
   quantityName: string
@@ -163,6 +164,7 @@ export interface SavedTraceRequest {
 
 export interface SavedTraceData {
   runId: string
+  cycle?: number
   stage: string
   pointId: number
   quantityName: string
@@ -187,8 +189,52 @@ export interface RunSetupSnapshot {
   juliaFiles?: Record<string, string> | null
 }
 
+export interface FeedbackCycleSummary {
+  cycle: number
+  status: string
+  metric?: number | null
+  performance?: number | null
+  correction?: number | null
+  parameters: Record<string, number | null>
+}
+
+export interface FeedbackStoppingDetails {
+  stopping_mode: 'cycles' | 'convergence'
+  monitored_metric?: 'cost' | 'performance' | 'correction' | null
+  tolerance_type?: 'absolute' | 'relative' | null
+  tolerance?: number | null
+  monitored_values?: number[]
+  cycles_completed: number
+  maximum_cycles: number
+  stop_reason: 'converged' | 'cycle_limit'
+}
+
+export interface FeedbackSummary {
+  schemaVersion: string
+  requestedCycles: number
+  cycles: FeedbackCycleSummary[]
+  /** Present when feedback stopped normally; absent for older/partial runs. */
+  stopping?: FeedbackStoppingDetails
+}
+
+export interface FeedbackCycleResults {
+  cycle: number
+  status: string
+  linear?: ResultTable | null
+  optimization?: ResultTable | null
+  nonlinear?: ResultTable | null
+  optimalParameters?: Record<string, unknown> | null
+  savedLinear?: SavedDataCatalog | null
+  savedNonlinear?: SavedDataCatalog | null
+  traces: ResultTrace[]
+}
+
 export interface RunResults {
   id: string
+  /** Active inspected feedback cycle (zero = baseline). */
+  cycle?: number
+  feedback?: FeedbackSummary | null
+  cycles?: FeedbackCycleResults[]
   status?: Record<string, unknown> | null
   metadata?: Record<string, unknown> | null
   optimalParameters?: Record<string, unknown> | null
