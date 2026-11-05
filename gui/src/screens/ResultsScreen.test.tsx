@@ -9,8 +9,7 @@ vi.mock('../components/ConnectedResults', () => ({
   ConnectedResults: ({ stage, selectedRunId, results }: { stage: StageId; selectedRunId?: string | null; results: ResultsBundle }) => <><div data-testid="visible-results-stage">{stage}</div><div data-testid="selected-results-run">{selectedRunId}</div><div data-testid="selected-feedback-cycle">{results.runs[0]?.cycle ?? 0}</div><div data-testid="selected-linear-file">{results.runs[0]?.linear?.file ?? 'missing'}</div></>,
 }))
 vi.mock('../components/NonlinearFeedbackResults', () => ({
-  NonlinearFeedbackResults: ({ onOpenCycle }: { onOpenCycle: (cycle: number) => void }) =>
-    <button type="button" onClick={() => onOpenCycle(1)}>Show Cycle 1 in HB</button>,
+  NonlinearFeedbackResults: () => <div data-testid="feedback-convergence-view">Feedback convergence charts</div>,
 }))
 vi.mock('../components/ResultsRunManager', () => ({ ResultsRunManager: () => <button type="button">Manage runs</button> }))
 vi.mock('../components/RunSetupSnapshot', () => ({ RunSetupSnapshot: () => <button type="button">Simulation info</button> }))
@@ -183,36 +182,46 @@ describe('Feedback cycle navigation within Results', () => {
   })
   afterEach(() => cleanup())
 
-  it('places Cycle under Run in the same stage bar without adding another divider', () => {
+  it('shows a compact navigable cycle strip between Run and stage tabs', () => {
     render(<ResultsScreen />)
     const run = screen.getByRole('combobox', { name: 'Run' })
     const tabs = screen.getByRole('tab', { name: 'Linear' })
-    const cycle = screen.getByRole('combobox', { name: 'Cycle' })
-    expect(run.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(tabs.closest('.MuiPaper-root')?.contains(cycle)).toBeTruthy()
+    const group = screen.getByRole('group', { name: 'Feedback cycles' })
+    expect(run.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(group.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(tabs.closest('.MuiPaper-root')?.contains(group)).toBe(true)
     expect(screen.getByRole('tab', { name: 'Nonlinear feedback' })).toBeTruthy()
     expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('0')
     expect(screen.getByTestId('selected-linear-file').textContent).toBe('baseline.h5')
-    fireEvent.mouseDown(cycle)
-    fireEvent.click(screen.getByRole('option', { name: 'Cycle 1' }))
+
+    const previous = screen.getByRole('button', { name: 'Previous cycle' }) as HTMLButtonElement
+    const next = screen.getByRole('button', { name: 'Next cycle' }) as HTMLButtonElement
+    expect(previous.disabled).toBe(true)
+    fireEvent.click(next)
     expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
     expect(screen.getByTestId('selected-linear-file').textContent).toBe('cycle_001/df_uniform_analysis.h5')
+    expect(next.disabled).toBe(true)
+    fireEvent.click(previous)
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('0')
+    fireEvent.click(screen.getByRole('button', { name: 'Cycle 1' }))
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
   })
 
-  it('opens selected cycle from feedback convergence into the normal HB stage', () => {
+  it('returns from whole-run feedback charts when a cycle is selected above the tabs', () => {
+    useAppStore.setState({ resultsStage: 'hb' })
     render(<ResultsScreen />)
     fireEvent.click(screen.getByRole('tab', { name: 'Nonlinear feedback' }))
-    expect(screen.queryByRole('combobox', { name: 'Cycle' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Show Cycle 1 in HB' }))
+    expect(screen.getByTestId('feedback-convergence-view')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cycle 1' }))
+    expect(screen.queryByTestId('feedback-convergence-view')).toBeNull()
     expect(screen.getByTestId('visible-results-stage').textContent).toBe('hb')
     expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
-    expect(screen.getByRole('combobox', { name: 'Cycle' })).toBeTruthy()
   })
 
   it('does not introduce feedback controls for historical runs without cycles', () => {
     useAppStore.setState({ results: bundle() })
     render(<ResultsScreen />)
     expect(screen.queryByRole('tab', { name: 'Nonlinear feedback' })).toBeNull()
-    expect(screen.queryByRole('combobox', { name: 'Cycle' })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Feedback cycles' })).toBeNull()
   })
 })
