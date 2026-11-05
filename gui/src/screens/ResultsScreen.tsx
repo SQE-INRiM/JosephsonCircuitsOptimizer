@@ -186,8 +186,8 @@ export function ResultsScreen() {
           </Tabs>
           {hasFeedback && <Button
             size="small"
-            color="secondary"
-            variant={feedbackView ? 'contained' : 'outlined'}
+            color="inherit"
+            variant="outlined"
             startIcon={<InsightsRoundedIcon fontSize="small" />}
             aria-pressed={feedbackView}
             onClick={() => setFeedbackView(true)}
@@ -195,10 +195,15 @@ export function ResultsScreen() {
               ml: 0,
               flexShrink: 0,
               borderRadius: 1.5,
-              px: 1.5,
-              py: 0.8,
-              fontWeight: 700,
+              px: 1.25,
+              py: 0.7,
+              fontWeight: 600,
               textTransform: 'none',
+              color: feedbackView ? 'text.primary' : 'text.secondary',
+              borderColor: 'divider',
+              bgcolor: feedbackView ? 'action.selected' : 'transparent',
+              '& .MuiButton-startIcon': { color: feedbackView ? 'secondary.main' : 'text.secondary' },
+              '&:hover': { borderColor: 'text.secondary', bgcolor: 'action.hover' },
               boxShadow: 'none',
             }}>
             Nonlinear feedback
