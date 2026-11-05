@@ -46,7 +46,7 @@ function maskJuliaTrivia(source: string): string {
     if (source[i] === '"' || source[i] === '`' || source[i] === "'") {
       const delimiter = source.startsWith('"""', i) ? '"""' : source[i]
       // A bare apostrophe is normally the Julia transpose operator, not a char.
-      if (delimiter === "'" && !/^'(?:\\\\.|[^'\\\\\\n])'/.test(source.slice(i))) {
+      if (delimiter === "'" && !/^'(?:\\.|[^'\\\n])'/.test(source.slice(i))) {
         i++ // Transpose / adjoint operator, not a character literal.
         continue
       }
