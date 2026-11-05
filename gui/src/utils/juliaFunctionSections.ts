@@ -21,7 +21,8 @@ const BLOCK_OPENERS = new Set([
 // Blank comments, Julia strings, characters and command literals in place,
 // preserving all offsets and line breaks so code spans remain exact.
 function maskJuliaTrivia(source: string): string {
-  const chars = [...source]
+  // Use UTF-16 code units, matching String.slice and RegExp indices even with emoji.
+  const chars = source.split('')
   const blank = (index: number) => {
     if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' '
   }
@@ -45,13 +46,9 @@ function maskJuliaTrivia(source: string): string {
     if (source[i] === '"' || source[i] === '`' || source[i] === "'") {
       const delimiter = source.startsWith('"""', i) ? '"""' : source[i]
       // A bare apostrophe is normally the Julia transpose operator, not a char.
-      if (delimiter === "'") {
-        let k = i + 1
-        while (k < source.length && source[k] !== '\n' && source[k] !== "'") {
-          if (source[k] === '\\') k++
-          k++
-        }
-        if (k >= source.length || source[k] !== "'") { i++; continue }
+      if (delimiter === "'" && !/^'(?:\\\\.|[^'\\\\\\n])'/.test(source.slice(i))) {
+        i++ // Transpose / adjoint operator, not a character literal.
+        continue
       }
       for (let j = 0; j < delimiter.length; j++) blank(i++)
       while (i < source.length) {
