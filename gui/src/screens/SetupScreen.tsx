@@ -538,6 +538,42 @@ function ComputationStep() {
       </Stack>
 
       <Card variant="outlined"><CardContent>
+        <SectionHeading icon={<MemoryRoundedIcon />} title="Harmonic and solver settings" description="Stage-specific harmonic truncation and shared JosephsonCircuits hbsolve controls." />
+        <Stack spacing={2.5} sx={{ mt: 2.5 }}>
+          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
+            <Paper variant="outlined" sx={{ p: 2, flex: 1 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1.5 }}>Linear stage harmonics</Typography>
+              <Stack direction="row" spacing={1.5}>
+                <NumberField label="Strong-tone harmonics" value={config.linearStrongToneHarmonics} onChange={(value) => update({ linearStrongToneHarmonics: value })} />
+                <NumberField label="Modulation harmonics" value={config.linearModulationHarmonics} onChange={(value) => update({ linearModulationHarmonics: value })} />
+              </Stack>
+              <Alert severity={linearFirstOrder ? 'success' : 'info'} role="status" sx={{ mt: 1.5 }}>
+                {linearFirstOrder
+                  ? 'Linear-stage harmonic and intermodulation limits are set to first order (1).'
+                  : 'For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1. To explore pumped behavior across the parameter space, increase the harmonic counts as needed.'}
+              </Alert>
+            </Paper>
+            <Paper variant="outlined" sx={{ p: 2, flex: 1 }}><Typography variant="subtitle2" sx={{ mb: 1.5 }}>Nonlinear stage harmonics</Typography><Stack direction="row" spacing={1.5}><NumberField label="Strong-tone harmonics" value={config.nonlinearStrongToneHarmonics} onChange={(value) => update({ nonlinearStrongToneHarmonics: value })} /><NumberField label="Modulation harmonics" value={config.nonlinearModulationHarmonics} onChange={(value) => update({ nonlinearModulationHarmonics: value })} /></Stack></Paper>
+          </Stack>
+          <Divider />
+          <Box>
+            <Typography variant="subtitle2">Shared hbsolve controls</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>These values are used by both the linear design sweep and the nonlinear pumped sweep.</Typography>
+            <Stack spacing={1.5}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}><NumberField label="Max solver iterations" value={config.maxSimulatorIterations} onChange={(value) => update({ maxSimulatorIterations: value })} /><NumberField label="Residual tolerance (ftol)" value={config.solverFtol} onChange={(value) => update({ solverFtol: value })} /><NumberField label="Switch-off line search tolerance" value={config.switchOffLineSearchTolerance} onChange={(value) => update({ switchOffLineSearchTolerance: value })} /><NumberField label="Minimum line-search step (alphamin)" value={config.alphaMin} onChange={(value) => update({ alphaMin: value })} /></Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}>
+                <TextField label="Max intermodulation order" value={config.maxIntermodOrder} helperText="Use 1 to restrict mixing to first order, or Inf for no additional truncation." onChange={(event) => update({ maxIntermodOrder: event.target.value })} fullWidth />
+                <NumberField label="Frequency batches" value={config.solverBatches} onChange={(value) => update({ solverBatches: value })} />
+                <TextField select label="Node sorting" value={config.nodeSorting} onChange={(event) => update({ nodeSorting: event.target.value as typeof config.nodeSorting })} fullWidth><MenuItem value="number">Numeric node names</MenuItem><MenuItem value="name">Text node names</MenuItem><MenuItem value="none">Circuit order</MenuItem></TextField>
+              </Box>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><FormControlLabel control={<Checkbox checked={config.threeWaveMixing} onChange={(event) => update({ threeWaveMixing: event.target.checked })} />} label="Three-wave mixing" /><FormControlLabel control={<Checkbox checked={config.fourWaveMixing} onChange={(event) => update({ fourWaveMixing: event.target.checked })} />} label="Four-wave mixing" /></Stack>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Set Frequency batches to 0 to use all Julia threads configured in ⋮ → Julia settings.</Typography>
+            </Stack>
+          </Box>
+        </Stack>
+      </CardContent></Card>
+
+      <Card variant="outlined"><CardContent>
         <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear feedback" description="Optional iterative correction of the linear objective using pumped HB results." />
         <Stack spacing={2} sx={{ mt: 2.5 }}>
           <FormControlLabel
@@ -545,7 +581,7 @@ function ComputationStep() {
               nonlinearCorrectionCycles: event.target.checked
                 ? (config.nonlinearFeedbackStopMode === 'convergence' ? 8 : 1) : 0,
             })} />}
-            label="Enable nonlinear feedback (full runs only)"
+            label="Enable nonlinear feedback"
           />
           {feedbackEnabled && (
             <>
@@ -642,7 +678,6 @@ function ComputationStep() {
                       updateSource(source.id, { extras })
                     }}
                     error={invalidFeedbackSources.some((item) => item.id === source.id)}
-                    helperText={source.isDc ? 'DC bias current in A' : 'Pump current in A (not dBm)'}
                     sx={{ flex: 1 }}
                   />
                 ))}
@@ -656,42 +691,6 @@ function ComputationStep() {
 
             </>
           )}
-        </Stack>
-      </CardContent></Card>
-
-      <Card variant="outlined"><CardContent>
-        <SectionHeading icon={<MemoryRoundedIcon />} title="Harmonic and solver settings" description="Stage-specific harmonic truncation and shared JosephsonCircuits hbsolve controls." />
-        <Stack spacing={2.5} sx={{ mt: 2.5 }}>
-          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
-            <Paper variant="outlined" sx={{ p: 2, flex: 1 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1.5 }}>Linear stage harmonics</Typography>
-              <Stack direction="row" spacing={1.5}>
-                <NumberField label="Strong-tone harmonics" value={config.linearStrongToneHarmonics} onChange={(value) => update({ linearStrongToneHarmonics: value })} />
-                <NumberField label="Modulation harmonics" value={config.linearModulationHarmonics} onChange={(value) => update({ linearModulationHarmonics: value })} />
-              </Stack>
-              <Alert severity={linearFirstOrder ? 'success' : 'info'} role="status" sx={{ mt: 1.5 }}>
-                {linearFirstOrder
-                  ? 'Linear-stage harmonic and intermodulation limits are set to first order (1).'
-                  : 'For a standard Linear sweep, set Strong-tone harmonics and Modulation harmonics to 1. To explore pumped behavior across the parameter space, increase the harmonic counts as needed.'}
-              </Alert>
-            </Paper>
-            <Paper variant="outlined" sx={{ p: 2, flex: 1 }}><Typography variant="subtitle2" sx={{ mb: 1.5 }}>Nonlinear stage harmonics</Typography><Stack direction="row" spacing={1.5}><NumberField label="Strong-tone harmonics" value={config.nonlinearStrongToneHarmonics} onChange={(value) => update({ nonlinearStrongToneHarmonics: value })} /><NumberField label="Modulation harmonics" value={config.nonlinearModulationHarmonics} onChange={(value) => update({ nonlinearModulationHarmonics: value })} /></Stack></Paper>
-          </Stack>
-          <Divider />
-          <Box>
-            <Typography variant="subtitle2">Shared hbsolve controls</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>These values are used by both the linear design sweep and the nonlinear pumped sweep.</Typography>
-            <Stack spacing={1.5}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}><NumberField label="Max solver iterations" value={config.maxSimulatorIterations} onChange={(value) => update({ maxSimulatorIterations: value })} /><NumberField label="Residual tolerance (ftol)" value={config.solverFtol} onChange={(value) => update({ solverFtol: value })} /><NumberField label="Switch-off line search tolerance" value={config.switchOffLineSearchTolerance} onChange={(value) => update({ switchOffLineSearchTolerance: value })} /><NumberField label="Minimum line-search step (alphamin)" value={config.alphaMin} onChange={(value) => update({ alphaMin: value })} /></Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1.5 }}>
-                <TextField label="Max intermodulation order" value={config.maxIntermodOrder} helperText="Use 1 to restrict mixing to first order, or Inf for no additional truncation." onChange={(event) => update({ maxIntermodOrder: event.target.value })} fullWidth />
-                <NumberField label="Frequency batches" value={config.solverBatches} onChange={(value) => update({ solverBatches: value })} />
-                <TextField select label="Node sorting" value={config.nodeSorting} onChange={(event) => update({ nodeSorting: event.target.value as typeof config.nodeSorting })} fullWidth><MenuItem value="number">Numeric node names</MenuItem><MenuItem value="name">Text node names</MenuItem><MenuItem value="none">Circuit order</MenuItem></TextField>
-              </Box>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><FormControlLabel control={<Checkbox checked={config.threeWaveMixing} onChange={(event) => update({ threeWaveMixing: event.target.checked })} />} label="Three-wave mixing" /><FormControlLabel control={<Checkbox checked={config.fourWaveMixing} onChange={(event) => update({ fourWaveMixing: event.target.checked })} />} label="Four-wave mixing" /></Stack>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Set Frequency batches to 0 to use all Julia threads configured in ⋮ → Julia settings.</Typography>
-            </Stack>
-          </Box>
         </Stack>
       </CardContent></Card>
     </Stack>
