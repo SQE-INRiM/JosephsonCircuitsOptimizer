@@ -372,7 +372,7 @@ describe('Nonlinear feedback setup', () => {
     expect(screen.getByRole('combobox', { name: 'Monitor' })).toBeTruthy()
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Monitor' }))
-    fireEvent.click(screen.getByRole('option', { name: 'Performance · best HB' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Performance' }))
     expect(useAppStore.getState().project.computation.nonlinearFeedbackMetric).toBe('performance')
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Change' }))
