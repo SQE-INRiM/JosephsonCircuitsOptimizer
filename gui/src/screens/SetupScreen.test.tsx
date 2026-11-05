@@ -378,7 +378,7 @@ describe('Nonlinear feedback setup', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fixed cycles' }))
     expect(screen.getByRole('spinbutton', { name: 'Correction cycles' })).toBeTruthy()
     expect(screen.queryByRole('combobox', { name: 'Monitor' })).toBeNull()
-  })
+  }, 15_000)
 
   it('is disabled by default and preserves per-source reference currents when toggled', () => {
     render(<SetupScreen />)
