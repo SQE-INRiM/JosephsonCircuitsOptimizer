@@ -28,16 +28,19 @@ function _jco_feedback_cycle(cycle::Integer, params, metric, performance, correc
 end
 
 # Atomic metadata replacement: completed cycles remain readable after cancellation.
-function _jco_save_feedback_summary(run_path::AbstractString, requested::Integer, cycles)
+function _jco_save_feedback_summary(run_path::AbstractString, requested::Integer, cycles; stopping=nothing)
     directory = joinpath(run_path, "feedback")
     mkpath(directory)
     destination = joinpath(directory, "summary.json")
     temporary = destination * ".tmp"
-    payload = Dict(
+    payload = Dict{String,Any}(
         "schemaVersion" => "jco.feedback/1",
         "requestedCycles" => Int(requested),
         "cycles" => cycles,
     )
+    if stopping !== nothing
+        payload["stopping"] = stopping
+    end
     open(temporary, "w") do io
         JSON.print(io, payload)
         println(io)
