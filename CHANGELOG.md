@@ -4,6 +4,10 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Results
+- Disable HB **Amplitude response** when no source-amplitude sweep exists (including single-point nonlinear runs).
+- Exclude masked optimizer objective penalties (>= 1e8) from the **History** chart's vertical scale while keeping evaluation numbering, running best, and parameter histories intact.
+
 ## 0.4.3 - 2026-11-04
 
 [Complete release notes](docs/releases/v0.4.3.md) · Stable GUI/Results baseline after v0.4.2; nonlinear feedback remains in a separate feature branch.
