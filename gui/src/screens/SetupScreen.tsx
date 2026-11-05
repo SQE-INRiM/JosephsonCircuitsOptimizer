@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { defaultMetricFunction, isolateMetricFunction, replaceMetricFunction } from '../utils/juliaFunctionSections'
+import type { MetricFunctionName } from '../utils/juliaFunctionSections'
 import {
   Alert,
   Box,
@@ -97,6 +99,68 @@ function CodeDialog({ open, onClose, title, filename, value, onChange, focusFunc
       <DialogContent sx={{ pt: '8px !important' }}>
         <JuliaCodeEditor label={filename} value={value} onChange={onChange} focusFunction={focusFunction} />
       </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
+ * A function-specific view of the shared user_cost_and_performance.jl file.
+ * Edits are staged and spliced into only the selected function on Save.
+ * Complex Julia layouts fall back to the explicit full-file editor.
+ */
+function MetricFunctionDialog({ name, value, onSave, onClose, onOpenFullFile }: {
+  name: MetricFunctionName
+  value: string
+  onSave: (code: string) => void
+  onClose: () => void
+  onOpenFullFile: () => void
+}) {
+  const original = isolateMetricFunction(value, name)
+  const [draft, setDraft] = useState(() => original.kind === 'found' ? original.text : defaultMetricFunction(name))
+  const [error, setError] = useState('')
+  const heading = name === 'user_cost' ? 'Cost function'
+    : name === 'user_performance' ? 'Performance function'
+    : 'Nonlinear correction'
+
+  const save = () => {
+    const result = replaceMetricFunction(value, name, draft)
+    if ('error' in result) { setError(result.error); return }
+    onSave(result.code)
+    onClose()
+  }
+
+  return (
+    <Dialog open onClose={onClose} fullWidth maxWidth="lg" aria-labelledby="jco-metric-function-title">
+      <DialogTitle id="jco-metric-function-title">
+        <Stack direction="row" spacing={1.2} sx={{ alignItems: 'center' }}>
+          <CodeRoundedIcon color="primary" />
+          <Box>
+            <Typography variant="h6">{heading}</Typography>
+            <Typography variant="caption" color="text.secondary">user_cost_and_performance.jl · {name}</Typography>
+          </Box>
+        </Stack>
+      </DialogTitle>
+      <DialogContent sx={{ pt: '8px !important' }}>
+        {original.kind === 'unsupported' ? (
+          <Alert severity="warning">
+            This function uses Julia syntax that cannot be safely isolated. Edit the full Julia file instead.
+          </Alert>
+        ) : (
+          <Stack spacing={1.5}>
+            {original.kind === 'missing' && (
+              <Alert severity="info">This function is not defined yet. Saving will append it to the existing Julia file.</Alert>
+            )}
+            <JuliaCodeEditor label={name} value={draft} onChange={(code) => { setDraft(code); setError('') }} />
+          </Stack>
+        )}
+        {error && <Alert severity="warning" sx={{ mt: 1.5 }}>{error}</Alert>}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        {original.kind === 'unsupported'
+          ? <Button variant="contained" onClick={onOpenFullFile}>Open full file</Button>
+          : <Button variant="contained" onClick={save}>Save changes</Button>}
+      </DialogActions>
     </Dialog>
   )
 }
@@ -567,6 +631,7 @@ function MetricsStep() {
   const updateMetricsCode = useAppStore((state) => state.updateMetricsCode)
   const [metricsEditorFunction, setMetricsEditorFunction] = useState<'user_cost' | 'user_performance' | 'user_nonlinear_correction' | null>(null)
   const [helpersOpen, setHelpersOpen] = useState(false)
+  const [fullMetricsOpen, setFullMetricsOpen] = useState(false)
   const hasCorrection = /\bfunction\s+user_nonlinear_correction\s*\(/.test(project.metricsCode.replace(/#=[\s\S]*?=#/g, '').replace(/#.*$/gm, ''))
   const feedbackEnabled = project.computation.nonlinearCorrectionCycles > 0
   const hasCost = project.metrics.some((metric) => metric.source === 'user_cost')
@@ -583,7 +648,10 @@ function MetricsStep() {
       <Paper variant="outlined" sx={{ p: 2.5 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
           <SectionHeading icon={<FunctionsRoundedIcon />} title="Cost & performance" description="Edit each Julia function or its shared helpers." />
-          <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setHelpersOpen(true)}>Metric helpers</Button>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+            <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setFullMetricsOpen(true)}>Full Julia file</Button>
+            <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setHelpersOpen(true)}>Metric helpers</Button>
+          </Stack>
         </Stack>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mt: 2 }}>
           <Paper variant="outlined" sx={{ p: 1.5, flex: 1, minWidth: 0 }}>
@@ -618,14 +686,21 @@ Both inputs are complete hbsolve solutions. Extract S-parameters from sol_linear
         {feedbackEnabled && !hasCorrection && <Alert severity="warning" sx={{ mt: 2 }}>Nonlinear feedback is enabled, but <code>user_nonlinear_correction</code> is not defined.</Alert>}
         {!hasCorrection && !feedbackEnabled && <Alert severity="info" sx={{ mt: 2 }}>Define <code>user_nonlinear_correction</code> before enabling feedback. The nonlinear sweep also expects this hook to exist.</Alert>}
       </Paper>
+      {metricsEditorFunction !== null && (
+        <MetricFunctionDialog
+          key={metricsEditorFunction}
+          name={metricsEditorFunction}
+          value={project.metricsCode}
+          onSave={updateMetricsCode}
+          onClose={() => setMetricsEditorFunction(null)}
+          onOpenFullFile={() => { setMetricsEditorFunction(null); setFullMetricsOpen(true) }}
+        />
+      )}
       <CodeDialog
-        open={metricsEditorFunction !== null}
-        onClose={() => setMetricsEditorFunction(null)}
-        title={metricsEditorFunction === 'user_cost' ? 'Cost function'
-          : metricsEditorFunction === 'user_performance' ? 'Performance function'
-          : 'Nonlinear correction'}
+        open={fullMetricsOpen}
+        onClose={() => setFullMetricsOpen(false)}
+        title="Complete cost & performance source"
         filename="user_cost_and_performance.jl"
-        focusFunction={metricsEditorFunction ?? undefined}
         value={project.metricsCode}
         onChange={updateMetricsCode}
       />
