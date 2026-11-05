@@ -2,6 +2,13 @@
 
 Last governance refresh: 2026-11-04
 
+## Draft nonlinear feedback PR #24 — reconciled with 2026-11-04 main
+
+- Branch `feat/nonlinear-feedback-v0.4.2` is intentionally a **Draft** PR targeting v0.4.3, independent of the current Optimizer visualization changes.
+- This update incorporates current `main` while preserving Julia and GUI changes to nonlinear feedback: optional correction settings, three Julia editor entry points, and the full `user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)` contract.
+- Legacy user Julia correction functions relying on reduced linear S dictionaries require manual migration (see `adr/ADR_009_nonlinear_feedback_solution_contract.md`).
+- No scientific reference HB run has validated correction cycles or numerical equivalence. Do not claim the feedback algorithm validated. No merge into `main` or v0.4.3 release as part of this work.
+
 ## Current development baseline
 
 - Repository: `SQE-INRiM/JosephsonCircuitsOptimizer`

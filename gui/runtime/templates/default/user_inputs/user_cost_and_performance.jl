@@ -12,7 +12,8 @@ function user_cost(sol, device_params_set, nonlinear_correction)
     gain_db = gain_db_from_S11(s11)
     peak_gain = maximum(gain_db)
     mean_gain = mean(gain_db)
-    metric = -peak_gain
+    # The user-defined cost decides how the pumped correction enters the objective.
+    metric = -peak_gain + nonlinear_correction
 
     return (
         metric = metric,
@@ -33,8 +34,11 @@ function user_performance(sol, device_params_set, source_amps, source_freqs)
     )
 end
 
-# Nonlinear correction is intentionally disabled for now, but JCO expects the
-# hook to exist while running the nonlinear stage.
-function user_nonlinear_correction(S_linear, sol, device_params_set)
+# Optional correction hook. Both inputs are complete JosephsonCircuits
+# hbsolve solutions, not pre-extracted S-parameter dictionaries.
+# Example: sol_linear.linearized.S((0,), 1, (0,), 1, :)
+#          sol_nonlinear.linearized.S((0,), 1, (0,), 1, :)
+# JCO calls this hook during nonlinear sweeps even when correction cycles are off.
+function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)
     return 0.0
 end

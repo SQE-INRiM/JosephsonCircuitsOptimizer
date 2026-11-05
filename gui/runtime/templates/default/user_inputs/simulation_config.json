@@ -13,5 +13,9 @@
   "trace_storage_mode": "selected",
   "threewavemixing": false,
   "fourwavemixing": true,
-  "n_iterations_nonlinear_correction": 5
+  "n_iterations_nonlinear_correction": 0,
+  "nonlinear_feedback_stop_mode": "cycles",
+  "nonlinear_feedback_metric": "correction",
+  "nonlinear_feedback_tolerance_type": "absolute",
+  "nonlinear_feedback_tolerance": 0.01
 }

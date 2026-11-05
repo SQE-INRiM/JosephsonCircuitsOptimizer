@@ -87,6 +87,10 @@ export interface ComputationConfig {
   threeWaveMixing: boolean
   fourWaveMixing: boolean
   nonlinearCorrectionCycles: number
+  nonlinearFeedbackStopMode: 'cycles' | 'convergence'
+  nonlinearFeedbackMetric: 'cost' | 'performance' | 'correction'
+  nonlinearFeedbackToleranceType: 'absolute' | 'relative'
+  nonlinearFeedbackTolerance: number
 }
 
 export interface ProjectModel {

@@ -20,6 +20,8 @@ function linearDrives(drives) {
 const NONLINEAR_SIM_KEYS = new Set([
   'nonlinear_strong_tone_harmonics', 'nonlinear_modulation_harmonics',
   'threewavemixing', 'fourwavemixing', 'n_iterations_nonlinear_correction',
+  'nonlinear_feedback_stop_mode', 'nonlinear_feedback_metric',
+  'nonlinear_feedback_tolerance_type', 'nonlinear_feedback_tolerance',
 ])
 function linearSimulation(config) {
   return Object.fromEntries(Object.entries(config).filter(([key]) => !NONLINEAR_SIM_KEYS.has(key)))

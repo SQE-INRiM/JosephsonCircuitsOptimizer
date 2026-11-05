@@ -12,7 +12,7 @@ const project: ProjectModel = {
     { id: 'source_1', name: 'Source 1', port: 1, isDc: false, frequency: { mode: 'List', values: '7, 8' }, linearAmplitude: { mode: 'Fixed', value: '0' }, nonlinearAmplitude: { mode: 'Range', start: '1e-6', step: '1e-6', stop: '3e-6' } },
   ],
   metrics: [],
-  computation: { frequencyStartGHz: 0, frequencyStopGHz: 10, frequencyStepMHz: 1, linearStrongToneHarmonics: 1, linearModulationHarmonics: 1, nonlinearStrongToneHarmonics: 8, nonlinearModulationHarmonics: 4, maxSimulatorIterations: 200, solverFtol: 1e-8, switchOffLineSearchTolerance: 1e-5, alphaMin: 1e-4, maxIntermodOrder: 'Inf', solverBatches: 0, nodeSorting: 'number', optimizerIterations: 8, samplesPerIteration: 4, surrogate: 'Kriging', strategy: 'SRBF', sampler: 'Random', randomSeed: 1, threeWaveMixing: false, fourWaveMixing: true, nonlinearCorrectionCycles: 0 },
+  computation: { frequencyStartGHz: 0, frequencyStopGHz: 10, frequencyStepMHz: 1, linearStrongToneHarmonics: 1, linearModulationHarmonics: 1, nonlinearStrongToneHarmonics: 8, nonlinearModulationHarmonics: 4, maxSimulatorIterations: 200, solverFtol: 1e-8, switchOffLineSearchTolerance: 1e-5, alphaMin: 1e-4, maxIntermodOrder: 'Inf', solverBatches: 0, nodeSorting: 'number', optimizerIterations: 8, samplesPerIteration: 4, surrogate: 'Kriging', strategy: 'SRBF', sampler: 'Random', randomSeed: 1, threeWaveMixing: false, fourWaveMixing: true, nonlinearCorrectionCycles: 0, nonlinearFeedbackStopMode: 'cycles', nonlinearFeedbackMetric: 'correction', nonlinearFeedbackToleranceType: 'absolute', nonlinearFeedbackTolerance: 0.01 },
 }
 
 describe('run stage summaries', () => {

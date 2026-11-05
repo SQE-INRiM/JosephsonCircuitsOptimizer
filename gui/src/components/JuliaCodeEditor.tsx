@@ -6,6 +6,8 @@ type JuliaCodeEditorProps = {
   value: string
   onChange: (value: string) => void
   label: string
+  /** Move the cursor to the selected function on editor opening. */
+  focusFunction?: string
 }
 
 /**
@@ -13,7 +15,7 @@ type JuliaCodeEditorProps = {
  * Selection, keyboard input, IME composition, undo and clipboard remain native;
  * only the mirror has colored tokens, and it never edits the source.
  */
-export function JuliaCodeEditor({ value, onChange, label }: JuliaCodeEditorProps) {
+export function JuliaCodeEditor({ value, onChange, label, focusFunction }: JuliaCodeEditorProps) {
   const highlightRef = useRef<HTMLPreElement>(null)
   const gutterRef = useRef<HTMLPreElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -23,6 +25,28 @@ export function JuliaCodeEditor({ value, onChange, label }: JuliaCodeEditorProps
     () => Array.from({ length: value.split('\n').length }, (_, index) => String(index + 1)).join('\n'),
     [value],
   )
+
+  // This editor always edits the entire Julia file. Navigate only on
+  // opening/target change: typing must not reset the cursor.
+  useLayoutEffect(() => {
+    if (!focusFunction || !inputRef.current) return
+    const lines = value.split(String.fromCharCode(10))
+    const definition = 'function ' + focusFunction
+    const lineIndex = lines.findIndex((line) => {
+      const trimmed = line.trimStart()
+      return trimmed.startsWith(definition) &&
+        trimmed.slice(definition.length).trimStart().startsWith('(')
+    })
+    if (lineIndex < 0) return
+    const position = lines.slice(0, lineIndex).reduce((n, line) => n + line.length + 1, 0)
+    const editor = inputRef.current
+    editor.focus()
+    editor.setSelectionRange(position, position)
+    editor.scrollTop = Math.max(0, lineIndex - 2) * 20
+    syncScroll(editor)
+  // Deliberately exclude the changing source text from the dependencies.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusFunction])
 
   useLayoutEffect(() => {
     if (!pendingSelection.current || !inputRef.current) return

@@ -575,6 +575,11 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
         println("Frequency sweep point:")
         println("Source frequencies used: ", current_source_freqs)
 
+        # The linear solution depends on the device and source frequencies,
+        # not on the swept nonlinear amplitudes. Reuse it for every HB point
+        # at this frequency configuration.
+        sol_linear = linear_solution(optimal_params, circuit, local_sim_vars)
+
         # keep old skip logic, but reset it at each frequency point
         failed_idx_by_source2 = Dict{Int, Int}()
 
@@ -615,11 +620,9 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
                 continue
             end
 
-            S_lin = linear_simulation(optimal_params, circuit, local_sim_vars)
-
             perf = performance(nl.sol, optimal_params, amps, current_source_freqs)
             nonlin_correction_term = Base.invokelatest(
-                user_nonlinear_correction, S_lin, nl.sol, optimal_params
+                user_nonlinear_correction, sol_linear, nl.sol, optimal_params
             )
 
             push!(results, (

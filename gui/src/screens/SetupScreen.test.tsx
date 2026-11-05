@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from '../store'
 import { SetupScreen } from './SetupScreen'
+import { isolateMetricFunction } from '../utils/juliaFunctionSections'
 
 const originalProject = structuredClone(useAppStore.getState().project)
 
@@ -333,3 +334,162 @@ describe('Setup navigation across Model & inputs substeps', () => {
     expect(useAppStore.getState()).toMatchObject({ setupStep: 0, setupPanel: 'sources' })
   })
 })
+
+describe('Nonlinear feedback setup', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: structuredClone(originalProject),
+      setupStep: 1,
+      dirty: false,
+    })
+  })
+
+  afterEach(() => cleanup())
+
+  it('places nonlinear feedback below HB solver settings without redundant current guidance', () => {
+    render(<SetupScreen />)
+    const solverHeading = screen.getByText('Harmonic and solver settings')
+    const feedbackHeading = screen.getByText('Nonlinear feedback')
+    expect(solverHeading.compareDocumentPosition(feedbackHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('checkbox', { name: 'Enable nonlinear feedback' })).toBeTruthy()
+    expect(screen.queryByText(/full runs only/i)).toBeNull()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Enable nonlinear feedback' }))
+    expect(screen.getByRole('textbox', { name: 'Source 1 reference amplitude (A)' })).toBeTruthy()
+    expect(screen.queryByText(/Pump current in A/i)).toBeNull()
+    expect(screen.queryByText(/not dBm/i)).toBeNull()
+  })
+
+  it('allows metric-convergence stopping with a monitored quantity, tolerance and maximum cycles', () => {
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Metric convergence' }))
+    expect(useAppStore.getState().project.computation).toMatchObject({
+      nonlinearFeedbackStopMode: 'convergence',
+      nonlinearCorrectionCycles: 8,
+    })
+    expect(screen.getByRole('spinbutton', { name: 'Maximum cycles' })).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: 'Monitor' })).toBeTruthy()
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Monitor' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Performance' }))
+    expect(useAppStore.getState().project.computation.nonlinearFeedbackMetric).toBe('performance')
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Change' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Relative (%)' }))
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Tolerance (%)' }), { target: { value: '2.5' } })
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Maximum cycles' }), { target: { value: '6' } })
+    expect(useAppStore.getState().project.computation).toMatchObject({
+      nonlinearFeedbackToleranceType: 'relative',
+      nonlinearFeedbackTolerance: 2.5,
+      nonlinearCorrectionCycles: 6,
+    })
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ }))
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(0)
+    fireEvent.click(screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ }))
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBeGreaterThanOrEqual(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Fixed cycles' }))
+    expect(screen.getByRole('spinbutton', { name: 'Correction cycles' })).toBeTruthy()
+    expect(screen.queryByRole('combobox', { name: 'Monitor' })).toBeNull()
+  }, 15_000)
+
+  it('is disabled by default and preserves per-source reference currents when toggled', () => {
+    render(<SetupScreen />)
+    const enable = screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ })
+    expect((enable as HTMLInputElement).checked).toBe(false)
+    expect(screen.queryByRole('spinbutton', { name: 'Correction cycles' })).toBeNull()
+
+    fireEvent.click(enable)
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(1)
+    expect(screen.getByText(/Every source needs a finite reference amplitude/)).toBeTruthy()
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Correction cycles' }), { target: { value: '3' } })
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(3)
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Source 1 reference amplitude (A)' }), { target: { value: '1e-6' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Source 2 reference amplitude (A)' }), { target: { value: '-0.0001' } })
+    expect(useAppStore.getState().project.sources.map((source) => source.extras?.non_linear_amplitude_for_delta_correction))
+      .toEqual(['1e-6', '-0.0001'])
+    expect(screen.queryByText(/Every source needs a finite reference amplitude/)).toBeNull()
+
+    fireEvent.click(enable)
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(0)
+    fireEvent.click(enable)
+    expect(useAppStore.getState().project.computation.nonlinearCorrectionCycles).toBe(1)
+    expect((screen.getByRole('textbox', { name: 'Source 1 reference amplitude (A)' }) as HTMLInputElement).value).toBe('1e-6')
+  })
+
+  it('keeps the Metrics screen compact without duplicate return-value or hbsolve explanations', () => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    expect(screen.getByRole('button', { name: 'Edit correction' })).toBeTruthy()
+    expect(screen.getByText(/user_cost · minimized objective/)).toBeTruthy()
+    expect(screen.getByText(/user_performance · maximized objective/)).toBeTruthy()
+    expect(screen.queryByText(/The first value returned by/)).toBeNull()
+    expect(screen.queryByText(/Both inputs are complete hbsolve solutions/)).toBeNull()
+    expect(screen.queryByText(/user_nonlinear_correction\(sol_linear, sol_nonlinear, device_params_set\)/)).toBeNull()
+  })
+
+  it.each([
+    { action: 'Edit cost', functionName: 'user_cost' as const },
+    { action: 'Edit performance', functionName: 'user_performance' as const },
+    { action: 'Edit correction', functionName: 'user_nonlinear_correction' as const },
+  ])('isolates only $functionName in its own editor', ({ action, functionName }) => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('button', { name: action }))
+    const editor = screen.getByRole('textbox', { name: functionName }) as HTMLTextAreaElement
+    const original = useAppStore.getState().project.metricsCode
+    const section = isolateMetricFunction(original, functionName)
+    expect(section.kind).toBe('found')
+    if (section.kind !== 'found') throw new Error('Missing test function')
+    expect(editor.value).toBe(section.text)
+    expect(editor.value.length).toBeLessThan(original.length)
+    for (const other of ['user_cost', 'user_performance', 'user_nonlinear_correction']) {
+      if (other !== functionName) expect(editor.value).not.toContain('function ' + other + '(')
+    }
+    expect(useAppStore.getState().project.metricsCode).toBe(original)
+  })
+
+  it('writes only the edited correction back into the shared Julia file when saved', () => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    const original = useAppStore.getState().project.metricsCode
+    fireEvent.click(screen.getByRole('button', { name: 'Edit correction' }))
+    const editor = screen.getByRole('textbox', { name: 'user_nonlinear_correction' }) as HTMLTextAreaElement
+    const modified = editor.value.replace('    return 0.0', '    # custom feedback\n    return 0.0')
+    fireEvent.change(editor, { target: { value: modified } })
+    expect(useAppStore.getState().project.metricsCode).toBe(original)
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    const updated = useAppStore.getState().project.metricsCode
+    expect(updated).toContain('# custom feedback')
+    expect(updated).toContain('function user_cost(')
+    expect(updated).toContain('function user_performance(')
+    expect(updated.replace('    # custom feedback\n', '')).toBe(original)
+    expect(useAppStore.getState().dirty).toBe(true)
+  })
+
+  it('cancels a function edit without changing the stored Julia file', () => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    const original = useAppStore.getState().project.metricsCode
+    fireEvent.click(screen.getByRole('button', { name: 'Edit cost' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'user_cost' }), {
+      target: { value: 'function user_cost()\n    return 5\nend' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(useAppStore.getState().project.metricsCode).toBe(original)
+    expect(useAppStore.getState().dirty).toBe(false)
+  })
+
+  it('keeps full-file access for helper functions and unsupported Julia syntax', () => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'Full Julia file' }))
+    const fullFile = screen.getByRole('textbox', { name: 'user_cost_and_performance.jl' }) as HTMLTextAreaElement
+    expect(fullFile.value).toBe(useAppStore.getState().project.metricsCode)
+  })
+})
+
+
