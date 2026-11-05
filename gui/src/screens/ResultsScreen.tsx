@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Alert, Box, Button, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Tab, Tabs, Tooltip, Typography } from '@mui/material'
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded'
+import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded'
 import { ConnectedResults } from '../components/ConnectedResults'
 import { NonlinearFeedbackResults } from '../components/NonlinearFeedbackResults'
 import { ResultsRunManager } from '../components/ResultsRunManager'
@@ -40,8 +42,15 @@ export function ResultsScreen() {
   const stageIndex = visibleStage === 'linear' ? 0 : visibleStage === 'optimization' ? 1 : 2
   const hasResults = Boolean(results?.runs.length)
   const hasFeedback = Boolean(selectedRun?.feedback || selectedRun?.cycles?.length)
-  const availableCycles = [0, ...(selectedRun?.cycles?.map((entry) => entry.cycle) ?? [])]
+  const availableCycles = [...new Set([0, ...(selectedRun?.cycles?.map((entry) => entry.cycle) ?? [])])]
+    .filter((cycle) => Number.isSafeInteger(cycle) && cycle >= 0).sort((a, b) => a - b)
   const activeCycle = availableCycles.includes(selectedCycle) ? selectedCycle : 0
+  const cyclePosition = availableCycles.indexOf(activeCycle)
+  const selectCycle = (cycle: number) => {
+    setSelectedCycle(cycle)
+    // A cycle is a stage-specific inspection, not a filter on the whole-run convergence chart.
+    setFeedbackView(false)
+  }
   const cycleData = selectedRun?.cycles?.find((entry) => entry.cycle === activeCycle)
   const inspectedRun = selectedRun && activeCycle > 0 && cycleData
     ? {
@@ -138,9 +147,32 @@ export function ResultsScreen() {
     </Paper>}
 
     <Box sx={{ pt: hasResults ? 2 : 0, borderTop: hasResults ? '1px solid' : 'none', borderColor: 'divider' }}>
-      <Paper variant="outlined" sx={{ px: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+      <Paper variant="outlined" sx={{ px: 1.5 }}>
+        {hasFeedback && <Box role="group" aria-label="Feedback cycles"
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.7, pt: 1.1, pb: 0.25, minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, pr: 0.5 }}>Cycles</Typography>
+          <IconButton aria-label="Previous cycle" size="small" disabled={cyclePosition <= 0}
+            onClick={() => selectCycle(availableCycles[cyclePosition - 1])}>
+            <ChevronLeftRoundedIcon fontSize="small" />
+          </IconButton>
+          <Box sx={{ display: 'flex', gap: 0.5, overflowX: 'auto', flex: 1, minWidth: 0, py: 0.5, scrollbarWidth: 'thin' }}>
+            {availableCycles.map((cycle) => {
+              const status = selectedRun?.cycles?.find((entry) => entry.cycle === cycle)?.status
+              return <Tooltip key={cycle} title={cycle === 0 ? 'Original run (before correction)' : status === 'completed' ? 'Completed feedback cycle' : 'Cycle data may be incomplete'}>
+                <Button size="small" sx={{ flexShrink: 0, minWidth: 'auto', px: 1.5 }}
+                  variant={activeCycle === cycle ? 'contained' : 'outlined'}
+                  aria-pressed={activeCycle === cycle} onClick={() => selectCycle(cycle)}>
+                  {cycle === 0 ? '0 · baseline' : 'Cycle ' + cycle}
+                </Button>
+              </Tooltip>
+            })}
+          </Box>
+          <IconButton aria-label="Next cycle" size="small" disabled={cyclePosition >= availableCycles.length - 1}
+            onClick={() => selectCycle(availableCycles[cyclePosition + 1])}>
+            <ChevronRightRoundedIcon fontSize="small" />
+          </IconButton>
+        </Box>}
         <Tabs value={feedbackView && hasFeedback ? 3 : stageIndex} variant="scrollable" scrollButtons="auto"
-          sx={{ flex: '1 1 auto', minWidth: 0 }}
           onChange={(_, index) => {
             if (index === 3) setFeedbackView(true)
             else {
@@ -156,15 +188,6 @@ export function ResultsScreen() {
             '&.Mui-selected': { color: theme.palette.secondary.main },
           })} />}
         </Tabs>
-        {hasFeedback && !feedbackView && <FormControl size="small" sx={{ minWidth: 125, flexShrink: 0, my: 0.6 }}>
-          <InputLabel id="results-cycle-label">Cycle</InputLabel>
-          <Select labelId="results-cycle-label" label="Cycle" value={activeCycle}
-            onChange={(event) => setSelectedCycle(Number(event.target.value))}>
-            {availableCycles.map((cycle) => <MenuItem key={cycle} value={cycle}>
-              Cycle {cycle}{cycle === 0 ? ' · baseline' : ''}
-            </MenuItem>)}
-          </Select>
-        </FormControl>}
       </Paper>
     </Box>
 
@@ -176,11 +199,7 @@ export function ResultsScreen() {
         : <Alert severity={selectedHistoryCount > 0 ? 'warning' : 'info'}><strong>Selected-run Optimization diagnostic:</strong> {inspectedRun.id} · status {runStatus(inspectedRun)} · Linear table {inspectedRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {selectedHistoryCount} evaluations.{selectedHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>
     )}
     {hasResults && feedbackView && hasFeedback && selectedRun
-      ? <NonlinearFeedbackResults run={selectedRun} onOpenCycle={(cycle) => {
-          setSelectedCycle(cycle)
-          setFeedbackView(false)
-          setStage('hb')
-        }} />
+      ? <NonlinearFeedbackResults run={selectedRun} />
       : hasResults && inspectedBundle
         ? <ConnectedResults key={selectedRun?.id + ':' + activeCycle + ':' + visibleStage}
             results={inspectedBundle} stage={visibleStage} selectedRunId={selectedRun?.id} />
