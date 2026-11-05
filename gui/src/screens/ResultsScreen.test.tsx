@@ -6,7 +6,11 @@ import { useAppStore } from '../store'
 import { ResultsScreen } from './ResultsScreen'
 
 vi.mock('../components/ConnectedResults', () => ({
-  ConnectedResults: ({ stage, selectedRunId }: { stage: StageId; selectedRunId?: string | null }) => <><div data-testid="visible-results-stage">{stage}</div><div data-testid="selected-results-run">{selectedRunId}</div></>,
+  ConnectedResults: ({ stage, selectedRunId, results }: { stage: StageId; selectedRunId?: string | null; results: ResultsBundle }) => <><div data-testid="visible-results-stage">{stage}</div><div data-testid="selected-results-run">{selectedRunId}</div><div data-testid="selected-feedback-cycle">{results.runs[0]?.cycle ?? 0}</div><div data-testid="selected-linear-file">{results.runs[0]?.linear?.file ?? 'missing'}</div></>,
+}))
+vi.mock('../components/NonlinearFeedbackResults', () => ({
+  NonlinearFeedbackResults: ({ onOpenCycle }: { onOpenCycle: (cycle: number) => void }) =>
+    <button type="button" onClick={() => onOpenCycle(1)}>Show Cycle 1 in HB</button>,
 }))
 vi.mock('../components/ResultsRunManager', () => ({ ResultsRunManager: () => <button type="button">Manage runs</button> }))
 vi.mock('../components/RunSetupSnapshot', () => ({ RunSetupSnapshot: () => <button type="button">Simulation info</button> }))
@@ -143,5 +147,72 @@ describe('Shared Results run navigation', () => {
     expect(screen.getByTestId('selected-results-run').textContent).toBe('older')
     act(() => useAppStore.getState().setResults({ ...multiRun, runs: [multiRun.runs[0]] }))
     expect(screen.getByTestId('selected-results-run').textContent).toBe('newest')
+  })
+})
+
+describe('Feedback cycle navigation within Results', () => {
+  const feedbackBundle: ResultsBundle = {
+    schemaVersion: 'jco.results/4',
+    workspace: '/tmp/jco-feedback',
+    runs: [{
+      id: 'feedback-run', traces: [],
+      linear: { ...onePoint, file: 'baseline.h5' },
+      feedback: {
+        schemaVersion: 'jco.feedback/1', requestedCycles: 2,
+        cycles: [
+          { cycle: 0, status: 'completed', metric: -20, performance: 15, correction: 0, parameters: { Cg: 250 } },
+          { cycle: 1, status: 'completed', metric: -21, performance: 20, correction: 2, parameters: { Cg: 300 } },
+        ],
+      },
+      cycles: [{
+        cycle: 1, status: 'completed',
+        linear: { ...onePoint, file: 'cycle_001/df_uniform_analysis.h5' },
+        optimization: null, nonlinear: null, traces: [],
+      }],
+    }],
+  }
+
+  beforeEach(() => {
+    useAppStore.setState({
+      project: structuredClone(originalProject),
+      results: feedbackBundle,
+      selectedResultsRunId: 'feedback-run',
+      resultsStage: 'linear',
+      running: false,
+    })
+  })
+  afterEach(() => cleanup())
+
+  it('places Cycle under Run in the same stage bar without adding another divider', () => {
+    render(<ResultsScreen />)
+    const run = screen.getByRole('combobox', { name: 'Run' })
+    const tabs = screen.getByRole('tab', { name: 'Linear' })
+    const cycle = screen.getByRole('combobox', { name: 'Cycle' })
+    expect(run.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(tabs.parentElement?.parentElement?.contains(cycle)).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Nonlinear feedback' })).toBeTruthy()
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('0')
+    expect(screen.getByTestId('selected-linear-file').textContent).toBe('baseline.h5')
+    fireEvent.mouseDown(cycle)
+    fireEvent.click(screen.getByRole('option', { name: 'Cycle 1' }))
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
+    expect(screen.getByTestId('selected-linear-file').textContent).toBe('cycle_001/df_uniform_analysis.h5')
+  })
+
+  it('opens selected cycle from feedback convergence into the normal HB stage', () => {
+    render(<ResultsScreen />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Nonlinear feedback' }))
+    expect(screen.queryByRole('combobox', { name: 'Cycle' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Show Cycle 1 in HB' }))
+    expect(screen.getByTestId('visible-results-stage').textContent).toBe('hb')
+    expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
+    expect(screen.getByRole('combobox', { name: 'Cycle' })).toBeTruthy()
+  })
+
+  it('does not introduce feedback controls for historical runs without cycles', () => {
+    useAppStore.setState({ results: bundle() })
+    render(<ResultsScreen />)
+    expect(screen.queryByRole('tab', { name: 'Nonlinear feedback' })).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Cycle' })).toBeNull()
   })
 })
