@@ -468,7 +468,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             # Keep an explicit record of why the feedback sequence stopped.
             # This can be inspected alongside corrected-cycle datasets, without
             # interpreting a stabilization criterion as physical validation.
-            save_output_file(Dict(
+            stopping_details = Dict(
                 "stopping_mode" => feedback_stop_mode,
                 "monitored_metric" => feedback_stop_mode == "convergence" ? feedback_metric : nothing,
                 "tolerance_type" => feedback_stop_mode == "convergence" ? tolerance_type : nothing,
@@ -477,7 +477,9 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 "cycles_completed" => completed_correction_cycles,
                 "maximum_cycles" => maximum_correction_cycles,
                 "stop_reason" => feedback_converged ? "converged" : "cycle_limit"
-            ), joinpath(optimal_params_dir, "nonlinear_feedback_stopping.json"))
+            )
+            save_output_file(stopping_details, joinpath(optimal_params_dir, "nonlinear_feedback_stopping.json"))
+            _jco_save_feedback_summary(output_path, feedback_count, feedback_history; stopping=stopping_details)
 
             # Direct Julia users retain the convergence figure; GUI runs suppress it.
             p = _jco_plot_correction_convergence(correction_terms)
