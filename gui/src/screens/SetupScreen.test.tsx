@@ -346,6 +346,20 @@ describe('Nonlinear feedback setup', () => {
 
   afterEach(() => cleanup())
 
+  it('places nonlinear feedback below HB solver settings without redundant current guidance', () => {
+    render(<SetupScreen />)
+    const solverHeading = screen.getByText('Harmonic and solver settings')
+    const feedbackHeading = screen.getByText('Nonlinear feedback')
+    expect(solverHeading.compareDocumentPosition(feedbackHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('checkbox', { name: 'Enable nonlinear feedback' })).toBeTruthy()
+    expect(screen.queryByText(/full runs only/i)).toBeNull()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Enable nonlinear feedback' }))
+    expect(screen.getByRole('textbox', { name: 'Source 1 reference amplitude (A)' })).toBeTruthy()
+    expect(screen.queryByText(/Pump current in A/i)).toBeNull()
+    expect(screen.queryByText(/not dBm/i)).toBeNull()
+  })
+
   it('allows metric-convergence stopping with a monitored quantity, tolerance and maximum cycles', () => {
     render(<SetupScreen />)
     fireEvent.click(screen.getByRole('checkbox', { name: /Enable nonlinear feedback/ }))
