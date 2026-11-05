@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from '../store'
 import { SetupScreen } from './SetupScreen'
+import { isolateMetricFunction } from '../utils/juliaFunctionSections'
 
 const originalProject = structuredClone(useAppStore.getState().project)
 
@@ -380,35 +381,63 @@ describe('Nonlinear feedback setup', () => {
   })
 
   it.each([
-    { action: 'Edit cost', functionName: 'user_cost' },
-    { action: 'Edit performance', functionName: 'user_performance' },
-    { action: 'Edit correction', functionName: 'user_nonlinear_correction' },
-  ])('opens the shared Julia file at $functionName', ({ action, functionName }) => {
+    { action: 'Edit cost', functionName: 'user_cost' as const },
+    { action: 'Edit performance', functionName: 'user_performance' as const },
+    { action: 'Edit correction', functionName: 'user_nonlinear_correction' as const },
+  ])('isolates only $functionName in its own editor', ({ action, functionName }) => {
     useAppStore.setState({ setupStep: 2 })
     render(<SetupScreen />)
     fireEvent.click(screen.getByRole('button', { name: action }))
-    const editor = screen.getByRole('textbox', { name: 'user_cost_and_performance.jl' }) as HTMLTextAreaElement
+    const editor = screen.getByRole('textbox', { name: functionName }) as HTMLTextAreaElement
     const original = useAppStore.getState().project.metricsCode
-    expect(editor.value).toBe(original)
-    expect(editor.selectionStart).toBe(original.indexOf('function ' + functionName + '('))
-    expect(editor.selectionEnd).toBe(editor.selectionStart)
+    const section = isolateMetricFunction(original, functionName)
+    expect(section.kind).toBe('found')
+    if (section.kind !== 'found') throw new Error('Missing test function')
+    expect(editor.value).toBe(section.text)
+    expect(editor.value.length).toBeLessThan(original.length)
+    for (const other of ['user_cost', 'user_performance', 'user_nonlinear_correction']) {
+      if (other !== functionName) expect(editor.value).not.toContain('function ' + other + '(')
+    }
+    expect(useAppStore.getState().project.metricsCode).toBe(original)
   })
 
-  it('preserves every user function when editing the correction', () => {
+  it('writes only the edited correction back into the shared Julia file when saved', () => {
     useAppStore.setState({ setupStep: 2 })
     render(<SetupScreen />)
-    fireEvent.click(screen.getByRole('button', { name: 'Edit correction' }))
-    const editor = screen.getByRole('textbox', { name: 'user_cost_and_performance.jl' })
     const original = useAppStore.getState().project.metricsCode
-    const modified = original.replace(
-      'function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)',
-      'function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)\n    # custom feedback',
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Edit correction' }))
+    const editor = screen.getByRole('textbox', { name: 'user_nonlinear_correction' }) as HTMLTextAreaElement
+    const modified = editor.value.replace('    return 0.0', '    # custom feedback\n    return 0.0')
     fireEvent.change(editor, { target: { value: modified } })
-    expect(useAppStore.getState().project.metricsCode).toBe(modified)
-    expect(useAppStore.getState().project.metricsCode).toContain('function user_cost(')
-    expect(useAppStore.getState().project.metricsCode).toContain('function user_performance(')
+    expect(useAppStore.getState().project.metricsCode).toBe(original)
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    const updated = useAppStore.getState().project.metricsCode
+    expect(updated).toContain('# custom feedback')
+    expect(updated).toContain('function user_cost(')
+    expect(updated).toContain('function user_performance(')
+    expect(updated.replace('    # custom feedback\n', '')).toBe(original)
     expect(useAppStore.getState().dirty).toBe(true)
+  })
+
+  it('cancels a function edit without changing the stored Julia file', () => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    const original = useAppStore.getState().project.metricsCode
+    fireEvent.click(screen.getByRole('button', { name: 'Edit cost' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'user_cost' }), {
+      target: { value: 'function user_cost()\n    return 5\nend' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(useAppStore.getState().project.metricsCode).toBe(original)
+    expect(useAppStore.getState().dirty).toBe(false)
+  })
+
+  it('keeps full-file access for helper functions and unsupported Julia syntax', () => {
+    useAppStore.setState({ setupStep: 2 })
+    render(<SetupScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'Full Julia file' }))
+    const fullFile = screen.getByRole('textbox', { name: 'user_cost_and_performance.jl' }) as HTMLTextAreaElement
+    expect(fullFile.value).toBe(useAppStore.getState().project.metricsCode)
   })
 })
 
