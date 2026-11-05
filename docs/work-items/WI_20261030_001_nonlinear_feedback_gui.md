@@ -1,10 +1,10 @@
-# Work item: nonlinear feedback GUI setup (v0.4.3 candidate)
+# Work item: nonlinear feedback GUI setup (draft PR #24; next release TBD)
 
 Date: 2026-10-30
-Branch: `feat/nonlinear-feedback-v0.4.2` (historical branch name retained for draft PR #24; planned release v0.4.3)
+Branch: `feat/nonlinear-feedback-v0.4.2` (historical name retained; target release TBD).
 Classification: T2 GUI/serialized-input work **and T3 user-code contract change**; scientific reference validation pending.
 
-The **v0.4.2** release was published on 2026-10-30. The original PR #24 is now reconciled to the published `main` baseline while retaining its history; nonlinear feedback targets **v0.4.3** and is not part of the published v0.4.2 artifacts.
+The published `main` baseline is **v0.4.3** (2026-11-04). Draft PR #24 is based on that release baseline but remains unpublished and must not be represented as part of v0.4.3.
 
 ## Goal
 
@@ -34,7 +34,7 @@ Make nonlinear feedback configurable in GUI Setup and provide a consistent full-
 - Added targeted GUI editor tests for cycles, enable state, current editing, isolated function-only code views, Save/Cancel, full-file fallback and preservation of other source contents. Added parser/round-trip tests for nested Julia blocks, comments, triple strings, Unicode offsets, missing definitions and ambiguous syntax.
 - Added Node serialization tests for round-trip, invalid source currents and stopping criteria, including invalid tolerance or insufficient maximum cycles; browser tests exercise criterion/metric/tolerance selections. Added a standalone pure Julia numerical test script `test/feedback_convergence.jl` (not yet executed locally).
 - The original branch's npm checks passed before reconciliation. Re-run automated npm tests/build and desktop packaging on the v0.4.3 head; real Julia HB and scientific feedback-loop validation still require independent execution. Do not claim them completed until performed.
-- Before a v0.4.3 release, confirm the packaging workflow and correction-cycle results with a representative .jco.
+- Before releasing nonlinear feedback, confirm packaging, actual convergence stopping, the `nonlinear_feedback_stopping.json` history/reason and correction-cycle results with a representative .jco.
 
 ## Follow-ups / known legacy risks
 
