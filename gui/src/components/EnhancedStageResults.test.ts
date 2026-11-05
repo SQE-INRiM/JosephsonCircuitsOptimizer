@@ -16,6 +16,15 @@ const hbTable: ResultTable = {
 }
 
 describe('Harmonic Balance Results helpers', () => {
+  it('enables amplitude response only when an amplitude coordinate is swept', () => {
+    expect(hasHbAmplitudeSweep(hbTable)).toBe(true)
+    expect(hasHbAmplitudeSweep({ ...hbTable, rows: [hbTable.rows[0]] })).toBe(false)
+    expect(hasHbAmplitudeSweep({
+      ...hbTable,
+      rows: hbTable.rows.filter((row) => row[2] === 1e-6 && row[4] === 2e-6),
+    })).toBe(false)
+  })
+
   it('builds an exact source-space slice without averaging hidden coordinates', () => {
     const grid = buildHbGrid(hbTable, 'source_1_frequency', 'source_1_amplitude', 'performance', { source_2_frequency: 0, source_2_amplitude: 2e-6 }, 'all')
     expect(grid.x).toEqual([8e9, 9e9])
