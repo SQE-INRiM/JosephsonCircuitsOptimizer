@@ -386,7 +386,12 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                     @info "Nonlinear correction term: $delta_correction"
                     push!(correction_terms, delta_correction)
 
-                    device_parameters_space = load_params(device_params_file; optimal=optimal_params)
+                    # Keep the original sweep/BO domain at every feedback cycle.
+                    # load_params(...; optimal=optimal_params) collapses tagged design
+                    # parameters to singleton vectors, silently removing BO freedom.
+                    # The new correction enters user_cost through delta_correction;
+                    # the updated best design is selected anew within the same domain.
+                    device_parameters_space = load_params(device_params_file)
                     df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
                     save_dataset(df, cycle_dir)
                     optimal_params, optimal_metric = run_optimization(df)
