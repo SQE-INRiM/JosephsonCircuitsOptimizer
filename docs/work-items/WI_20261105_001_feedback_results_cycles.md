@@ -1,7 +1,7 @@
 # WI 2026-11-05 — Cycle-aware nonlinear feedback Results (parallel)
 
 ## Scope and isolation
-This branch is a snapshot of `feat/nonlinear-feedback-v0.4.2` (draft PR #24), extending its **Results and persistence** only. It is **not** a release or a substitute for integrating PR #24. Keep Setup/Metrics, Julia-function editor and correction API changes on the original branch; reconcile changes only after both parts have been independently reviewed.
+This branch originated as a snapshot of `feat/nonlinear-feedback-v0.4.2` (PR #24), extending its **Results and persistence**. PR #24 has since been merged into `main`, and this feature branch now contains a two-parent merge of that main commit and its prior Results work. Setup/Metrics and the Julia correction API come from `main`; the corrected-cycle Julia loop preserves its fixed-cycle/convergence stopping behavior while saving per-cycle datasets and summaries. The branch remains a draft until real multi-cycle Julia/HB validation.
 
 ## User interface
 - Preserve the existing top-level **Run** selector and toolbar.
@@ -15,6 +15,7 @@ This branch is a snapshot of `feat/nonlinear-feedback-v0.4.2` (draft PR #24), ex
 - Corrected cycles save `feedback/cycle_NNN/df_uniform_analysis.h5`, `df_optimization_analysis.h5`, `df_nonlinear_analysis.h5`, `optimal_device_parameters.json`, `optimal_physical_quantities.json` (when there is a working point), and any `saved_data/` arrays.
 - `feedback/summary.json` (schema `jco.feedback/1`) is written atomically after baseline and after every completed corrected cycle, with cycle index, correction, optimized metric, best evaluated performance and device parameters. Incomplete cycle folders may be indexed, but are never represented as converged, complete history points.
 - During a corrected cycle, `CURRENT_OUTPUT_PATH[]` is switched to the cycle folder so the existing GUI optimization-history writer and `save_datas` do not overwrite Cycle 0; it is restored using `finally`.
+- The main-branch stopping controller remains active: completed corrected cycles are recorded before convergence assessment, a convergence-triggered `break` restores `CURRENT_OUTPUT_PATH[]` via `finally`, and the existing `nonlinear_feedback_stopping.json` is still written.
 - Fix corrected-cycle best working-point selection by indexing `cycle_best_idx`, not stale `best_idx`.
 
 ## Limitations and validation
