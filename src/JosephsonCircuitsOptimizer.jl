@@ -365,7 +365,6 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             feedback_converged = false
             completed_correction_cycles = 0
 
-
             # Cycle 0 is the original Linear / BO / HB run at the run root.
             feedback_history = Any[_jco_feedback_cycle(0, optimal_params, optimal_metric, best_performance, 0.0)]
             _jco_save_feedback_summary(output_path, feedback_count, feedback_history)
@@ -434,33 +433,33 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                     _jco_save_feedback_summary(output_path, feedback_count, feedback_history)
                     completed_correction_cycles = i
 
-                let p = plot_delta_vs_amplitude(results)
-                    if p !== nothing
-                        plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="delta_vs_amplitude")
+                    let p = plot_delta_vs_amplitude(results)
+                        if p !== nothing
+                            plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="delta_vs_amplitude")
+                        end
                     end
-                end
 
-                let p = plot_performance_vs_amplitude(results)
-                    if p !== nothing
-                        plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="performance_vs_amplitude")
+                    let p = plot_performance_vs_amplitude(results)
+                        if p !== nothing
+                            plot_update(p; params=optimal_params, metric=optimal_metric, plot_type="performance_vs_amplitude")
+                        end
                     end
-                end
 
-                if feedback_stop_mode == "convergence"
-                    # Observe only *completed corrected cycles*: comparing the
-                    # first corrected cost with the uncorrected baseline would
-                    # conflate a changed objective with actual convergence.
-                    observed = feedback_observed_value(
-                        feedback_metric, optimal_metric, cycle_best_performance, delta_correction)
-                    push!(feedback_values, observed)
-                    if feedback_has_converged(
-                            previous_feedback_value, observed, tolerance_type, feedback_tolerance)
-                        feedback_converged = true
-                        @info "Nonlinear feedback converged" cycle=i metric=feedback_metric value=observed tolerance=feedback_tolerance type=tolerance_type
-                        break
+                    if feedback_stop_mode == "convergence"
+                        # Observe only *completed corrected cycles*: comparing the
+                        # first corrected cost with the uncorrected baseline would
+                        # conflate a changed objective with actual convergence.
+                        observed = feedback_observed_value(
+                            feedback_metric, optimal_metric, cycle_best_performance, delta_correction)
+                        push!(feedback_values, observed)
+                        if feedback_has_converged(
+                                previous_feedback_value, observed, tolerance_type, feedback_tolerance)
+                            feedback_converged = true
+                            @info "Nonlinear feedback converged" cycle=i metric=feedback_metric value=observed tolerance=feedback_tolerance type=tolerance_type
+                            break
+                        end
+                        previous_feedback_value = observed
                     end
-                    previous_feedback_value = observed
-                end
                 finally
                     CURRENT_OUTPUT_PATH[] = output_path
                 end
