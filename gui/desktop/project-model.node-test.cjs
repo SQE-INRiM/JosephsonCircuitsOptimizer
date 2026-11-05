@@ -158,6 +158,43 @@ test('round-trips nonlinear feedback cycles and numeric per-source HB reference 
   }
 })
 
+test('round-trips metric convergence stopping through simulation_config.json', () => {
+  const workspace = makeWorkspace()
+  try {
+    const project = loadProjectModel(workspace, null, { name: 'Convergence test' })
+    project.computation.nonlinearCorrectionCycles = 7
+    project.computation.nonlinearFeedbackStopMode = 'convergence'
+    project.computation.nonlinearFeedbackMetric = 'performance'
+    project.computation.nonlinearFeedbackToleranceType = 'relative'
+    project.computation.nonlinearFeedbackTolerance = 1.5
+    project.sources[0].extras = { non_linear_amplitude_for_delta_correction: '1e-6' }
+    saveProjectModel(workspace, project)
+    const sim = JSON.parse(fs.readFileSync(path.join(workspace, 'user_inputs', 'simulation_config.json'), 'utf8'))
+    assert.equal(sim.n_iterations_nonlinear_correction, 7)
+    assert.equal(sim.nonlinear_feedback_stop_mode, 'convergence')
+    assert.equal(sim.nonlinear_feedback_metric, 'performance')
+    assert.equal(sim.nonlinear_feedback_tolerance_type, 'relative')
+    assert.equal(sim.nonlinear_feedback_tolerance, 1.5)
+
+    const loaded = loadProjectModel(workspace, null, { name: 'Convergence test' })
+    assert.equal(loaded.computation.nonlinearFeedbackStopMode, 'convergence')
+    assert.equal(loaded.computation.nonlinearFeedbackMetric, 'performance')
+    assert.equal(loaded.computation.nonlinearFeedbackToleranceType, 'relative')
+    assert.equal(loaded.computation.nonlinearFeedbackTolerance, 1.5)
+    assert.equal(loaded.computation.nonlinearCorrectionCycles, 7)
+
+    loaded.computation.nonlinearCorrectionCycles = 1
+    assert.throws(() => saveProjectModel(workspace, loaded), /at least two correction cycles/)
+    loaded.computation.nonlinearCorrectionCycles = 7
+    loaded.computation.nonlinearFeedbackTolerance = 0
+    assert.throws(() => saveProjectModel(workspace, loaded), /positive and finite/)
+    loaded.computation.nonlinearFeedbackTolerance = Infinity
+    assert.throws(() => saveProjectModel(workspace, loaded), /positive and finite/)
+  } finally {
+    fs.rmSync(workspace, { recursive: true, force: true })
+  }
+})
+
 test('rejects feedback-enabled saves with missing or nonnumeric reference currents', () => {
   const workspace = makeWorkspace()
   try {
