@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Box, Button, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Tab, Tabs, Typography } from '@mui/material'
 import { ConnectedResults } from '../components/ConnectedResults'
+import { NonlinearFeedbackResults } from '../components/NonlinearFeedbackResults'
 import { ResultsRunManager } from '../components/ResultsRunManager'
 import { RunSetupSnapshot } from '../components/RunSetupSnapshot'
 import { getJcoAdapter } from '../services/jcoAdapter'
@@ -29,6 +30,8 @@ export function ResultsScreen() {
   const [actionStatus, setActionStatus] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [feedbackView, setFeedbackView] = useState(false)
+  const [selectedCycle, setSelectedCycle] = useState(0)
 
   // Select the run once, independently of the currently displayed stage.
   const selectedRun = results?.runs.find((run) => run.id === selectedRunId) ?? results?.runs[0]
@@ -36,12 +39,33 @@ export function ResultsScreen() {
   const visibleStage = optimizationDisabled && stage === 'optimization' ? 'linear' : stage
   const stageIndex = visibleStage === 'linear' ? 0 : visibleStage === 'optimization' ? 1 : 2
   const hasResults = Boolean(results?.runs.length)
-  const selectedTable = visibleStage === 'linear' ? selectedRun?.linear : visibleStage === 'optimization' ? selectedRun?.optimization : selectedRun?.nonlinear
-  const selectedHistoryCount = optimizerHistoryCount(selectedRun)
+  const hasFeedback = Boolean(selectedRun?.feedback || selectedRun?.cycles?.length)
+  const availableCycles = [0, ...(selectedRun?.cycles?.map((entry) => entry.cycle) ?? [])]
+  const activeCycle = availableCycles.includes(selectedCycle) ? selectedCycle : 0
+  const cycleData = selectedRun?.cycles?.find((entry) => entry.cycle === activeCycle)
+  const inspectedRun = selectedRun && activeCycle > 0 && cycleData
+    ? {
+        ...selectedRun,
+        cycle: activeCycle,
+        linear: cycleData.linear,
+        optimization: cycleData.optimization,
+        nonlinear: cycleData.nonlinear,
+        optimalParameters: cycleData.optimalParameters,
+        savedLinear: cycleData.savedLinear,
+        savedNonlinear: cycleData.savedNonlinear,
+        traces: cycleData.traces,
+      } : selectedRun
+  const inspectedBundle = inspectedRun && activeCycle > 0 && results
+    ? { ...results, runs: [inspectedRun] } : results
+  const selectedTable = visibleStage === 'linear' ? inspectedRun?.linear
+    : visibleStage === 'optimization' ? inspectedRun?.optimization : inspectedRun?.nonlinear
+  const selectedHistoryCount = activeCycle === 0 ? optimizerHistoryCount(selectedRun) : 0
 
   useEffect(() => {
     if (optimizationDisabled && stage === 'optimization') setStage('linear')
   }, [optimizationDisabled, stage, setStage])
+  useEffect(() => { setSelectedCycle(0); setFeedbackView(false) }, [selectedRun?.id])
+  useEffect(() => { if (!hasFeedback && feedbackView) setFeedbackView(false) }, [hasFeedback, feedbackView])
 
   const refresh = async (cancelled?: () => boolean) => {
     const adapter = getJcoAdapter(); if (!adapter) return
@@ -80,7 +104,7 @@ export function ResultsScreen() {
     if (!adapter) return setActionStatus('Desktop result bridge is unavailable.')
     setActionStatus('')
     try {
-      const target = await adapter.exportData({ runId: selectedRun.id, stage: visibleStage, format: 'csv', metrics: [], filters: {} })
+      const target = await adapter.exportData({ runId: selectedRun.id, cycle: activeCycle, stage: visibleStage, format: 'csv', metrics: [], filters: {} })
       if (target) setActionStatus(`Exported to ${target}`)
     } catch (error) {
       setActionStatus(error instanceof Error ? error.message : String(error))
@@ -114,18 +138,52 @@ export function ResultsScreen() {
     </Paper>}
 
     <Box sx={{ pt: hasResults ? 2 : 0, borderTop: hasResults ? '1px solid' : 'none', borderColor: 'divider' }}>
-      <Paper variant="outlined" sx={{ px: 2 }}>
-        <Tabs value={stageIndex} onChange={(_, index) => setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)}>
+      <Paper variant="outlined" sx={{ px: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <Tabs value={feedbackView && hasFeedback ? 3 : stageIndex} variant="scrollable" scrollButtons="auto"
+          sx={{ flex: '1 1 auto', minWidth: 0 }}
+          onChange={(_, index) => {
+            if (index === 3) setFeedbackView(true)
+            else {
+              setFeedbackView(false)
+              setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)
+            }
+          }}>
           <Tab label="Linear" />
           <Tab label="Optimization" disabled={optimizationDisabled} />
           <Tab label="Harmonic balance" />
+          {hasFeedback && <Tab label="Nonlinear feedback" sx={(theme) => ({
+            color: theme.palette.secondary.main,
+            '&.Mui-selected': { color: theme.palette.secondary.main },
+          })} />}
         </Tabs>
+        {hasFeedback && !feedbackView && <FormControl size="small" sx={{ minWidth: 125, flexShrink: 0, my: 0.6 }}>
+          <InputLabel id="results-cycle-label">Cycle</InputLabel>
+          <Select labelId="results-cycle-label" label="Cycle" value={activeCycle}
+            onChange={(event) => setSelectedCycle(Number(event.target.value))}>
+            {availableCycles.map((cycle) => <MenuItem key={cycle} value={cycle}>
+              Cycle {cycle}{cycle === 0 ? ' · baseline' : ''}
+            </MenuItem>)}
+          </Select>
+        </FormControl>}
       </Paper>
     </Box>
 
     {refreshError && <Alert severity="warning">Stored Results could not be refreshed: {refreshError}. The last successfully indexed runs remain visible.</Alert>}
     {actionStatus && <Alert severity={actionStatus.startsWith('Exported') ? 'success' : 'warning'} onClose={() => setActionStatus('')}>{actionStatus}</Alert>}
-    {visibleStage === 'optimization' && selectedRun && !selectedRun.optimization && <Alert severity={selectedHistoryCount > 0 ? 'warning' : 'info'}><strong>Selected-run Optimization diagnostic:</strong> {selectedRun.id} · status {runStatus(selectedRun)} · Linear table {selectedRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {selectedHistoryCount} evaluations.{selectedHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>}
-    {hasResults ? <ConnectedResults results={results!} stage={visibleStage} selectedRunId={selectedRun?.id} /> : <Alert severity="info">{running ? 'No completed numerical dataset is available yet for this project.' : 'Run a simulation to populate the Result explorer.'}</Alert>}
+    {!feedbackView && visibleStage === 'optimization' && inspectedRun && !inspectedRun.optimization && (
+      activeCycle > 0
+        ? <Alert severity="info">Optimization data for Cycle {activeCycle} is not available yet.</Alert>
+        : <Alert severity={selectedHistoryCount > 0 ? 'warning' : 'info'}><strong>Selected-run Optimization diagnostic:</strong> {inspectedRun.id} · status {runStatus(inspectedRun)} · Linear table {inspectedRun.linear ? 'readable' : 'missing'} · Optimization table missing · bookkeeping cost history {selectedHistoryCount} evaluations.{selectedHistoryCount > 0 ? ' The optimizer history exists in bookkeeping, so the remaining failure is in Optimization persistence/indexing rather than in running the optimizer itself.' : ' No optimizer cost history is visible in bookkeeping for this run.'}</Alert>
+    )}
+    {hasResults && feedbackView && hasFeedback && selectedRun
+      ? <NonlinearFeedbackResults run={selectedRun} onOpenCycle={(cycle) => {
+          setSelectedCycle(cycle)
+          setFeedbackView(false)
+          setStage('hb')
+        }} />
+      : hasResults && inspectedBundle
+        ? <ConnectedResults key={selectedRun?.id + ':' + activeCycle + ':' + visibleStage}
+            results={inspectedBundle} stage={visibleStage} selectedRunId={selectedRun?.id} />
+        : <Alert severity="info">{running ? 'No completed numerical dataset is available yet for this project.' : 'Run a simulation to populate the Result explorer.'}</Alert>}
   </Stack>
 }
