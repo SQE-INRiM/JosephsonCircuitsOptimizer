@@ -36,7 +36,17 @@ mktempdir() do workspace
     mkpath(feedback_root)
     write(joinpath(feedback_root, "summary.json"), JSON.json(Dict(
         "schemaVersion" => "jco.feedback/1",
-        "requestedCycles" => 2,
+        "requestedCycles" => 8,
+        "stopping" => Dict(
+            "stopping_mode" => "convergence",
+            "monitored_metric" => "performance",
+            "tolerance_type" => "relative",
+            "tolerance" => 2.0,
+            "monitored_values" => [24.0, 24.1],
+            "cycles_completed" => 2,
+            "maximum_cycles" => 8,
+            "stop_reason" => "converged",
+        ),
         "cycles" => [
             Dict("cycle" => 0, "status" => "completed", "metric" => -15,
                  "performance" => 18, "correction" => 0, "parameters" => Dict("Cg" => 250)),
@@ -61,6 +71,8 @@ mktempdir() do workspace
         @test run["linear"]["rows"][1][2] == 250
         @test run["feedback"]["schemaVersion"] == "jco.feedback/1"
         @test length(run["feedback"]["cycles"]) == 2
+        @test run["feedback"]["stopping"]["stop_reason"] == "converged"
+        @test run["feedback"]["stopping"]["maximum_cycles"] == 8
         @test length(run["cycles"]) == 2
 
         first_cycle = only(filter(c -> c["cycle"] == 1, run["cycles"]))
