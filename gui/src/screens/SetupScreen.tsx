@@ -546,16 +546,84 @@ function ComputationStep() {
           />
           {feedbackEnabled && (
             <>
-              <Box sx={{ maxWidth: 260 }}>
-                <NumberField
-                  label="Correction cycles"
-                  value={config.nonlinearCorrectionCycles}
-                  onChange={(value) => update({ nonlinearCorrectionCycles: Math.max(1, Math.floor(value || 1)) })}
-                />
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                Specify one fixed reference amplitude for each source. These are separate from the nonlinear sweep values and are passed to the HB correction calculation in amperes.
-              </Typography>
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2">Stopping criterion</Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={config.nonlinearFeedbackStopMode ?? 'cycles'}
+                  onChange={(_event, mode: 'cycles' | 'convergence' | null) => {
+                    if (!mode) return
+                    update({
+                      nonlinearFeedbackStopMode: mode,
+                      nonlinearCorrectionCycles: mode === 'convergence'
+                        ? Math.max(8, config.nonlinearCorrectionCycles)
+                        : Math.max(1, config.nonlinearCorrectionCycles),
+                    })
+                  }}
+                  aria-label="Feedback stopping criterion"
+                  sx={{ alignSelf: 'flex-start' }}
+                >
+                  <ToggleButton value="cycles">Fixed cycles</ToggleButton>
+                  <ToggleButton value="convergence">Metric convergence</ToggleButton>
+                </ToggleButtonGroup>
+                {(config.nonlinearFeedbackStopMode ?? 'cycles') === 'cycles' ? (
+                  <Box sx={{ maxWidth: 220 }}>
+                    <NumberField
+                      label="Correction cycles"
+                      value={config.nonlinearCorrectionCycles}
+                      onChange={(value) => update({ nonlinearCorrectionCycles: Math.max(1, Math.floor(value || 1)) })}
+                    />
+                  </Box>
+                ) : (
+                  <>
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
+                      <TextField
+                        select
+                        label="Monitor"
+                        value={config.nonlinearFeedbackMetric ?? 'correction'}
+                        onChange={(event) => update({ nonlinearFeedbackMetric: event.target.value as 'cost' | 'performance' | 'correction' })}
+                        sx={{ flex: 1 }}
+                      >
+                        <MenuItem value="cost">Cost · optimized metric</MenuItem>
+                        <MenuItem value="performance">Performance · best HB</MenuItem>
+                        <MenuItem value="correction">Nonlinear correction</MenuItem>
+                      </TextField>
+                      <TextField
+                        select
+                        label="Change"
+                        value={config.nonlinearFeedbackToleranceType ?? 'absolute'}
+                        onChange={(event) => update({ nonlinearFeedbackToleranceType: event.target.value as 'absolute' | 'relative' })}
+                        sx={{ flex: 1 }}
+                      >
+                        <MenuItem value="absolute">Absolute</MenuItem>
+                        <MenuItem value="relative">Relative (%)</MenuItem>
+                      </TextField>
+                    </Stack>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                      <TextField
+                        label={(config.nonlinearFeedbackToleranceType ?? 'absolute') === 'relative' ? 'Tolerance (%)' : 'Tolerance'}
+                        type="number"
+                        value={config.nonlinearFeedbackTolerance ?? 0.01}
+                        onChange={(event) => update({ nonlinearFeedbackTolerance: Number(event.target.value) })}
+                        error={!Number.isFinite(config.nonlinearFeedbackTolerance) || config.nonlinearFeedbackTolerance <= 0}
+                        sx={{ flex: 1 }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <NumberField
+                          label="Maximum cycles"
+                          value={config.nonlinearCorrectionCycles}
+                          onChange={(value) => update({ nonlinearCorrectionCycles: Math.max(2, Math.floor(value || 2)) })}
+                        />
+                      </Box>
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      Stops when the selected value changes less than the tolerance between two consecutive corrected cycles. The maximum limits HB evaluations.
+                    </Typography>
+                  </>
+                )}
+              </Stack>
+              <Typography variant="subtitle2">Reference source currents (A)</Typography>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                 {project.sources.map((source) => (
                   <TextField
@@ -582,7 +650,7 @@ function ComputationStep() {
               {variableParameterCount === 0 && (
                 <Alert severity="warning">Feedback cycles are skipped for a single fixed device configuration. At least one design parameter must vary.</Alert>
               )}
-              <Alert severity="info">The correction is computed by <code>user_nonlinear_correction</code> and passed to <code>user_cost</code>. The user-defined cost function decides how to apply it. You can edit both functions under Metrics &amp; constraints.</Alert>
+
             </>
           )}
         </Stack>
