@@ -624,8 +624,8 @@ function ComputationStep() {
                         onChange={(event) => update({ nonlinearFeedbackMetric: event.target.value as 'cost' | 'performance' | 'correction' })}
                         sx={{ flex: 1 }}
                       >
-                        <MenuItem value="cost">Cost · optimized metric</MenuItem>
-                        <MenuItem value="performance">Performance · best HB</MenuItem>
+                        <MenuItem value="cost">Cost</MenuItem>
+                        <MenuItem value="performance">Performance</MenuItem>
                         <MenuItem value="correction">Nonlinear correction</MenuItem>
                       </TextField>
                       <TextField
