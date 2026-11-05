@@ -190,7 +190,10 @@ describe('Feedback cycle navigation within Results', () => {
     expect(run.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(group.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(tabs.closest('.MuiPaper-root')?.contains(group)).toBe(true)
-    expect(screen.getByRole('tab', { name: 'Nonlinear feedback' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Nonlinear feedback' })).toBeTruthy()
+    expect(screen.getAllByRole('tab')).toHaveLength(3)
+    // The feedback overview is a separate action, not a fourth simulation stage.
+    expect(screen.queryByRole('tab', { name: 'Nonlinear feedback' })).toBeNull()
     expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('0')
     expect(screen.getByTestId('selected-linear-file').textContent).toBe('baseline.h5')
 
@@ -210,18 +213,30 @@ describe('Feedback cycle navigation within Results', () => {
   it('returns from whole-run feedback charts when a cycle is selected above the tabs', () => {
     useAppStore.setState({ resultsStage: 'hb' })
     render(<ResultsScreen />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Nonlinear feedback' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Nonlinear feedback' }))
+    expect(screen.getByRole('button', { name: 'Nonlinear feedback' }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByTestId('feedback-convergence-view')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cycle 1' }))
     expect(screen.queryByTestId('feedback-convergence-view')).toBeNull()
     expect(screen.getByTestId('visible-results-stage').textContent).toBe('hb')
     expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
+    expect(screen.getByRole('button', { name: 'Nonlinear feedback' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('returns to the numerical stage when selecting a stage tab from feedback overview', () => {
+    render(<ResultsScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'Nonlinear feedback' }))
+    expect(screen.getByTestId('feedback-convergence-view')).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: 'Harmonic balance' }))
+    expect(screen.queryByTestId('feedback-convergence-view')).toBeNull()
+    expect(screen.getByTestId('visible-results-stage').textContent).toBe('hb')
+    expect(screen.getByRole('button', { name: 'Nonlinear feedback' }).getAttribute('aria-pressed')).toBe('false')
   })
 
   it('does not introduce feedback controls for historical runs without cycles', () => {
     useAppStore.setState({ results: bundle() })
     render(<ResultsScreen />)
-    expect(screen.queryByRole('tab', { name: 'Nonlinear feedback' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Nonlinear feedback' })).toBeNull()
     expect(screen.queryByRole('group', { name: 'Feedback cycles' })).toBeNull()
   })
 })
