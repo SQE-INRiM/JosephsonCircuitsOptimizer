@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, FormControl, IconButton, InputLabel, MenuItem
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded'
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded'
 import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded'
+import { alpha } from '@mui/material/styles'
 import { ConnectedResults } from '../components/ConnectedResults'
 import { NonlinearFeedbackResults } from '../components/NonlinearFeedbackResults'
 import { ResultsRunManager } from '../components/ResultsRunManager'
@@ -199,11 +200,14 @@ export function ResultsScreen() {
               py: 0.7,
               fontWeight: 600,
               textTransform: 'none',
-              color: feedbackView ? 'text.primary' : 'text.secondary',
-              borderColor: 'divider',
-              bgcolor: feedbackView ? 'action.selected' : 'transparent',
-              '& .MuiButton-startIcon': { color: feedbackView ? 'secondary.main' : 'text.secondary' },
-              '&:hover': { borderColor: 'text.secondary', bgcolor: 'action.hover' },
+              color: 'text.primary',
+              borderColor: (theme) => alpha(theme.palette.secondary.main, feedbackView ? 0.55 : 0.35),
+              bgcolor: (theme) => alpha(theme.palette.secondary.main, feedbackView ? 0.13 : 0.055),
+              '& .MuiButton-startIcon': { color: 'secondary.main' },
+              '&:hover': {
+                borderColor: (theme) => alpha(theme.palette.secondary.main, 0.65),
+                bgcolor: (theme) => alpha(theme.palette.secondary.main, feedbackView ? 0.17 : 0.1),
+              },
               boxShadow: 'none',
             }}>
             Nonlinear feedback
