@@ -360,6 +360,9 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                     error("Unsupported feedback convergence metric: $feedback_metric")
             end
             previous_feedback_value = nothing
+            feedback_values = Float64[]
+            feedback_converged = false
+            completed_correction_cycles = 0
 
             for i in 1:maximum_correction_cycles
 
@@ -373,6 +376,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 @info "Nonlinear correction term: $delta_correction"
 
                 push!(correction_terms, delta_correction)
+                completed_correction_cycles = i
 
                 device_parameters_space = load_params(device_params_file; optimal=optimal_params)
                 df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
@@ -445,14 +449,30 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                     # conflate a changed objective with actual convergence.
                     observed = feedback_observed_value(
                         feedback_metric, optimal_metric, cycle_best_performance, delta_correction)
+                    push!(feedback_values, observed)
                     if feedback_has_converged(
                             previous_feedback_value, observed, tolerance_type, feedback_tolerance)
+                        feedback_converged = true
                         @info "Nonlinear feedback converged" cycle=i metric=feedback_metric value=observed tolerance=feedback_tolerance type=tolerance_type
                         break
                     end
                     previous_feedback_value = observed
                 end
             end
+
+            # Keep an explicit record of why the feedback sequence stopped.
+            # This can be inspected alongside corrected-cycle datasets, without
+            # interpreting a stabilization criterion as physical validation.
+            save_output_file(Dict(
+                "stopping_mode" => feedback_stop_mode,
+                "monitored_metric" => feedback_stop_mode == "convergence" ? feedback_metric : nothing,
+                "tolerance_type" => feedback_stop_mode == "convergence" ? tolerance_type : nothing,
+                "tolerance" => feedback_stop_mode == "convergence" ? feedback_tolerance : nothing,
+                "monitored_values" => feedback_values,
+                "cycles_completed" => completed_correction_cycles,
+                "maximum_cycles" => maximum_correction_cycles,
+                "stop_reason" => feedback_converged ? "converged" : "cycle_limit"
+            ), joinpath(optimal_params_dir, "nonlinear_feedback_stopping.json"))
 
             # Direct Julia runs retain the original convergence plot; GUI runs
             # override the helper to avoid loading graphics or allocating a figure.
