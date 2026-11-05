@@ -32,6 +32,7 @@ export interface CancelResult {
 
 export interface ExportRequest {
   runId: string
+  cycle?: number
   stage: StageId
   format: 'csv' | 'json' | 'hdf5'
   metrics: string[]
