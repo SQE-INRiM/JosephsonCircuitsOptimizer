@@ -53,7 +53,7 @@ export function NonlinearFeedbackResults({
 
   return <Stack spacing={1.5}>
     <Paper variant="outlined" sx={{ p: 1.7, borderTop: '3px solid', borderTopColor: accent }}>
-      <Stack direction="row" alignItems="center" useFlexGap spacing={1} sx={{ flexWrap: 'wrap', mb: 1.1 }}>
+      <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', mb: 1.1 }}>
         <Typography variant="h6" sx={{ color: accent }}>Nonlinear feedback</Typography>
         <Chip size="small" variant="outlined" label={Math.max(0, entries.length - 1) + ' corrected cycles'} />
       </Stack>
