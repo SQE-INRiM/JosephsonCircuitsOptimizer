@@ -666,7 +666,7 @@ function MetricsStep() {
             <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setMetricsEditorFunction('user_performance')}>Edit performance</Button>
           </Paper>
         </Stack>
-        <Alert severity="info" sx={{ my: 2 }}>The first value returned by <code>user_cost</code> is minimized. The first value returned by <code>user_performance</code> is maximized. Every later named value is saved for data analysis.</Alert>
+
         {(!hasCost || !hasPerformance) && <Alert severity="warning" sx={{ mb: 2 }}>Missing {!hasCost && !hasPerformance ? <><code>user_cost</code> and <code>user_performance</code></> : !hasCost ? <code>user_cost</code> : <code>user_performance</code>} definition.</Alert>}
         <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small"><TableHead><TableRow><TableCell width={80}>Order</TableCell><TableCell>Julia function</TableCell><TableCell>Returned name</TableCell><TableCell>Use</TableCell></TableRow></TableHead><TableBody>{project.metrics.map((metric) => <TableRow key={metric.id} hover><TableCell>#{metric.position}</TableCell><TableCell><Chip size="small" variant="outlined" label={metric.source} /></TableCell><TableCell><Typography sx={{ fontFamily: 'monospace', fontSize: 13 }}>{metric.name}</Typography></TableCell><TableCell><Chip size="small" label={metric.purpose === 'Objective' ? `${metric.purpose} · ${metric.direction.toLowerCase()}` : 'Analysis metric'} color={metric.purpose === 'Objective' ? metric.source === 'user_cost' ? 'primary' : 'secondary' : 'default'} variant={metric.purpose === 'Objective' ? 'filled' : 'outlined'} /></TableCell></TableRow>)}</TableBody></Table>
@@ -678,12 +678,7 @@ function MetricsStep() {
           <SectionHeading icon={<FunctionsRoundedIcon />} title="Nonlinear correction" description="Optional user-defined feedback, stored alongside cost and performance." />
           <Button variant="outlined" size="small" startIcon={<CodeRoundedIcon />} onClick={() => setMetricsEditorFunction('user_nonlinear_correction')}>Edit correction</Button>
         </Stack>
-        <Typography variant="body2" sx={{ mt: 2, fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
-          user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-Both inputs are complete hbsolve solutions. Extract S-parameters from sol_linear.linearized.S(...) and sol_nonlinear.linearized.S(...). The correction is passed to user_cost, which decides how to use it.
-        </Typography>
+
         {feedbackEnabled && !hasCorrection && <Alert severity="warning" sx={{ mt: 2 }}>Nonlinear feedback is enabled, but <code>user_nonlinear_correction</code> is not defined.</Alert>}
         {!hasCorrection && !feedbackEnabled && <Alert severity="info" sx={{ mt: 2 }}>Define <code>user_nonlinear_correction</code> before enabling feedback. The nonlinear sweep also expects this hook to exist.</Alert>}
       </Paper>
