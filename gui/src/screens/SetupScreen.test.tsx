@@ -400,7 +400,7 @@ describe('Nonlinear feedback setup', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit correction' }))
     const original = useAppStore.getState().project.metricsCode
     const editor = screen.getByRole('textbox', { name: 'user_nonlinear_correction' }) as HTMLTextAreaElement
-    const modified = editor.value.replace('    return 0.0', '    # custom feedback\\n    return 0.0')
+    const modified = editor.value.replace('    return 0.0', '    # custom feedback\n    return 0.0')
     fireEvent.change(editor, { target: { value: modified } })
     expect(useAppStore.getState().project.metricsCode).toBe(original)
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
