@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import { Alert, Box, Button, Chip, Divider, Paper, Stack, Typography } from '@mui/material'
-import { alpha, useTheme } from '@mui/material/styles'
+import { Alert, Box, Chip, Divider, Paper, Stack, Typography } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { LineChart } from '@mui/x-charts/LineChart'
-import type { FeedbackCycleSummary, RunResults } from '../types'
+import type { RunResults } from '../types'
 import { useAppStore } from '../store'
 import { parameterLabel } from '../utils/resultUnits'
 
@@ -17,12 +17,7 @@ function hasValue(value: number | null | undefined): value is number {
   return value != null && Number.isFinite(value)
 }
 
-export function NonlinearFeedbackResults({
-  run, onOpenCycle,
-}: {
-  run: RunResults
-  onOpenCycle: (cycle: number) => void
-}) {
+export function NonlinearFeedbackResults({ run }: { run: RunResults }) {
   const theme = useTheme()
   const parameters = useAppStore((state) => state.project.parameters)
   const entries = useMemo(() =>
@@ -32,13 +27,8 @@ export function NonlinearFeedbackResults({
   const cycles = entries.map((item) => item.cycle)
   const names = [...new Set(entries.flatMap((entry) => Object.keys(entry.parameters ?? {})))]
   const active = run.cycles ?? []
-  const incomplete = active.filter((cycle) => !entries.some((entry) => entry.cycle === cycle.cycle))
   const accent = theme.palette.secondary.main
 
-  const openMark = (_event: unknown, item: { dataIndex?: number }) => {
-    const cycle = cycles[item.dataIndex ?? -1]
-    if (cycle !== undefined) onOpenCycle(cycle)
-  }
   const graphSeries = (values: Array<number | null>, label: string) => ({
     data: values,
     label,
@@ -68,17 +58,8 @@ export function NonlinearFeedbackResults({
         xAxis={[{ data: cycles, scaleType: 'linear', label: 'Feedback cycle', tickMinStep: 1 }]}
         yAxis={[{ width: 72, valueFormatter: (value: number | null) => display(value) }]}
         series={[graphSeries(entries.map((entry) => hasValue(entry.performance) ? entry.performance : null), 'Performance')]}
-        grid={{ horizontal: true }} onMarkClick={openMark} />
+        grid={{ horizontal: true }} />
         : <Alert severity="info" sx={{ mt: 1 }}>No completed feedback cycle has been saved yet.</Alert>}
-      <Stack direction="row" spacing={0.7} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
-        {entries.map((entry: FeedbackCycleSummary) => <Button key={entry.cycle} size="small" variant="outlined"
-          onClick={() => onOpenCycle(entry.cycle)}
-          sx={{ color: accent, borderColor: alpha(accent, 0.35) }}>
-          Cycle {entry.cycle}
-        </Button>)}
-        {incomplete.map((entry) => <Chip key={entry.cycle} size="small" variant="outlined" color="warning"
-          label={'Cycle ' + entry.cycle + ' · incomplete'} />)}
-      </Stack>
     </Paper>
     {names.length > 0 && <>
       <Divider sx={{ my: 0.3 }} />
@@ -93,7 +74,7 @@ export function NonlinearFeedbackResults({
               const value = entry.parameters?.[name]
               return hasValue(value) ? value : null
             }), parameterLabel(parameters, name))]}
-            grid={{ horizontal: true }} onMarkClick={openMark} />
+            grid={{ horizontal: true }} />
         </Paper>)}
       </Box>
     </>}
