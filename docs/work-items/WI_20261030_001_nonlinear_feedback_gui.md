@@ -20,7 +20,7 @@ Make nonlinear feedback configurable in GUI Setup and provide a consistent full-
 
 ## GUI and serialization
 
-- Add feedback enable (0 cycles when off) and **Fixed cycles** or **Metric convergence** modes. Convergence selects Cost / Performance / Correction and absolute or relative (%) tolerance, with a maximum cycle budget (at least two) enforced by the full Julia workflow; see `adr/ADR_010_nonlinear_feedback_stopping.md`.
+- Place the Nonlinear feedback card **below Harmonic and solver settings** in Computation. Enable feedback with a concise label (no "full runs only" suffix) and no redundant current-unit helpers (A already appears in the field labels). Offer **Fixed cycles** or **Metric convergence** modes; convergence selects Cost / Performance / Correction and absolute or relative (%) tolerance, with a maximum cycle budget (at least two) enforced by the full Julia workflow; see `adr/ADR_010_nonlinear_feedback_stopping.md`.
 - Remove redundant explanatory text and the inline function signature from Metrics while keeping all three distinct function editors.
 - Accept one fixed numeric reference current, in amperes, for each source (including DC sources), independently of the nonlinear sweep values.
 - Preserve `n_iterations_nonlinear_correction` as the fixed count or maximum cycles and `source_i_non_linear_amplitude_for_delta_correction` for reference currents. Add optional `nonlinear_feedback_stop_mode`, `nonlinear_feedback_metric`, `nonlinear_feedback_tolerance_type`, `nonlinear_feedback_tolerance` to `simulation_config.json`. Existing `.jco` archives and legacy fixed-cycle behavior remain compatible.
