@@ -198,10 +198,23 @@ export interface FeedbackCycleSummary {
   parameters: Record<string, number | null>
 }
 
+export interface FeedbackStoppingDetails {
+  stopping_mode: 'cycles' | 'convergence'
+  monitored_metric?: 'cost' | 'performance' | 'correction' | null
+  tolerance_type?: 'absolute' | 'relative' | null
+  tolerance?: number | null
+  monitored_values?: number[]
+  cycles_completed: number
+  maximum_cycles: number
+  stop_reason: 'converged' | 'cycle_limit'
+}
+
 export interface FeedbackSummary {
   schemaVersion: string
   requestedCycles: number
   cycles: FeedbackCycleSummary[]
+  /** Present when feedback stopped normally; absent for older/partial runs. */
+  stopping?: FeedbackStoppingDetails
 }
 
 export interface FeedbackCycleResults {
