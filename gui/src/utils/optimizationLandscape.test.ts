@@ -48,6 +48,28 @@ describe('Optimization landscape semantics', () => {
     expect(runningBest(history)).toEqual([-3, -3, -5])
   })
 
+  it('keeps masked evaluations in the timeline without stretching the objective axis', () => {
+    const history = optimizerSamples({
+      ...optimization,
+      rows: [
+        [1, 1, 2, 3, 1e8],
+        [2, 1, 2, 3, -10],
+        [3, 1, 2, 3, 1e8],
+        [4, 1, 2, 3, -5],
+        [5, 1, 2, 3, -12],
+      ],
+    })
+    expect(history).toHaveLength(5)
+    expect(objectiveHistoryForPlot(history)).toEqual({
+      evaluated: [null, -10, null, -5, -12],
+      bestSoFar: [null, -10, -10, -10, -12],
+    })
+    expect(objectiveHistoryForPlot(history.slice(0, 1))).toEqual({
+      evaluated: [null],
+      bestSoFar: [null],
+    })
+  })
+
   it('constructs a true Linear slice, rather than projecting or averaging over Ladd', () => {
     const first = linearObjectiveSlice(linear, 'I0', 'Cg', { Ladd: 70e-12 })
     expect(first.x).toEqual([1e-6, 2e-6])
