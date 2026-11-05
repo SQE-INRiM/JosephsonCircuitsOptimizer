@@ -45,6 +45,18 @@ export function runningBest(samples: OptimizerSample[]): number[] {
   })
 }
 
+// Preserve the evaluation timeline but do not let masked objective penalties
+// (the >= 1e8 sentinel) determine the History plot's vertical scale.
+export function objectiveHistoryForPlot(samples: OptimizerSample[]): { evaluated: Array<number | null>; bestSoFar: Array<number | null> } {
+  let best: number | null = null
+  const evaluated = samples.map((sample) => Number.isFinite(sample.metric) && sample.metric < 1e8 ? sample.metric : null)
+  const bestSoFar = evaluated.map((metric) => {
+    if (metric !== null) best = best === null ? metric : Math.min(best, metric)
+    return best
+  })
+  return { evaluated, bestSoFar }
+}
+
 export function storedValues(table: ResultTable, name: string): number[] {
   const index = table.columns.indexOf(name)
   if (index < 0) return []

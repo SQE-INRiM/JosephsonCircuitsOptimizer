@@ -27,6 +27,27 @@ function sourceCoordinateColumns(table: ResultTable) { return table.columns.filt
 function amplitudeColumns(table: ResultTable) { return sourceCoordinateColumns(table).filter((column) => /_amplitude$/i.test(column)) }
 function metricColumns(table: ResultTable) { const coords = new Set(sourceCoordinateColumns(table)); return table.columns.filter((column) => column !== 'point_id' && column !== 'converged' && !coords.has(column)) }
 function columnValues(table: ResultTable, column: string) { const index = table.columns.indexOf(column); return index < 0 ? [] : unique(rowsAsNumbers(table).map((row) => row[index])) }
+
+// A valid response needs two distinct amplitudes at the same other source
+// coordinates; multiple isolated points do not form an amplitude sweep.
+export function hasHbAmplitudeResponse(table: ResultTable): boolean {
+  const coordinates = sourceCoordinateColumns(table)
+  return amplitudeColumns(table).some((amplitude) => {
+    const amplitudeIndex = table.columns.indexOf(amplitude)
+    const fixedIndices = coordinates.filter((column) => column !== amplitude).map((column) => table.columns.indexOf(column))
+    const groups = new Map<string, Set<number>>()
+    for (const row of rowsAsNumbers(table)) {
+      const value = row[amplitudeIndex]
+      if (!Number.isFinite(value)) continue
+      const key = fixedIndices.map((index) => String(row[index])).join('|')
+      const values = groups.get(key) ?? new Set<number>()
+      values.add(value)
+      if (values.size >= 2) return true
+      groups.set(key, values)
+    }
+    return false
+  })
+}
 function rowMatchesFixed(table: ResultTable, row: NumericRow, fixed: Record<string, number>) { return Object.entries(fixed).every(([column, value]) => row[table.columns.indexOf(column)] === value) }
 function convergenceMatches(table: ResultTable, row: NumericRow, filter: ConvergenceFilter) { if (filter === 'all') return true; const index = table.columns.indexOf('converged'); if (index < 0) return filter === 'converged'; return filter === 'converged' ? row[index] === 1 : row[index] !== 1 }
 function traceLabel(trace: Pick<SavedTraceData, 'quantityName' | 'arrayName'>) { return trace.quantityName === trace.arrayName ? trace.quantityName : `${trace.quantityName} · ${trace.arrayName}` }
@@ -96,7 +117,8 @@ function HarmonicBalanceRun({ run, amplitudeUnit }: { run: RunResults; amplitude
   const [selectionMode, setSelectionMode] = useState<ResultSelectionMode>('single')
   const [comparisonIds, setComparisonIds] = useState<number[]>([])
   useEffect(() => { setSelectionMode('single'); setComparisonIds([]) }, [run.id])
-  const amplitudes = amplitudeColumns(table); const [responseAmplitude, setResponseAmplitude] = useState(amplitudes[0] ?? ''); const [responseFixed, setResponseFixed] = useState<Record<string, number>>({})
+  const amplitudes = amplitudeColumns(table); const hasAmplitudeResponse = hasHbAmplitudeResponse(table); const [responseAmplitude, setResponseAmplitude] = useState(amplitudes[0] ?? ''); const [responseFixed, setResponseFixed] = useState<Record<string, number>>({})
+  useEffect(() => { if (!hasAmplitudeResponse && view === 'response') setView('landscape') }, [hasAmplitudeResponse, view])
   useEffect(() => { const next: Record<string, number> = {}; coordinates.filter((column) => column !== x && column !== y).forEach((column) => { const options = columnValues(table, column); next[column] = options.includes(fixed[column]) ? fixed[column] : options[0] }); setFixed(next) }, [table, x, y])
   useEffect(() => { const next: Record<string, number> = {}; coordinates.filter((column) => column !== responseAmplitude).forEach((column) => { const options = columnValues(table, column); next[column] = options.includes(responseFixed[column]) ? responseFixed[column] : options[0] }); setResponseFixed(next) }, [table, responseAmplitude])
   const grid = useMemo(() => x !== y ? buildHbGrid(table, x, y, metric, fixed, convergence) : null, [table, x, y, metric, fixed, convergence])
@@ -131,7 +153,7 @@ function HarmonicBalanceRun({ run, amplitudeUnit }: { run: RunResults; amplitude
   const responseRows = useMemo(() => { const ai = table.columns.indexOf(responseAmplitude); return responseAmplitude ? rowsAsNumbers(table).filter((row) => rowMatchesFixed(table, row, responseFixed) && convergenceMatches(table, row, convergence) && Number.isFinite(row[ai])).sort((a, b) => a[ai] - b[ai]) : [] }, [table, responseAmplitude, responseFixed, convergence])
   const ai = table.columns.indexOf(responseAmplitude); const pi = table.columns.indexOf('performance'); const di = table.columns.indexOf('delta_quantity')
   return <Stack spacing={1.5}>
-    <Paper variant="outlined" sx={{ p: 1.25 }}><Stack direction="row" spacing={1.2} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}><Button size="small" variant={view === 'landscape' ? 'contained' : 'outlined'} onClick={() => setView('landscape')}>Landscape</Button><Button size="small" variant={view === 'response' ? 'contained' : 'outlined'} onClick={() => setView('response')}>Amplitude response</Button><Chip sx={{ ml: { md: 'auto' } }} size="small" variant="outlined" color="success" label={`${table.rows.length.toLocaleString()} HB points`} /></Stack></Paper>
+    <Paper variant="outlined" sx={{ p: 1.25 }}><Stack direction="row" spacing={1.2} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}><Button size="small" variant={view === 'landscape' ? 'contained' : 'outlined'} onClick={() => setView('landscape')}>Landscape</Button><Button size="small" variant={view === 'response' ? 'contained' : 'outlined'} disabled={!hasAmplitudeResponse} onClick={() => setView('response')}>Amplitude response</Button><Chip sx={{ ml: { md: 'auto' } }} size="small" variant="outlined" color="success" label={`${table.rows.length.toLocaleString()} HB points`} /></Stack></Paper>
     <Paper variant="outlined" sx={{ p: 1.25 }}><Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
       {view === 'landscape' && <><FormControl size="small" sx={{ minWidth: 210 }}><InputLabel>Metric</InputLabel><Select label="Metric" value={metric} onChange={(event) => setMetric(event.target.value)}>{metrics.map((column) => <MenuItem key={column} value={column}>{column}</MenuItem>)}</Select></FormControl><FormControl size="small" sx={{ minWidth: 160 }}><InputLabel>X axis</InputLabel><Select label="X axis" value={x} onChange={(event) => { const next = event.target.value; setX(next); if (next === y) setY(coordinates.find((column) => column !== next) ?? y) }}>{coordinates.map((column) => <MenuItem key={column} value={column}>{column}</MenuItem>)}</Select></FormControl><FormControl size="small" sx={{ minWidth: 160 }}><InputLabel>Y axis</InputLabel><Select label="Y axis" value={y} onChange={(event) => setY(event.target.value)}>{coordinates.filter((column) => column !== x).map((column) => <MenuItem key={column} value={column}>{column}</MenuItem>)}</Select></FormControl>{coordinates.filter((column) => column !== x && column !== y).map((column) => <FormControl key={column} size="small" sx={{ minWidth: 180 }}><InputLabel>{column} fixed</InputLabel><Select label={`${column} fixed`} value={fixed[column] ?? ''} onChange={(event) => setFixed((current) => ({ ...current, [column]: Number(event.target.value) }))}>{columnValues(table, column).map((value) => <MenuItem key={value} value={value}>{formatNumber(value)}</MenuItem>)}</Select></FormControl>)}</>}
       {view === 'response' && <><FormControl size="small" sx={{ minWidth: 210 }}><InputLabel>Source amplitude</InputLabel><Select label="Source amplitude" value={responseAmplitude} onChange={(event) => setResponseAmplitude(event.target.value)}>{amplitudes.map((column) => <MenuItem key={column} value={column}>{column}</MenuItem>)}</Select></FormControl>{coordinates.filter((column) => column !== responseAmplitude).map((column) => <FormControl key={column} size="small" sx={{ minWidth: 180 }}><InputLabel>{column} fixed</InputLabel><Select label={`${column} fixed`} value={responseFixed[column] ?? ''} onChange={(event) => setResponseFixed((current) => ({ ...current, [column]: Number(event.target.value) }))}>{columnValues(table, column).map((value) => <MenuItem key={value} value={value}>{formatNumber(value)}</MenuItem>)}</Select></FormControl>)}</>}

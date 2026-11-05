@@ -7,7 +7,7 @@ import { useAppStore } from '../store'
 import { parameterLabel } from '../utils/resultUnits'
 import {
   bestSample, linearObjectiveSlice, nearestStoredValue, optimizerParameterNames,
-  optimizerSamples, runningBest, sampleOnSlice, storedValues,
+  objectiveHistoryForPlot, optimizerSamples, sampleOnSlice, storedValues,
 } from '../utils/optimizationLandscape'
 import type { LinearSlice, OptimizerSample } from '../utils/optimizationLandscape'
 import { sequentialColor } from './HeatmapGrid'
@@ -263,8 +263,7 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   [canSlice, effectiveMode, linear, x, y, fixedKey])
 
   const evaluations = samples.map((sample) => sample.evaluation)
-  const metrics = samples.map((sample) => sample.metric)
-  const bestHistory = runningBest(samples)
+  const { evaluated: metrics, bestSoFar: bestHistory } = objectiveHistoryForPlot(samples)
   const selected = selectedIndex == null || selectedIndex >= shown.length ? null : shown[selectedIndex]
   const display = (name: string) => parameterLabel(parameters, name)
   const canPlot = x !== y && names.length >= 2
@@ -342,13 +341,13 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     {view === 'history' && <Stack spacing={1.5}>
     <Paper variant="outlined" sx={{ p: 1.7 }}>
       <Typography variant="h6" sx={{ mb: 1 }}>Objective</Typography>
-      <LineChart height={290} margin={{ bottom: 45, left: 80 }}
+      {metrics.some((value) => value !== null) ? <LineChart height={290} margin={{ bottom: 45, left: 80 }}
         xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => displayNumber(value) }]}
         yAxis={[{ label: 'metric', width: 80, valueFormatter: (value: number | null) => displayNumber(value) }]}
         series={[
           { data: metrics, label: 'Evaluated objective', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
           { data: bestHistory, label: 'Best so far', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
-        ]} grid={{ horizontal: true }} />
+        ]} grid={{ horizontal: true }} /> : <Alert severity="info">All objective evaluations are masked; there are no values to plot.</Alert>}
     </Paper>
     <Divider sx={{ my: 0.6 }} />
     <Stack spacing={1}>
