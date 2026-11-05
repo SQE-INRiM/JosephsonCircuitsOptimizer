@@ -24,13 +24,13 @@ Make nonlinear feedback configurable in GUI Setup and provide a consistent full-
 - Accept one fixed numeric reference current, in amperes, for each source (including DC sources), independently of the nonlinear sweep values.
 - Use existing keys `n_iterations_nonlinear_correction` in `simulation_config.json` and `source_i_non_linear_amplitude_for_delta_correction` in `drive_physical_quantities.json`. No `.jco` schema change.
 - Keep old projects importable without automatically rewriting user Julia code. **Compatibility note:** legacy feedback functions that index the first input as an S dictionary must be manually migrated to `sol_linear.linearized.S(...)`; a no-op `return 0.0` remains compatible. See `adr/ADR_009_nonlinear_feedback_solution_contract.md`.
-- Provide three compact editor entry points in Metrics & constraints: **Cost** (`user_cost`), **Performance** (`user_performance`), and **Nonlinear correction** (`user_nonlinear_correction`). Each opens the complete, existing `user_cost_and_performance.jl` file with the cursor at the chosen function. No brittle Julia source splitting or `.jco` schema change; the feedback Julia input contract changes intentionally.
+- Provide three separate code editors in Metrics & constraints: **Cost**, **Performance**, and **Nonlinear correction**. Each shows *only its function*, while Save splices that function into the original `user_cost_and_performance.jl` source with all other text, auxiliary code, comments and formatting preserved byte-for-byte. Explicit Save/Cancel avoids modifying user source while typing. A **Full Julia file** fallback remains accessible when safe isolation is impossible (duplicate definitions, short-form code or unsupported Julia constructs). No `.jco` schema change; the feedback Julia input contract changes intentionally.
 - Default the setting to off for new projects. Existing projects retain their configured cycle count.
 - Reject saves with enabled cycles but missing or nonfinite reference currents, including `NaN`, while allowing zero and negative currents.
 
 ## Verification
 
-- Added targeted GUI editor tests for cycles, enable state, current editing, function-specific editor navigation, full JC solution input descriptions, and preservation of the full shared source.
+- Added targeted GUI editor tests for cycles, enable state, current editing, isolated function-only code views, Save/Cancel, full-file fallback and preservation of other source contents. Added parser/round-trip tests for nested Julia blocks, comments, triple strings, Unicode offsets, missing definitions and ambiguous syntax.
 - Added Node serialization tests for round-trip and invalid-source-current rejection.
 - The original branch's npm checks passed before reconciliation. Re-run automated npm tests/build and desktop packaging on the v0.4.3 head; real Julia HB and scientific feedback-loop validation still require independent execution. Do not claim them completed until performed.
 - Before a v0.4.3 release, confirm the packaging workflow and correction-cycle results with a representative .jco.
