@@ -233,6 +233,7 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   )
   const [view, setView] = useState<'landscape' | 'history'>('landscape')
   const [showPath, setShowPath] = useState(true)
+  const [showFixedControls, setShowFixedControls] = useState(false)
   const [x, setX] = useState(initialAxes.x)
   const [y, setY] = useState(initialAxes.y)
   const [mode, setMode] = useState<LandscapeMode>(run.linear ? 'slice' : 'projection')
@@ -292,27 +293,28 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
 
   if (!samples.length) return <Alert severity="info">No optimizer evaluations with finite objective values are available.</Alert>
 
-  return <Stack spacing={1.5}>
-    <Paper variant="outlined" sx={{ p: 1.2 }}>
-      <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+  return <Stack spacing={1.1}>
+    <Paper variant="outlined" sx={{ p: 0.9 }}>
+      <Stack direction="row" useFlexGap spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, mr: 'auto' }}>
+          {view === 'landscape' ? 'Optimization landscape' : 'Optimization history'}
+        </Typography>
         <Button size="small" variant={view === 'landscape' ? 'contained' : 'outlined'} onClick={() => setView('landscape')}>Landscape</Button>
         <Button size="small" variant={view === 'history' ? 'contained' : 'outlined'} disabled={!historyAvailable} onClick={() => setView('history')}>History</Button>
-        <Chip size="small" variant="outlined" sx={{ ml: { md: 'auto' } }} label={samples.length.toLocaleString() + ' evaluations'} />
+        <Chip size="small" variant="outlined" label={samples.length.toLocaleString() + ' evaluations'} />
       </Stack>
     </Paper>
-    {view === 'landscape' && <Paper variant="outlined" sx={{ p: 1.6 }}>
-      <Stack spacing={1.6}>
-        <Typography variant="h6">Optimization landscape</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: '-8px !important' }}>Surrogate-guided search for lower objective values; each point is an evaluated configuration.</Typography>
+    {view === 'landscape' && <Paper variant="outlined" sx={{ p: 1.2 }}>
+      <Stack spacing={0.9}>
         {canPlot ? <>
-          <Stack direction="row" useFlexGap spacing={1.1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <FormControl size="small" sx={{ minWidth: 170 }}>
+          <Stack direction="row" useFlexGap spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 140, width: 148 }}>
               <InputLabel id="optimizer-x-label">X axis</InputLabel>
               <Select labelId="optimizer-x-label" label="X axis" value={x} onChange={(event) => chooseX(event.target.value)}>
                 {names.map((name) => <MenuItem key={name} value={name}>{display(name)}</MenuItem>)}
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 170 }}>
+            <FormControl size="small" sx={{ minWidth: 140, width: 148 }}>
               <InputLabel id="optimizer-y-label">Y axis</InputLabel>
               <Select labelId="optimizer-y-label" label="Y axis" value={y} onChange={(event) => chooseY(event.target.value)}>
                 {names.map((name) => <MenuItem key={name} value={name}>{display(name)}</MenuItem>)}
@@ -321,9 +323,18 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
             <Button size="small" variant={effectiveMode === 'projection' ? 'contained' : 'outlined'} onClick={() => setMode('projection')}>Projection</Button>
             <Button size="small" variant={effectiveMode === 'slice' ? 'contained' : 'outlined'} disabled={!canSlice} onClick={() => setMode('slice')}>Slice · Linear</Button>
             <Button size="small" variant={showPath ? 'contained' : 'outlined'} color="inherit" onClick={() => setShowPath((current) => !current)} aria-pressed={showPath}>Trajectory</Button>
+            {effectiveMode === 'slice' && otherNames.length > 0 && <>
+              <Button size="small" variant={showFixedControls ? 'outlined' : 'text'}
+                aria-expanded={showFixedControls} onClick={() => setShowFixedControls((current) => !current)}>
+                {showFixedControls ? 'Hide fixed' : 'Fixed values'} ({otherNames.length})
+              </Button>
+              <Typography variant="caption" color="text.secondary" title={otherNames.map((name) => display(name) + '=' + displayNumber(fixed[name])).join(' · ')}
+                sx={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {otherNames.map((name) => display(name) + '=' + displayNumber(fixed[name])).join(' · ')}
+              </Typography>
+            </>}
           </Stack>
-          {effectiveMode === 'slice' && otherNames.length > 0 && <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
- 
+          {effectiveMode === 'slice' && otherNames.length > 0 && showFixedControls && <Stack direction="row" useFlexGap spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             {otherNames.map((name) => <FormControl size="small" sx={{ minWidth: 155 }} key={name}>
               <InputLabel id={'optimizer-fixed-' + name}>{display(name)}</InputLabel>
               <Select labelId={'optimizer-fixed-' + name} label={display(name)} value={fixed[name] ?? ''} onChange={(event) => setFixedOverrides((previous) => ({ ...previous, [name]: Number(event.target.value) }))}>
