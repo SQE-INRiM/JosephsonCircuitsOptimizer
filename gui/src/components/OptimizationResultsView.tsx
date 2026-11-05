@@ -341,13 +341,13 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     {view === 'history' && <Stack spacing={1.5}>
     <Paper variant="outlined" sx={{ p: 1.7 }}>
       <Typography variant="h6" sx={{ mb: 1 }}>Objective</Typography>
-      <LineChart height={290} margin={{ bottom: 45, left: 80 }}
+      {metrics.some((value) => value !== null) ? <LineChart height={290} margin={{ bottom: 45, left: 80 }}
         xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => displayNumber(value) }]}
         yAxis={[{ label: 'metric', width: 80, valueFormatter: (value: number | null) => displayNumber(value) }]}
         series={[
           { data: metrics, label: 'Evaluated objective', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
           { data: bestHistory, label: 'Best so far', showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) },
-        ]} grid={{ horizontal: true }} />
+        ]} grid={{ horizontal: true }} /> : <Alert severity="info">All objective evaluations are masked; there are no values to plot.</Alert>}
     </Paper>
     <Divider sx={{ my: 0.6 }} />
     <Stack spacing={1}>
