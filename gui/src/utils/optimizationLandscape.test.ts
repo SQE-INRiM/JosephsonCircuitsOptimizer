@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ResultTable } from '../types'
 import {
   bestSample, linearObjectiveSlice, nearestStoredValue, optimizerParameterNames,
-  optimizerSamples, runningBest, sampleOnSlice, sameCoordinate, storedValues,
+  objectiveHistoryForPlot, optimizerSamples, runningBest, sampleOnSlice, sameCoordinate, storedValues,
 } from './optimizationLandscape'
 
 const optimization: ResultTable = {
