@@ -93,6 +93,25 @@ describe('Optimization Results landscape and history views', () => {
     expect(screen.getAllByTestId('optimizer-history-chart')).toHaveLength(4)
   })
 
+  it('disables History for a single evaluated point without displaying a masked-objective warning', () => {
+    const single: ResultTable = { ...optimization, rows: [optimization.rows[0]] }
+    render(<OptimizationResultsView run={{ ...run(), optimization: single }} table={single} />)
+    const history = screen.getByRole('button', { name: 'History' }) as HTMLButtonElement
+    expect(history.disabled).toBe(true)
+    expect(screen.queryByText(/All objective evaluations are masked/)).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Objective' })).toBeNull()
+  })
+
+  it('disables History when only one evaluation survives the objective mask', () => {
+    const masked: ResultTable = {
+      ...optimization,
+      rows: [optimization.rows[0], [2, 1.3e-6, 280e-15, 70e-12, 1e8]],
+    }
+    render(<OptimizationResultsView run={{ ...run(), optimization: masked }} table={masked} />)
+    expect((screen.getByRole('button', { name: 'History' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.queryByText(/All objective evaluations are masked/)).toBeNull()
+  })
+
   it('includes constant parameter columns in the plotted histories', () => {
     const constant: ResultTable = { ...optimization, rows: optimization.rows.map((row) => [row[0], row[1], row[2], 70e-12, row[4]]) }
     render(<OptimizationResultsView run={{ ...run(false), optimization: constant }} table={constant} />)
