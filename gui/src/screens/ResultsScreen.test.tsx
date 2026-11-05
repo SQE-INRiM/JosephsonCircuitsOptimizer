@@ -1,12 +1,26 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useContext } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResultsBundle, StageId } from '../types'
 import { useAppStore } from '../store'
 import { ResultsScreen } from './ResultsScreen'
+import { ResultsAxesContext } from '../components/ResultAxesContext'
 
 vi.mock('../components/ConnectedResults', () => ({
-  ConnectedResults: ({ stage, selectedRunId, results }: { stage: StageId; selectedRunId?: string | null; results: ResultsBundle }) => <><div data-testid="visible-results-stage">{stage}</div><div data-testid="selected-results-run">{selectedRunId}</div><div data-testid="selected-feedback-cycle">{results.runs[0]?.cycle ?? 0}</div><div data-testid="selected-linear-file">{results.runs[0]?.linear?.file ?? 'missing'}</div></>,
+  ConnectedResults: ({ stage, selectedRunId, results }: { stage: StageId; selectedRunId?: string | null; results: ResultsBundle }) => {
+    const axes = useContext(ResultsAxesContext)
+    return <>
+      <div data-testid="visible-results-stage">{stage}</div>
+      <div data-testid="selected-results-run">{selectedRunId}</div>
+      <div data-testid="selected-feedback-cycle">{results.runs[0]?.cycle ?? 0}</div>
+      <div data-testid="selected-linear-file">{results.runs[0]?.linear?.file ?? 'missing'}</div>
+      <div data-testid="linear-axes">{JSON.stringify(axes?.linear ?? {})}</div>
+      <div data-testid="optimization-axes">{JSON.stringify(axes?.optimization ?? {})}</div>
+      <button type="button" onClick={() => axes?.onChange('linear', { x: 'Cg', y: 'I0' })}>Set Linear axes (test)</button>
+      <button type="button" onClick={() => axes?.onChange('optimization', { x: 'I0', y: 'Cg' })}>Set Optimizer axes (test)</button>
+    </>
+  },
 }))
 vi.mock('../components/NonlinearFeedbackResults', () => ({
   NonlinearFeedbackResults: () => <div data-testid="feedback-convergence-view">Feedback convergence charts</div>,
@@ -208,6 +222,25 @@ describe('Feedback cycle navigation within Results', () => {
     expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('0')
     fireEvent.click(screen.getByRole('button', { name: 'Cycle 1' }))
     expect(screen.getByTestId('selected-feedback-cycle').textContent).toBe('1')
+  })
+
+  it('scopes inherited axes to each run/cycle and keeps optimizer overrides independent', () => {
+    render(<ResultsScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'Set Linear axes (test)' }))
+    expect(screen.getByTestId('linear-axes').textContent).toBe('{"x":"Cg","y":"I0"}')
+    fireEvent.click(screen.getByRole('button', { name: 'Set Optimizer axes (test)' }))
+    expect(screen.getByTestId('optimization-axes').textContent).toBe('{"x":"I0","y":"Cg"}')
+    expect(screen.getByTestId('linear-axes').textContent).toBe('{"x":"Cg","y":"I0"}')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cycle 1' }))
+    expect(screen.getByTestId('linear-axes').textContent).toBe('{}')
+    expect(screen.getByTestId('optimization-axes').textContent).toBe('{}')
+
+    fireEvent.click(screen.getByRole('button', { name: '0 · baseline' }))
+    expect(screen.getByTestId('linear-axes').textContent).toBe('{"x":"Cg","y":"I0"}')
+    expect(screen.getByTestId('optimization-axes').textContent).toBe('{"x":"I0","y":"Cg"}')
+    fireEvent.click(screen.getByRole('button', { name: 'Set Linear axes (test)' }))
+    expect(screen.getByTestId('optimization-axes').textContent).toBe('{}')
   })
 
   it('returns from whole-run feedback charts when a cycle is selected above the tabs', () => {
