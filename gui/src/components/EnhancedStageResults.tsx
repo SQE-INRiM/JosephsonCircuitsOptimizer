@@ -48,6 +48,12 @@ function columnValues(table: ResultTable, column: string): number[] {
   const index = table.columns.indexOf(column)
   return index < 0 ? [] : unique(rowsAsNumbers(table).map((row) => row[index]))
 }
+
+// A single HB point (or a frequency-only sweep at fixed pump amplitude)
+// cannot define an amplitude-response curve.
+export function hasHbAmplitudeSweep(table: ResultTable): boolean {
+  return amplitudeColumns(table).some((column) => columnValues(table, column).length > 1)
+}
 function rowMatchesFixed(table: ResultTable, row: NumericRow, fixed: Record<string, number>): boolean {
   return Object.entries(fixed).every(([column, value]) => row[table.columns.indexOf(column)] === value)
 }
