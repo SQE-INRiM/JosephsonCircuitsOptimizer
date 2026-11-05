@@ -62,6 +62,31 @@ describe('Nonlinear feedback convergence', () => {
     expect(screen.getByText('Cycle 3 · incomplete')).toBeTruthy()
   })
 
+  it('distinguishes an early convergence stop from reaching the configured cycle limit', () => {
+    const stopping = {
+      stopping_mode: 'convergence' as const,
+      monitored_metric: 'performance' as const,
+      tolerance_type: 'relative' as const,
+      tolerance: 2,
+      monitored_values: [21, 23],
+      cycles_completed: 2,
+      maximum_cycles: 8,
+      stop_reason: 'converged' as const,
+    }
+    const converged: RunResults = {
+      ...withFeedback,
+      feedback: { ...withFeedback.feedback!, stopping },
+    }
+    const rendered = render(<NonlinearFeedbackResults run={converged} onOpenCycle={vi.fn()} />)
+    expect(screen.getByText('Converged')).toBeTruthy()
+    expect(screen.queryByText('Cycle limit reached')).toBeNull()
+    rendered.rerender(<NonlinearFeedbackResults run={{
+      ...converged,
+      feedback: { ...converged.feedback!, stopping: { ...stopping, stop_reason: 'cycle_limit' } },
+    }} onOpenCycle={vi.fn()} />)
+    expect(screen.getByText('Cycle limit reached')).toBeTruthy()
+  })
+
   it('does not render empty charts for legacy runs', () => {
     render(<NonlinearFeedbackResults run={{ id: 'legacy', traces: [] }} onOpenCycle={vi.fn()} />)
     expect(screen.queryAllByTestId('feedback-chart')).toHaveLength(0)
