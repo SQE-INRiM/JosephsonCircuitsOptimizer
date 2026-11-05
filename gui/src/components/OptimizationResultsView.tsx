@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useContext, useEffect, useId, useMemo, useState } from 'react'
 import { Alert, Box, Button, Chip, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Slider, Stack, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { LineChart } from '@mui/x-charts/LineChart'
@@ -11,6 +11,7 @@ import {
 } from '../utils/optimizationLandscape'
 import type { LinearSlice, OptimizerSample } from '../utils/optimizationLandscape'
 import { sequentialColor } from './HeatmapGrid'
+import { preferredResultAxes, ResultsAxesContext } from './ResultAxesContext'
 
 type LandscapeMode = 'projection' | 'slice'
 
@@ -224,10 +225,16 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   const samples = useMemo(() => optimizerSamples(table), [table])
   const names = useMemo(() => optimizerParameterNames(table), [table])
   const varying = names.filter((name) => new Set(samples.map((sample) => sample.values[name]).filter(Number.isFinite)).size > 1)
+  const axesContext = useContext(ResultsAxesContext)
+  const initialAxes = preferredResultAxes(
+    names,
+    { x: varying[0] ?? names[0] ?? '', y: varying[1] ?? names.find((name) => name !== varying[0]) ?? '' },
+    axesContext?.optimization ?? axesContext?.linear,
+  )
   const [view, setView] = useState<'landscape' | 'history'>('landscape')
   const [showPath, setShowPath] = useState(true)
-  const [x, setX] = useState(varying[0] ?? names[0] ?? '')
-  const [y, setY] = useState(varying[1] ?? names.find((name) => name !== x) ?? '')
+  const [x, setX] = useState(initialAxes.x)
+  const [y, setY] = useState(initialAxes.y)
   const [mode, setMode] = useState<LandscapeMode>(run.linear ? 'slice' : 'projection')
   const [count, setCount] = useState(samples.length)
   const [fixedOverrides, setFixedOverrides] = useState<Record<string, number>>({})
@@ -271,12 +278,16 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   const display = (name: string) => parameterLabel(parameters, name)
   const canPlot = x !== y && names.length >= 2
   const chooseX = (next: string) => {
+    const nextY = next === y ? (names.find((name) => name !== next) ?? '') : y
     setX(next)
-    if (next === y) setY(names.find((name) => name !== next) ?? '')
+    setY(nextY)
+    axesContext?.onChange('optimization', { x: next, y: nextY })
   }
   const chooseY = (next: string) => {
+    const nextX = next === x ? (names.find((name) => name !== next) ?? '') : x
+    setX(nextX)
     setY(next)
-    if (next === x) setX(names.find((name) => name !== next) ?? '')
+    axesContext?.onChange('optimization', { x: nextX, y: next })
   }
 
   if (!samples.length) return <Alert severity="info">No optimizer evaluations with finite objective values are available.</Alert>
