@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ResultTable, RunResults } from '../types'
 import { OptimizationResultsView } from './OptimizationResultsView'
+import { ResultsAxesContext } from './ResultAxesContext'
 
 vi.mock('@mui/x-charts/LineChart', () => ({
   LineChart: ({ series, height }: { series: Array<{ label: string }>; height: number }) =>
@@ -42,7 +43,7 @@ describe('Optimization Results landscape and history views', () => {
   it('separates Landscape from History and puts objective before every parameter chart', () => {
     render(<OptimizationResultsView run={run()} table={optimization} />)
     expect(screen.getByRole('heading', { name: 'Optimization landscape' })).toBeTruthy()
-    expect(screen.getByText(/Surrogate-guided search for lower objective values/)).toBeTruthy()
+    expect(screen.getByText('3 evaluations')).toBeTruthy()
     expect(screen.queryByRole('heading', { name: 'Objective' })).toBeNull()
     expect(screen.queryAllByTestId('optimizer-history-chart')).toHaveLength(0)
 
@@ -83,6 +84,33 @@ describe('Optimization Results landscape and history views', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Projection' }))
     expect(screen.getByRole('button', { name: 'Projection' }).getAttribute('class')).toContain('contained')
     expect(screen.queryByTestId('linear-slice-minimum')).toBeNull()
+  })
+
+  it('inherits Linear axes but keeps Optimization edits independent', () => {
+    const onChange = vi.fn()
+    render(<ResultsAxesContext.Provider value={{ linear: { x: 'Cg', y: 'I0' }, onChange }}>
+      <OptimizationResultsView run={run()} table={optimization} />
+    </ResultsAxesContext.Provider>)
+
+    expect(screen.getByRole('combobox', { name: 'X axis' }).textContent).toContain('Cg')
+    expect(screen.getByRole('combobox', { name: 'Y axis' }).textContent).toContain('I0')
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'X axis' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Ladd' }))
+    expect(onChange).toHaveBeenCalledWith('optimization', { x: 'Ladd', y: 'I0' })
+    expect(screen.getByRole('combobox', { name: 'X axis' }).textContent).toContain('Ladd')
+  })
+
+  it('shows fixed parameters compactly and reveals their editors on demand', () => {
+    render(<OptimizationResultsView run={run()} table={optimization} />)
+    expect(screen.getByText(/Ladd=/)).toBeTruthy()
+    expect(screen.queryByRole('combobox', { name: 'Ladd' })).toBeNull()
+    const toggle = screen.getByRole('button', { name: /Fixed values/ })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(toggle)
+    expect(screen.getByRole('combobox', { name: 'Ladd' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Hide fixed/ }))
+    expect(screen.queryByRole('combobox', { name: 'Ladd' })).toBeNull()
   })
 
   it('keeps objective and parameter histories available in runs without a Linear table', () => {
