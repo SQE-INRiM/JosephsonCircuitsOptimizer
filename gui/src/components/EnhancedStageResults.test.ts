@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ResultTable } from '../types'
-import { buildHbGrid } from './EnhancedStageResults'
+import { buildHbGrid, hasHbAmplitudeSweep } from './EnhancedStageResults'
 
 const hbTable: ResultTable = {
   file: 'df_nonlinear_analysis.h5',
