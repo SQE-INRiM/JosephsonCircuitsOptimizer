@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { RunResults } from '../types'
 import { NonlinearFeedbackResults } from './NonlinearFeedbackResults'
@@ -9,13 +9,10 @@ vi.mock('@mui/x-charts/LineChart', () => ({
     series: Array<{ label: string; data: Array<number | null> }>
     xAxis: Array<{ data: number[] }>
     height: number
-    onMarkClick?: (event: unknown, item: { dataIndex: number }) => void
   }) => <div data-testid="feedback-chart" data-height={height}
     data-x={xAxis[0].data.join(',')}
     data-label={series[0].label}
-    data-y={series[0].data.join(',')}>
-    <button onClick={() => onMarkClick?.(null, { dataIndex: 1 })}>Choose second cycle point</button>
-  </div>,
+    data-y={series[0].data.join(',')} />,
 }))
 
 const withFeedback: RunResults = {
@@ -35,7 +32,7 @@ describe('Nonlinear feedback convergence', () => {
   afterEach(() => cleanup())
 
   it('plots baseline plus completed feedback cycles and one small chart per parameter', () => {
-    render(<NonlinearFeedbackResults run={withFeedback} onOpenCycle={vi.fn()} />)
+    render(<NonlinearFeedbackResults run={withFeedback} />)
     const charts = screen.getAllByTestId('feedback-chart')
     expect(charts).toHaveLength(3)
     expect(charts.map((chart) => chart.getAttribute('data-height'))).toEqual(['290', '205', '205'])
@@ -45,21 +42,19 @@ describe('Nonlinear feedback convergence', () => {
     expect(screen.getByText(/Cycle 0 is the uncorrected baseline/)).toBeTruthy()
   })
 
-  it('opens a cycle through either the short buttons or clicked chart marks', () => {
-    const onOpen = vi.fn()
-    render(<NonlinearFeedbackResults run={withFeedback} onOpenCycle={onOpen} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Cycle 2' }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Choose second cycle point' })[0])
-    expect(onOpen.mock.calls).toEqual([[2], [1]])
+  it('keeps cycle navigation out of the convergence charts', () => {
+    render(<NonlinearFeedbackResults run={withFeedback} />)
+    expect(screen.queryByRole('button', { name: 'Cycle 2' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Choose second cycle point/ })).toBeNull()
   })
 
   it('does not invent convergence values for incomplete cycles', () => {
     render(<NonlinearFeedbackResults run={{
       ...withFeedback,
       cycles: [...(withFeedback.cycles ?? []), { cycle: 3, status: 'incomplete', traces: [] }],
-    }} onOpenCycle={vi.fn()} />)
+    }} />)
     expect(screen.getAllByTestId('feedback-chart')[0].getAttribute('data-x')).toBe('0,1,2')
-    expect(screen.getByText('Cycle 3 · incomplete')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Cycle 3/ })).toBeNull()
   })
 
   it('distinguishes an early convergence stop from reaching the configured cycle limit', () => {
@@ -77,18 +72,18 @@ describe('Nonlinear feedback convergence', () => {
       ...withFeedback,
       feedback: { ...withFeedback.feedback!, stopping },
     }
-    const rendered = render(<NonlinearFeedbackResults run={converged} onOpenCycle={vi.fn()} />)
+    const rendered = render(<NonlinearFeedbackResults run={converged} />)
     expect(screen.getByText('Converged')).toBeTruthy()
     expect(screen.queryByText('Cycle limit reached')).toBeNull()
     rendered.rerender(<NonlinearFeedbackResults run={{
       ...converged,
       feedback: { ...converged.feedback!, stopping: { ...stopping, stop_reason: 'cycle_limit' } },
-    }} onOpenCycle={vi.fn()} />)
+    }} />)
     expect(screen.getByText('Cycle limit reached')).toBeTruthy()
   })
 
   it('does not render empty charts for legacy runs', () => {
-    render(<NonlinearFeedbackResults run={{ id: 'legacy', traces: [] }} onOpenCycle={vi.fn()} />)
+    render(<NonlinearFeedbackResults run={{ id: 'legacy', traces: [] }} />)
     expect(screen.queryAllByTestId('feedback-chart')).toHaveLength(0)
     expect(screen.getByText(/does not contain nonlinear feedback cycles/)).toBeTruthy()
   })
