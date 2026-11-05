@@ -4,6 +4,13 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Nonlinear feedback Results (parallel draft)
+
+- Preserve separate Linear, Optimization and HB datasets for each corrected feedback cycle while retaining the original Cycle 0 outputs; save an atomic per-run convergence summary.
+- Add a cycle selector within the existing Results stage bar and a subtly accented Nonlinear feedback tab with performance and parameter convergence charts.
+- Make stage inspection, saved arrays, A/B comparisons and CSV export cycle-aware, including partial cycles, without changing existing single-cycle or legacy project behavior.
+- Keep this Results/persistence work in a separate draft branch from the concurrently edited nonlinear-feedback Setup/Metrics UI; scientific Julia/HB reference validation is still pending.
+
 ### v0.4.3 candidate — Nonlinear feedback GUI (draft PR #24)
 
 - Add optional nonlinear-feedback controls in the Setup computation panel: enable/disable, correction-cycle count, and per-source fixed reference current in amperes, independent from the swept nonlinear pump amplitudes.
