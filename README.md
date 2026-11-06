@@ -1,97 +1,34 @@
 # JosephsonCircuitsOptimizer.jl (JCO)
 
-**JosephsonCircuitsOptimizer.jl (JCO)** is a Julia framework for the automated exploration and optimization of superconducting Josephson circuits. It is built on [JosephsonCircuits.jl](https://josephsoncircuits.org/), which performs the circuit simulations, while JCO organizes them into a structured workflow for parameter exploration, optimization, and nonlinear analysis.
+**JosephsonCircuitsOptimizer.jl (JCO)** is a Julia framework for the automated exploration and optimization of superconducting Josephson circuits, built on [JosephsonCircuits.jl](https://josephsoncircuits.org/).
 
-JCO combines three levels of analysis:
+JCO combines three main stages:
 
-1. a computationally efficient **linear design-space exploration**;
-2. a **surrogate-based optimization** that refines the most promising device parameters;
-3. a **nonlinear harmonic-balance analysis** of the selected design over its physical working points.
+1. **Linear exploration** of the device-parameter space;
+2. **Surrogate-based optimization** of promising configurations;
+3. **Nonlinear harmonic-balance analysis** of selected devices and working points.
+
+Optional nonlinear feedback can use the pumped response to refine subsequent optimization cycles.
 
 <p align="center">
   <img src="docs/images/jco_workflow.png" alt="JCO workflow" width="500">
 </p>
 
-<p align="center"><em>JCO workflow: linear exploration and optimization of device parameters followed by nonlinear working-point analysis.</em></p>
-
-The project includes a desktop GUI and stores complete experiments in portable `.jco` project files.
-
-The desktop application includes the integrated `.jco` project workflow, stage-aware execution and reuse, structured Results views, retained-array persistence, and automatic first-start preparation of the bundled Julia environment.
-
-## Desktop GUI
-
-The desktop application follows the same scientific workflow through three main areas.
-
-### Setup
-
-<p align="center">
-  <img src="docs/images/jco_gui_setup.png" alt="JCO Setup screen" width="800">
-</p>
-
-<p align="center"><em>Define the circuit, device parameters, sources, and computation settings, and inspect the resolved lumped-element circuit preview.</em></p>
-
-### Run
-
-<p align="center">
-  <img src="docs/images/jco_gui_run.png" alt="JCO Run screen" width="800">
-</p>
-
-<p align="center"><em>Execute the Linear, Optimization, and Harmonic Balance stages, with stage status, reuse, cancellation, and simulation logs managed from one view.</em></p>
-
-### Results
-
-<p align="center">
-  <img src="docs/images/jco_gui_results.png" alt="JCO Results screen" width="800">
-</p>
-
-<p align="center"><em>Explore the sampled design space, selected configurations, scalar metrics, and retained frequency-resolved data.</em></p>
+JCO includes a desktop GUI and portable `.jco` project files for saving and sharing complete experiments.
 
 ## Documentation
 
-The complete user documentation is available here:
+See the **[JCO User Manual (PDF)](docs/JCO_Documentation.pdf)** for a detailed guide to the GUI, simulations, optimization, and project configuration.
 
-**[JCO User Manual (PDF)](docs/JCO_Documentation.pdf)**
+## Quick Start
 
-The manual covers project structure, GUI usage, experiment syntax, circuit and source definition, solver and optimizer settings, `user_cost`, `user_performance`, masks, nonlinear feedback, parametric sources, and retained data.
+**Requirements:** Windows or Linux and a working Julia installation.
 
-Developer and contributor documentation is kept separately in `AGENTS.md`, `adr/`, `audits/`, `docs/`, and `governance/`.
+Download the latest desktop application from **[JCO-GUI Releases](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/releases/latest)**.
 
-## Quick start
+### Windows
 
-### Requirements
-
-- **Julia** is required for circuit previews and simulations.
-- The packaged desktop application already contains the GUI, JCO source, bridge files, templates, and bundled examples; users do **not** need Node.js/npm or a repository checkout.
-- An internet connection may be required on the first launch after installation (or after bundled Julia dependencies change). JCO-GUI automatically instantiates and precompiles the bundled Julia environment; this first setup can take several minutes.
-
-### Install the desktop application
-
-For most users, the recommended way to use JCO-GUI is to download the latest desktop package from:
-
-**[JCO-GUI Releases](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/releases/latest)**
-
-#### Windows
-
-Download:
-
-```text
-JCO-GUI-<version>-Windows-Setup.exe
-```
-
-and run the installer. It installs JCO-GUI as a normal per-user Windows application with Start Menu and desktop shortcuts.
-
-If an existing **JCO GUI** desktop shortcut still shows the old Electron icon after an upgrade, delete **only the shortcut** (not the installed app) and create a new shortcut from the installed **JCO GUI** application via the Start Menu or its executable. Windows may briefly keep the previous icon in its Explorer cache. New installer builds also recreate the desktop shortcut on reinstall.
-
-A portable build is also provided:
-
-```text
-JCO-GUI-<version>-Windows-Portable.exe
-```
-
-The portable executable runs without installation.
-
-Windows may show an unknown-publisher/SmartScreen warning for unsigned research builds.
-
+Download and run `JCO-GUI-<version>-Windows-Setup.exe` to install JCO, or use `JCO-GUI-<version>-Windows-Portable.exe` without installation.
 
 <details>
 <summary>⚠️ If Windows blocks installation or simulation</summary>
@@ -106,119 +43,50 @@ As a workaround, you can disable Smart App Control under **Windows Security → 
 
 </details>
 
-#### Linux
+### Linux
 
-Download:
-
-```text
-JCO-GUI-<version>-Linux-x64.AppImage
-```
-
-then make it executable and launch it:
+Download `JCO-GUI-<version>-Linux-x64.AppImage`, then run:
 
 ```bash
 chmod +x JCO-GUI-<version>-Linux-x64.AppImage
 ./JCO-GUI-<version>-Linux-x64.AppImage
 ```
 
-> **Linux packaged support is currently x86-64 and preliminary.** Linux has been less extensively validated than Windows and may still depend on distribution-specific system libraries.
+Linux support is currently preliminary and limited to x86-64.
 
-After launching JCO-GUI, use **Settings** to select the Julia executable and the desired number of Julia threads.
+On first launch, JCO may need an internet connection to prepare its Julia environment. Use **Settings** to select your Julia executable and the number of threads.
 
-### Run the GUI from source
+## The `.jco` Project
 
-The repository launchers remain available for developers and source-based use.
+A `.jco` file stores the circuit definition, simulation settings, custom Julia functions, and numerical results in one portable project.
 
-#### Windows
+Projects can be saved, shared, and reopened from the GUI. See the [User Manual](docs/JCO_Documentation.pdf) for details.
 
-From the repository root, double-click:
+## Desktop GUI
 
-```text
-START_JCO_GUI.bat
-```
+### Setup
 
-or run:
+<p align="center">
+  <img src="docs/images/jco_gui_setup.png" alt="JCO Setup screen" width="800">
+</p>
 
-```powershell
-.\START_JCO_GUI.bat
-```
+<p align="center"><em>Define the circuit, parameters, and simulation settings.</em></p>
 
-#### Linux
+### Run
 
-From the repository root:
+<p align="center">
+  <img src="docs/images/jco_gui_run.png" alt="JCO Run screen" width="800">
+</p>
 
-```bash
-chmod +x START_JCO_GUI.sh
-./START_JCO_GUI.sh
-```
+<p align="center"><em>Run and monitor the simulation and optimization stages.</em></p>
 
-The source launchers prepare their own local Node/Electron runtime, so a global Node.js/npm installation is not required.
+### Results
 
-### Running directly from Julia
+<p align="center">
+  <img src="docs/images/jco_gui_results.png" alt="JCO Results screen" width="800">
+</p>
 
-JCO can also be run without the desktop GUI:
-
-```julia
-using Pkg
-Pkg.activate(".")
-
-import JosephsonCircuitsOptimizer as JCO
-JCO.run()
-```
-
-Optionally specify another workspace with:
-
-```julia
-JCO.run(workspace=raw"C:\...\my_experiment_01")
-```
-
-For custom plots in Julia scripts, use `Plots.plot(...)` or
-`GLMakie.plot(...)` directly after importing the corresponding package.
-The old generic `JCO.plot` and `JCO.mplot` aliases are no longer provided.
-JCO's existing diagnostic plotting helpers remain available on demand.
-
-## The `.jco` project
-
-A `.jco` file is a versioned ZIP container that keeps the editable experiment definition together with retained simulation runs and numerical results.
-
-It can include:
-
-- circuit and device-parameter definitions;
-- source configuration;
-- simulation and optimizer settings;
-- user-defined cost, performance, helper, and parametric-source code;
-- optional calibration/text files;
-- stored outputs from multiple runs.
-
-The project can therefore be moved or archived as a single file while remaining transparent and compatible with the underlying Julia/JSON/HDF5 representation.
-
-See the [User Manual](docs/JCO_Documentation.pdf) for the full project format and experiment syntax.
-
-## Scientific workflow
-
-The Linear stage explores the device-parameter space through a user-defined cost function. The Optimization stage refines the most promising region, and the selected device is then evaluated in the nonlinear regime through a user-defined performance function.
-
-Optional nonlinear feedback can use information from the nonlinear solution in a subsequent optimization cycle.
-
-The circuit simulations are performed by [JosephsonCircuits.jl](https://josephsoncircuits.org/).
-
-## Tests
-
-GUI tests and build:
-
-```bash
-cd gui
-npm test
-npm run build
-```
-
-## Continuous integration and desktop packaging
-
-Every pull request runs GUI tests, Electron syntax checks, and a frontend build without producing a downloadable installer. The Windows and Linux packaging workflows run on pull requests only when packaging-sensitive inputs change (Electron desktop files, bundled runtime resources, icons, packaging configuration, or packaging workflow files). These PR builds check whether packaging succeeds but do not upload installers as Actions artifacts.
-
-For an on-demand executable, open **Actions** on GitHub, select **Build Windows desktop packages** or **Build Linux AppImage**, and choose **Run workflow**. The manually generated packages are downloadable from that run for **7 days**. Regular pushes and merges to `main` do not automatically produce installers.
-
-Official `v*` tags trigger **Publish desktop release**, which builds both platforms and publishes their packages as persistent GitHub Release assets; its intermediate Actions artifacts are retained for **3 days**. A successful packaging build does not substitute for a launch-and-simulation smoke test of the packaged app, particularly the Julia integration. Perform that check before announcing a release.
+<p align="center"><em>Explore design spaces, optimization results, and nonlinear responses.</em></p>
 
 ## Citation
 
