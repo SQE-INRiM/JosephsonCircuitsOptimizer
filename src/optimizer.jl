@@ -91,13 +91,13 @@ end
 """
     run_optimization(df::DataFrame)
 
-This function performs optimization of the cost function using surrogate-based optimization. 
-It uses Kriging as the surrogate model and performs the optimization by selecting new points 
-based on previous results and iterating to improve the solution.
+Optimize the cost function through a configurable surrogate and search strategy.
+All surrogate coordinates are scaled to [0,1] (fixed coordinates stay zero).
+The actual `cost` evaluations and returned parameters use physical units.
 
 # Arguments:
-- `df::DataFrame`: A DataFrame containing the input parameter space and the corresponding metric values. 
-  The last column should contain the metric (objective function value).
+- `df::DataFrame`: Linear results containing the named device-parameter columns,
+  a `metric` column, and optionally feasibility and analysis columns.
 
 # Returns:
 - `optimal_params`: The optimized parameters as a dictionary.
@@ -150,8 +150,7 @@ function run_optimization(df::DataFrame)
     #println("initial_points: ", initial_points)
     #println("initial_values: ", initial_values)
 
-    # Initialize a Kriging model (surrogate model) using the initial points and values
-    # my_k_SRBFN = Kriging(initial_points, initial_values, lb, ub)
+    # Initialize the chosen surrogate from every linear evaluation.
 
     # Retrieve optimization parameters such as the maximum number of iterations and the number of new samples per iteration
     n_maxiters = optimizer_config[:max_optimizer_iterations]
@@ -173,11 +172,11 @@ function run_optimization(df::DataFrame)
     # Perform surrogate optimization using the surrogate optimizer function
     result = surrogate_optimize!(
         z -> cost(_optimizer_physical_point(z, scaling)), # simulations use physical units
-        strategy,            # The surrogate model type (SRBF)
+        strategy,            # Acquisition / search strategy
         lb,                # Lower bounds
         ub,                # Upper bounds
-        surrogate,        # The surrogate model instance
-        sampler,        # Sampling strategy (random sampling)
+        surrogate,           # Surrogate fitted on normalized coordinates
+        sampler,             # Random / Sobol / Latin hypercube
         maxiters = n_maxiters,                  # Maximum number of iterations
         num_new_samples = n_num_new_samples     # Number of new points to generate for each iteration
     )
@@ -192,14 +191,13 @@ function run_optimization(df::DataFrame)
     optimal_vec = _optimizer_physical_point(result[1], scaling) # Return physical units
     optimal_metric = result[2]             # Optimal metric value
 
-    # Extract column names (excluding the last column) and convert them to symbols
+    # Map the physical optimal vector back to the device-parameter names.
     column_names = param_cols  
     column_symbols = Symbol.(column_names)  # Convert to Vector{Symbol}
     
     # Convert the optimized vector to a dictionary of parameters
     optimal_params = vector_to_param(optimal_vec, column_symbols)
 
-    #!! To add the value for the dynamical correction of the metric !! (e.g., if you have a dynamic correction here)
 
     return optimal_params, optimal_metric
 end
