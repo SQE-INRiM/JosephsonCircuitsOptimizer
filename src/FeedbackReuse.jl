@@ -14,9 +14,8 @@ function _jco_feedback_sources_match(actual, reference)
     _jco_feedback_valid_source_vector(actual) || return false
     _jco_feedback_valid_source_vector(reference) || return false
     length(actual) == length(reference) || return false
-    return all(zip(actual, reference)) do (a, b)
-        isapprox(a, b; rtol=1e-12, atol=0)
-    end
+    return all(pair -> isapprox(pair[1], pair[2]; rtol=1e-12, atol=0),
+               zip(actual, reference))
 end
 
 """
