@@ -186,18 +186,6 @@ export function ResultsScreen() {
             onClick={() => selectCycle(availableCycles[cyclePosition + 1])}>
             <ChevronRightRoundedIcon fontSize="small" />
           </IconButton>
-        </Box>}
-        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 2, rowGap: 1, py: 0.5 }}>
-          <Tabs value={feedbackView ? false : stageIndex} variant="scrollable" scrollButtons="auto"
-            sx={{ minWidth: 0, maxWidth: '100%', flex: '0 1 auto' }}
-            onChange={(_, index) => {
-              setFeedbackView(false)
-              setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)
-            }}>
-            <Tab label="Linear" />
-            <Tab label="Optimization" disabled={optimizationDisabled} />
-            <Tab label="Harmonic balance" />
-          </Tabs>
           {hasFeedback && <Button
             size="small"
             color="inherit"
@@ -225,6 +213,19 @@ export function ResultsScreen() {
             }}>
             Nonlinear feedback
           </Button>}
+        </Box>}
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 2, rowGap: 1, py: 0.5 }}>
+          <Tabs value={feedbackView ? false : stageIndex} variant="scrollable" scrollButtons="auto"
+            sx={{ minWidth: 0, maxWidth: '100%', flex: '0 1 auto' }}
+            onChange={(_, index) => {
+              setFeedbackView(false)
+              setStage((index === 0 ? 'linear' : index === 1 ? 'optimization' : 'hb') as StageId)
+            }}>
+            <Tab label="Linear" />
+            <Tab label="Optimization" disabled={optimizationDisabled} />
+            <Tab label="Harmonic balance" />
+          </Tabs>
+
         </Box>
       </Paper>
     </Box>
