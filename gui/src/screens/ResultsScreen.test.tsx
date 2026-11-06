@@ -204,7 +204,11 @@ describe('Feedback cycle navigation within Results', () => {
     expect(run.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(group.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(tabs.closest('.MuiPaper-root')?.contains(group)).toBe(true)
-    expect(screen.getByRole('button', { name: 'Nonlinear feedback' })).toBeTruthy()
+    const feedbackButton = screen.getByRole('button', { name: 'Nonlinear feedback' })
+    const nextCycleButton = screen.getByRole('button', { name: 'Next cycle' })
+    expect(group.contains(feedbackButton)).toBe(true)
+    expect(nextCycleButton.compareDocumentPosition(feedbackButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(feedbackButton.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getAllByRole('tab')).toHaveLength(3)
     // The feedback overview is a separate action, not a fourth simulation stage.
     expect(screen.queryByRole('tab', { name: 'Nonlinear feedback' })).toBeNull()
