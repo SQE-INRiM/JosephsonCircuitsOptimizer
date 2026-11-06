@@ -243,7 +243,7 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
               </Box>
               <Box sx={{ mt: 'auto !important' }}>
                 {feedbackRun && feedbackAvailable ? <Stack spacing={0.8}>
-                  <Stack direction="row" justifyContent="space-between">
+                  <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                     <Typography variant="caption" color="text.secondary">{feedbackRun.completedCycles} / {maxFeedbackCycles} cycles completed</Typography>
                     <Typography variant="caption" sx={{ fontWeight: 700 }}>{Math.round(100 * feedbackRun.completedCycles / maxFeedbackCycles)}%</Typography>
                   </Stack>
@@ -260,7 +260,7 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
 
     {feedbackAvailable && feedbackExpanded && <Paper variant="outlined" sx={{ p: 2.2 }}>
       <Stack spacing={1.3}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6">Nonlinear feedback</Typography>
           <Chip size="small" variant="outlined" label={feedbackStatusLabel} />
         </Stack>
@@ -275,11 +275,11 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
                 const finished = feedbackRun.phase === 'complete' || currentFeedbackStep > index
                 const executing = currentFeedbackStep === index && feedbackRun.status === 'running'
                 return <Stack key={step.id} spacing={0.7} sx={{ flex: 1 }}>
-                  <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                     {finished ? <CheckCircleRoundedIcon color="success" sx={{ fontSize: 16 }} /> :
                       executing ? <AutorenewRoundedIcon color="secondary" sx={{ fontSize: 16 }} /> :
                         <CircleOutlinedIcon color="disabled" sx={{ fontSize: 16 }} />}
-                    <Typography variant="caption" fontWeight={executing ? 700 : 500}>{step.name}</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: executing ? 700 : 500 }}>{step.name}</Typography>
                   </Stack>
                   <Typography variant="caption" color="text.secondary">{finished ? 'Completed' : executing ? 'Running' : 'Pending'}</Typography>
                 </Stack>
