@@ -55,9 +55,21 @@ end
 
     # An "iteration" means one real objective evaluation, not 32.
     @test length(new_evaluations) == 6
+    # First candidate must be inside the initial local neighborhood of
+    # the best FEASIBLE uniform-grid point, rather than anywhere in the box.
+    original_best = trained_points[argmin(trained_metrics)]
+    @test all(abs.(collect(new_evaluations[1][1]) .- collect(original_best)) .<= 0.15 .+ 1e-12)
     @test best_value <= minimum(trained_metrics) + 1e-10
     @test best_point[1] <= 0.6
     @test maximum(surrogate.y) < 1e8
     @test length(surrogate.x) ==
           length(trained_points) + count(last, new_evaluations)
+
+    bad_surrogate = JCO.Kriging(trained_points, trained_metrics,
+                                [0.0, 0.0], [1.0, 1.0])
+    @test_throws ArgumentError JCO._optimizer_constrained_srbf!(
+        evaluator, bad_surrogate, points, falses(length(points)),
+        [0.0, 0.0], [1.0, 1.0], JCO.RandomSample();
+        maxiters=1, num_new_samples=10
+    )
 end
