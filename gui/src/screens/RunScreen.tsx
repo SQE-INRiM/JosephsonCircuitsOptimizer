@@ -272,7 +272,9 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
                   </Stack>
                 : <Stack spacing={0.9}>
                     <Typography variant="caption" color="text.secondary">
-                      {feedbackRun.cycle === 0 ? 'Baseline in progress' : `${feedbackCountLabel} · Cycle ${feedbackRun.cycle} running`}
+                      {feedbackRun.cycle === 0 ? 'Baseline in progress'
+                        : feedbackRun.phase === 'complete' ? `${feedbackCountLabel} · Checking completion`
+                        : `${feedbackCountLabel} · Cycle ${feedbackRun.cycle} running`}
                     </Typography>
                     {maxFeedbackCycles <= 16
                       ? <Stack direction="row" spacing={0.5} role="progressbar"
@@ -293,9 +295,7 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
                       : <LinearProgress
                           variant="determinate"
                           value={100 * feedbackRun.completedCycles / maxFeedbackCycles}
-                          aria-label="Completed feedback correction cycles"
-                          aria-valuemin={0} aria-valuemax={maxFeedbackCycles}
-                          aria-valuenow={feedbackRun.completedCycles}
+                          aria-label="Feedback cycles completed (percentage)"
                           sx={{ height: 7, borderRadius: 99 }}
                         />}
                   </Stack>
