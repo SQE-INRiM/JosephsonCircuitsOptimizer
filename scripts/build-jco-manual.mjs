@@ -101,8 +101,10 @@ function buildPdf(markdown) {
     const size=8.1,lh=10.9,maxWidth=MAX-26;
     const cooked=[];
     for(const r of rows){
-      const parts=wrap(ascii(r).replace(/\t/g,"    "),size,maxWidth,"F3");
-      cooked.push(...parts);
+      const raw=ascii(r).replace(/\t/g,"    ");
+      const maxChars=Math.floor(maxWidth/(size*0.60));
+      if(width(raw,size,"F3")<=maxWidth){cooked.push(raw);}
+      else{for(let j=0;j<raw.length;j+=maxChars)cooked.push(raw.slice(j,j+maxChars));}
     }
     const blockH=cooked.length*lh+16;
     ensure(blockH+6);
