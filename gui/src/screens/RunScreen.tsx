@@ -274,22 +274,30 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
                     <Typography variant="caption" color="text.secondary">
                       {feedbackRun.cycle === 0 ? 'Baseline in progress' : `${feedbackCountLabel} · Cycle ${feedbackRun.cycle} running`}
                     </Typography>
-                    <Stack direction="row" spacing={0.5} role="progressbar"
-                      aria-label="Completed feedback correction cycles"
-                      aria-valuemin={0} aria-valuemax={maxFeedbackCycles}
-                      aria-valuenow={feedbackRun.completedCycles}>
-                      {Array.from({ length: Math.min(maxFeedbackCycles, 16) }, (_, index) => {
-                        const completed = index < feedbackRun.completedCycles
-                        const activeCycle = index === feedbackRun.cycle - 1 && feedbackRun.cycle > 0
-                        return <Box key={index} sx={{
-                          height: 7, flex: 1, borderRadius: 99,
-                          bgcolor: completed ? 'success.main'
-                            : activeCycle ? 'secondary.main' : 'action.disabledBackground',
-                          opacity: !completed && activeCycle ? 0.6 : 1,
-                        }} />
-                      })}
-                      {maxFeedbackCycles > 16 && <Typography variant="caption" sx={{ display: 'none' }}>More than 16 cycles configured</Typography>}
-                    </Stack>
+                    {maxFeedbackCycles <= 16
+                      ? <Stack direction="row" spacing={0.5} role="progressbar"
+                          aria-label="Completed feedback correction cycles"
+                          aria-valuemin={0} aria-valuemax={maxFeedbackCycles}
+                          aria-valuenow={feedbackRun.completedCycles}>
+                          {Array.from({ length: maxFeedbackCycles }, (_, index) => {
+                            const completed = index < feedbackRun.completedCycles
+                            const activeCycle = index === feedbackRun.cycle - 1 && feedbackRun.cycle > 0
+                            return <Box key={index} sx={{
+                              height: 7, flex: 1, borderRadius: 99,
+                              bgcolor: completed ? 'success.main'
+                                : activeCycle ? 'secondary.main' : 'action.disabledBackground',
+                              opacity: !completed && activeCycle ? 0.6 : 1,
+                            }} />
+                          })}
+                        </Stack>
+                      : <LinearProgress
+                          variant="determinate"
+                          value={100 * feedbackRun.completedCycles / maxFeedbackCycles}
+                          aria-label="Completed feedback correction cycles"
+                          aria-valuemin={0} aria-valuemax={maxFeedbackCycles}
+                          aria-valuenow={feedbackRun.completedCycles}
+                          sx={{ height: 7, borderRadius: 99 }}
+                        />}
                   </Stack>
               : <Typography variant="caption" color="text.secondary">
                   {feedbackAvailable ? `Ready for up to ${maxFeedbackCycles} cycles` : 'Not active'}
