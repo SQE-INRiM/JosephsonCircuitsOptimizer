@@ -109,7 +109,7 @@ it('runs the stage named by the selected-stage button', async () => {
     const control = screen.getByRole('button', { name: 'Nonlinear feedback details' })
     expect(control.hasAttribute('disabled')).toBe(false)
     fireEvent.click(control)
-    expect(screen.getByText('Cycle 2 of 5 · 1 corrected cycles completed')).toBeTruthy()
+    expect(screen.getByText('Cycle 2 of 5 · 1 correction cycle completed')).toBeTruthy()
     expect(screen.getByText('Correction')).toBeTruthy()
   })
 
