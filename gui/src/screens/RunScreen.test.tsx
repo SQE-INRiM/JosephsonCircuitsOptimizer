@@ -5,12 +5,16 @@ import { initialStages } from '../data/carthago'
 import { useAppStore } from '../store'
 import { formatStageCompletion, RunScreen } from './RunScreen'
 
+const baseProject = structuredClone(useAppStore.getState().project)
+
 describe('Run screen controls', () => {
   beforeEach(() => {
     useAppStore.setState({
       stages: structuredClone(initialStages),
       running: false,
       currentRunId: null,
+      feedbackRun: null,
+      project: structuredClone(baseProject),
     })
   })
 afterEach(() => {
@@ -82,6 +86,40 @@ it('runs the stage named by the selected-stage button', async () => {
 
     expect(screen.getAllByText(/Starting…/).length).toBeGreaterThan(0)
     expect(screen.queryByText('0 / 1')).toBeNull()
+  })
+
+  it('shows a disabled fourth card and no cycle label when feedback is off', () => {
+    render(<RunScreen desktop cancelling={false} onRunAll={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
+    const control = screen.getByRole('button', { name: 'Nonlinear feedback details' })
+    expect(control.hasAttribute('disabled')).toBe(true)
+    expect(screen.getByText('Disabled in Setup')).toBeTruthy()
+    expect(screen.queryByText(/Cycle 0 \/ /)).toBeNull()
+  })
+
+  it('shows active cycle context and expands the feedback details when configured', () => {
+    const project = structuredClone(baseProject)
+    project.parameters[0] = { ...project.parameters[0], mode: 'Range', start: '1', stop: '2', step: '1' }
+    project.computation.nonlinearCorrectionCycles = 5
+    useAppStore.setState({
+      project, running: true, currentRunId: 'run-feedback',
+      feedbackRun: { cycle: 2, maximumCycles: 5, completedCycles: 1, phase: 'optimization', status: 'running' },
+    })
+    render(<RunScreen desktop cancelling={false} onRunAll={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
+    expect(screen.getByText('Nonlinear feedback · Cycle 2 / 5')).toBeTruthy()
+    const control = screen.getByRole('button', { name: 'Nonlinear feedback details' })
+    expect(control.hasAttribute('disabled')).toBe(false)
+    fireEvent.click(control)
+    expect(screen.getByText('Cycle 2 of 5 · 1 corrected cycles completed')).toBeTruthy()
+    expect(screen.getByText('Correction')).toBeTruthy()
+  })
+
+  it('hides the cycle label and disables the card for a single configuration', () => {
+    const project = structuredClone(baseProject)
+    project.computation.nonlinearCorrectionCycles = 5
+    useAppStore.setState({ project })
+    render(<RunScreen desktop cancelling={false} onRunAll={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
+    expect(screen.getByText('Requires a device-parameter sweep')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Nonlinear feedback details' }).hasAttribute('disabled')).toBe(true)
   })
 
   it('uses one completion-time format for live and stored run timestamps', () => {
