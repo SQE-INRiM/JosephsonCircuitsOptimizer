@@ -55,3 +55,20 @@ end
     invalid = DataFrame("I0" => [1e-6, Inf], "Cg" => [250e-15, 350e-15])
     @test_throws ArgumentError JCO._optimizer_scaled_inputs(invalid, ["I0", "Cg"])
 end
+
+@testset "GUI bridge preserves feasibility across its later overrides" begin
+    bridge_dir = joinpath(@__DIR__, "..", "gui", "runtime", "bridge")
+    run_source = read(joinpath(bridge_dir, "run.jl"), String)
+    cost_source = read(joinpath(bridge_dir, "gui_cost_history_fix.jl"), String)
+    persistence_source = read(joinpath(bridge_dir, "gui_optimizer_persistence_diagnostics.jl"), String)
+
+    # These GUI-specific methods are loaded after the engine methods.
+    @test occursin("gui_cost_history_fix.jl", run_source)
+    @test occursin("gui_optimizer_persistence_diagnostics.jl", run_source)
+
+    # Guard against the GUI silently overriding the feasibility contract.
+    @test occursin("metrics_dict[:feasible]", cost_source)
+    @test occursin("push!(cost_history[\"feasible\"]", cost_source)
+    @test occursin("feasible_history", persistence_source)
+    @test occursin("[\"metric\", \"feasible\"]", persistence_source)
+end
