@@ -228,7 +228,23 @@ async function exportEditableWorkspace(project) {
 function parseOutputLine(line, runId) {
   const trimmed = line.trim()
   if (!trimmed) return
-  let match = trimmed.match(/^STAGE name=(\S+)/)
+  let match = trimmed.match(/^FEEDBACK_CYCLE cycle=(\d+) max=(\d+) phase=(correction|linear|optimization|hb|complete) status=(running|completed)$/)
+  if (match) {
+    const cycle = Number(match[1]), maximumCycles = Number(match[2])
+    if (maximumCycles > 0 && cycle > 0 && cycle <= maximumCycles) {
+      emit({ type: 'feedback-cycle', runId, cycle, maximumCycles, phase: match[3], status: match[4], timestamp: new Date().toISOString() })
+    }
+    return
+  }
+  match = trimmed.match(/^FEEDBACK_DONE cycles=(\d+) max=(\d+) reason=(converged|cycle_limit)$/)
+  if (match) {
+    const completedCycles = Number(match[1]), maximumCycles = Number(match[2])
+    if (maximumCycles > 0 && completedCycles <= maximumCycles) {
+      emit({ type: 'feedback-done', runId, completedCycles, maximumCycles, reason: match[3], timestamp: new Date().toISOString() })
+    }
+    return
+  }
+  match = trimmed.match(/^STAGE name=(\S+)/)
   if (match) {
     const stage = match[1] === 'LIN' ? 'linear' : match[1] === 'BO' ? 'optimization' : match[1] === 'HB' ? 'hb' : match[1].toLowerCase()
     const now = new Date()
