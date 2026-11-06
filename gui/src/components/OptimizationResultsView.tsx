@@ -11,7 +11,7 @@ import {
 } from '../utils/optimizationLandscape'
 import type { LinearSlice, OptimizerSample } from '../utils/optimizationLandscape'
 import { sequentialColor } from './HeatmapGrid'
-import { preferredResultAxes, ResultsAxesContext } from './ResultAxesContext'
+import { initialLinearResultAxes, preferredResultAxes, ResultsAxesContext } from './ResultAxesContext'
 
 type LandscapeMode = 'projection' | 'slice'
 
@@ -238,7 +238,10 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   const initialAxes = preferredResultAxes(
     names,
     { x: varying[0] ?? names[0] ?? '', y: varying[1] ?? names.find((name) => name !== varying[0]) ?? '' },
-    axesContext?.optimization ?? axesContext?.linear,
+    // Match the Linear tab before either tab has been visited, but keep
+    // explicit Optimization overrides independent and editable.
+    axesContext?.optimization ?? axesContext?.linear ??
+      (run.linear ? initialLinearResultAxes(run.linear) : undefined),
   )
   const [view, setView] = useState<'landscape' | 'history'>('landscape')
   const [showPath, setShowPath] = useState(true)
