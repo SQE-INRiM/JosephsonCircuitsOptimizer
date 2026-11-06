@@ -121,13 +121,34 @@ describe('Optimization Results landscape and history views', () => {
     expect(screen.getAllByTestId('optimizer-history-chart')).toHaveLength(4)
   })
 
-  it('disables History for a single evaluated point without displaying a masked-objective warning', () => {
+  it('keeps the Linear slice accessible for a single optimizer evaluation', () => {
     const single: ResultTable = { ...optimization, rows: [optimization.rows[0]] }
     render(<OptimizationResultsView run={{ ...run(), optimization: single }} table={single} />)
     const history = screen.getByRole('button', { name: 'History' }) as HTMLButtonElement
+    const linearSlice = screen.getByRole('button', { name: 'Slice · Linear' }) as HTMLButtonElement
     expect(history.disabled).toBe(true)
+    expect(linearSlice.disabled).toBe(false)
+    fireEvent.click(linearSlice)
+    expect(screen.getAllByTestId('optimizer-linear-slice-cell')).toHaveLength(linear.rows.length / 2)
+    expect(screen.getByRole('button', { name: /Evaluation 1, objective/ })).toBeTruthy()
     expect(screen.queryByText(/All objective evaluations are masked/)).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Objective' })).toBeNull()
+  })
+
+  it('allows a one-cell Linear slice without representing it as a sampled area', () => {
+    const single: ResultTable = { ...optimization, rows: [optimization.rows[0]] }
+    const oneCell: ResultTable = { ...linear, rows: [linear.rows[0]] }
+    render(<OptimizationResultsView run={{ ...run(), optimization: single, linear: oneCell }} table={single} />)
+    const linearSlice = screen.getByRole('button', { name: 'Slice · Linear' }) as HTMLButtonElement
+    expect(linearSlice.disabled).toBe(false)
+    fireEvent.click(linearSlice)
+    const cell = screen.getByTestId('optimizer-linear-slice-cell')
+    expect(cell.getAttribute('width')).toBe('16')
+    expect(cell.getAttribute('height')).toBe('16')
+    expect(screen.queryByTestId('linear-slice-minimum')).toBeNull()
+    const sample = screen.getByRole('button', { name: /Evaluation 1, objective/ })
+    fireEvent.click(sample)
+    expect(screen.getByText(/Selected evaluation 1/)).toBeTruthy()
   })
 
   it('disables History when only one evaluation survives the objective mask', () => {
