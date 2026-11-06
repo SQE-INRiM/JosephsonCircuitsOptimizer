@@ -3,6 +3,8 @@
 # The metric surrogate is fitted ONLY on feasible points. A transparent local
 # classifier sees ALL evaluated points, including masked ones. Neither the
 # physical cost function nor its objective/penalty values are modified.
+# Qualify Surrogates.sample / Surrogates.update! explicitly: other JCO
+# dependencies also export "sample", making unqualified calls ambiguous.
 
 "Derive Boolean feasibility from an explicit column or the legacy mask threshold."
 function _optimizer_feasible_flags(df::DataFrame)
@@ -85,7 +87,7 @@ function _optimizer_constrained_srbf!(evaluate::Function, surrogate,
         # promising regions. Expand the neighborhood after repeated failures.
         local_lb = max.(lb, collect(best_x) .- scale .* (ub .- lb))
         local_ub = min.(ub, collect(best_x) .+ scale .* (ub .- lb))
-        candidates = sample(num_new_samples, local_lb, local_ub, sampler)
+        candidates = Surrogates.sample(num_new_samples, local_lb, local_ub, sampler)
 
         viable_points = Tuple[]
         probabilities = Float64[]
@@ -131,7 +133,7 @@ function _optimizer_constrained_srbf!(evaluate::Function, surrogate,
         push!(all_feasible, actual_feasible)
         if actual_feasible
             # Update ONLY with real, feasible physics results.
-            update!(surrogate, z, observed_metric)
+            Surrogates.update!(surrogate, z, observed_metric)
             if observed_metric < best_y
                 best_y = observed_metric
                 best_x = z
