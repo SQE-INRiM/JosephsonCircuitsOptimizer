@@ -61,15 +61,15 @@ function run_optimization(df::DataFrame)
     """)
     end
 
-    bounds = [(minimum(df[!, col]), maximum(df[!, col])) for col in param_cols]
+    scaling = _optimizer_scaled_inputs(df, param_cols)
     println("Optimization parameter columns: ", param_cols)
-    println("Bounds: ", bounds)
+    println("Normalized bounds: ", collect(zip(scaling.lb, scaling.ub)))
 
-    lb = Float64[b[1] for b in bounds]
-    ub = Float64[b[2] for b in bounds]
-
-    initial_points = [Tuple(Float64(row[col]) for col in param_cols) for row in eachrow(df)]
+    # Feasibility is stored separately. The numerical objective remains
+    # unchanged until constrained acquisition is implemented in a later step.
+    initial_points = scaling.points
     initial_values = Float64.(df[!, :metric])
+    lb, ub = scaling.lb, scaling.ub
 
     global number_initial_points = length(initial_points)
     global plot_index = number_initial_points
@@ -91,7 +91,7 @@ function run_optimization(df::DataFrame)
     global cost_progress_ctx = Progress.start!(; N=n_maxiters * n_num_new_samples, stage="BO")
 
     result = surrogate_optimize!(
-        cost,
+        z -> cost(_optimizer_physical_point(z, scaling)),
         strategy,
         lb,
         ub,
@@ -108,7 +108,7 @@ function run_optimization(df::DataFrame)
 
     _gui_save_optimization_history(param_cols, history_before_bo)
 
-    optimal_vec = result[1]
+    optimal_vec = _optimizer_physical_point(result[1], scaling)
     optimal_metric = result[2]
     optimal_params = vector_to_param(optimal_vec, Symbol.(param_cols))
 
@@ -186,7 +186,7 @@ function run_linear_simulations_sweep(device_parameters_space::Dict; filter_df::
     end
 
     if filter_df
-        filtered_df = filter(row -> row.metric < 9e7, df)
+        filtered_df = filter(_linear_row_feasible, df)
         return df, filtered_df
     else
         return df
