@@ -89,3 +89,22 @@ bounds, explicit and legacy feasibility, and filtering. For integration
 testing, run an existing `.jco` with an `I0` / `Cg` sweep and verify:
 the saved coordinates have physical units, the new `feasible` columns match
 mask results, and no masked point changes its numerical `metric`.
+
+## 5. GUI runtime override note
+
+The desktop bridge in `gui/runtime/bridge/run.jl` includes additional methods
+**after** the package's native implementation. In particular:
+
+- `gui_cost_history_fix.jl` replaces `cost` to ensure sampled parameter
+  tuples are persisted as vectors. It must update `last_cost_metrics[:feasible]`
+  and append to `cost_history["feasible"]`, just as the engine does.
+- `gui_optimizer_persistence_diagnostics.jl` replaces the optimizer HDF5
+  history writer. It must append `feasible` after `metric` in the
+  `df_optimization_column_names` schema.
+
+These two later overrides have been synchronized on this branch. This fixes
+a GUI-specific case discovered by comparing the November 5 and 6 runs in
+`JTWPA_4WM_Kerr_reversal_NL_feedback_full_grid.jco`. The original November 6
+export recorded 13 new BO evaluations but had no `feasible` values because
+the later overrides had not yet been updated. Previously exported runs remain
+unchanged; re-run to populate this metadata.
