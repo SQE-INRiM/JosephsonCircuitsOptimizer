@@ -7,6 +7,7 @@ using ..Config  # Access WORKING_SPACE
 global cost_history = Dict{String,Any}(
     "params_vecs" => Vector{Vector{Float64}}(),
     "metrics"     => Float64[],
+    "feasible"    => Bool[],
     "timestamps_utc" => String[]
 )
 
@@ -66,6 +67,7 @@ function setup_cost()
     # reset history for a fresh run
     empty!(cost_history["params_vecs"])
     empty!(cost_history["metrics"])
+    empty!(cost_history["feasible"])
     empty!(cost_history["timestamps_utc"])
 
     user_cost_path = joinpath(config.user_inputs_dir, "user_cost_and_performance.jl")
@@ -267,6 +269,7 @@ function cost(vec)
     try
         push!(cost_history["params_vecs"], Float64.(vec))
         push!(cost_history["metrics"], Float64(metric))
+        push!(cost_history["feasible"], feasible)
         push!(cost_history["timestamps_utc"], Dates.format(Dates.now(Dates.UTC), dateformat"yyyy-mm-ddTHH:MM:SS"))
     catch
     end
