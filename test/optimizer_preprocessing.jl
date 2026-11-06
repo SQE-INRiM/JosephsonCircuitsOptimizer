@@ -1,0 +1,57 @@
+# Run from the repository root:
+#   julia --project=. test/optimizer_preprocessing.jl
+#
+# Regression coverage for the preprocessing boundary, independently of any
+# JosephsonCircuits simulation. No user_cost code needs to be modified.
+using Test, DataFrames, JosephsonCircuitsOptimizer
+
+const JCO = JosephsonCircuitsOptimizer
+
+@testset "Surrogate coordinates are dimensionless, physical values are not" begin
+    df = DataFrame(
+        "I0" => [1.0e-6, 2.0e-6],
+        "Cg" => [250.0e-15, 350.0e-15],
+        "Ladd" => [70.0e-12, 70.0e-12],
+        "metric" => [-20.0, 1.0e8],
+        "feasible" => [1.0, 0.0],
+    )
+    original = deepcopy(df)
+    scaled = JCO._optimizer_scaled_inputs(df, ["I0", "Cg", "Ladd"])
+
+    @test scaled.lb == [0.0, 0.0, 0.0]
+    @test scaled.ub == [1.0, 1.0, 0.0]
+    @test scaled.points == [(0.0, 0.0, 0.0), (1.0, 1.0, 0.0)]
+    @test df == original # No edits to the dataset or its metric/feasible flags.
+
+    middle = JCO._optimizer_physical_point((0.5, 0.25, 0.0), scaled)
+    @test middle[1] ≈ 1.5e-6
+    @test middle[2] ≈ 275e-15
+    @test middle[3] == 70e-12
+
+    for (scaled_point, row) in zip(scaled.points, eachrow(df))
+        physical = JCO._optimizer_physical_point(scaled_point, scaled)
+        @test all(isapprox.(physical, [row.I0, row.Cg, row.Ladd]; rtol=1e-12, atol=0.0))
+    end
+    @test_throws DimensionMismatch JCO._optimizer_physical_point((0.0,), scaled)
+end
+
+@testset "Feasibility is metadata independent of the objective" begin
+    @test JCO._cost_point_feasible((metric = -20.0,), -20.0)
+    @test !JCO._cost_point_feasible((metric = 1e8,), 1e8)
+    @test !JCO._cost_point_feasible((metric = NaN,), NaN)
+    @test !JCO._cost_point_feasible((metric = -20.0, feasible = false), -20.0)
+    @test JCO._cost_point_feasible((metric = -20.0, feasible = true), -20.0)
+    @test JCO._cost_point_feasible((metric = -20.0, feasible = 1), -20.0)
+    @test_throws ArgumentError JCO._cost_point_feasible((metric = -20.0, feasible = 2), -20.0)
+
+    data = DataFrame(metric = [-20.0, -19.0, 1e8], feasible = [1.0, 0.0, 0.0])
+    @test filter(JCO._linear_row_feasible, data).metric == [-20.0]
+    @test filter(JCO._linear_row_feasible, select(data, Not(:feasible))).metric == [-20.0, -19.0]
+end
+
+@testset "Degenerate and invalid bounds" begin
+    constant = DataFrame("I0" => [1e-6, 1e-6], "Cg" => [250e-15, 250e-15])
+    @test_throws ArgumentError JCO._optimizer_scaled_inputs(constant, ["I0", "Cg"])
+    invalid = DataFrame("I0" => [1e-6, Inf], "Cg" => [250e-15, 350e-15])
+    @test_throws ArgumentError JCO._optimizer_scaled_inputs(invalid, ["I0", "Cg"])
+end
