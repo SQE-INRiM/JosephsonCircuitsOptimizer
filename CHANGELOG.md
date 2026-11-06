@@ -4,6 +4,14 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Run feedback progress and Results usability (PR #41)
+
+- Show live nonlinear-feedback cycles above the Run stages: Linear, Optimization and HB progress now follow each corrected cycle, while the visually distinct Feedback card remains informational and is disabled when feedback is off.
+- Show completed corrected-cycle counts and a terminal status for completed, converged, stopped or failed feedback runs, without misleading fractional progress after early convergence.
+- Reuse a converged nonlinear correction already evaluated in the preceding HB sweep at matching source amplitudes and frequencies; compute a separate reference point only when no safe match exists. The scientific solver API and stored results schema remain unchanged; real HB reference validation is still pending.
+- Put the Results Nonlinear feedback button beside the cycle arrows and keep Optimization Linear slice available for a single stored configuration.
+- Initialize Optimization X/Y axes from the corresponding Linear dataset even if Optimization is opened first; users can still select different optimizer axes independently.
+
 ### Cycle-aware nonlinear feedback Results (parallel draft)
 
 - Store corrected-cycle Linear, Optimization and HB datasets in individual folders, with an atomic run-level feedback convergence summary and Cycle 0 remaining at the run root.
