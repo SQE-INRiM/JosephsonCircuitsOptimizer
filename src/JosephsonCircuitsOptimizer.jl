@@ -373,6 +373,8 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 stop_if_requested!(config.WORKING_SPACE)
                 println("-----------------------------------------------------")
                 @info "Implementing nonlinear correction: iteration $i"
+                # Machine-readable UI event; numerical progress still comes from Progress.jl.
+                println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=correction status=running")
                 println("-----------------------------------------------------")
 
                 # The optimizer's HDF5 writer and save_datas() use CURRENT_OUTPUT_PATH.
@@ -392,11 +394,14 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                     # The new correction enters user_cost through delta_correction;
                     # the updated best design is selected anew within the same domain.
                     device_parameters_space = load_params(device_params_file)
+                    println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=linear status=running")
                     df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
                     save_dataset(df, cycle_dir)
+                    println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=optimization status=running")
                     optimal_params, optimal_metric = run_optimization(df)
 
                     # The optimizer persists its own BO-only history into cycle_dir.
+                    println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=hb status=running")
                     results = run_nonlinear_simulations_sweep(optimal_params)
                     nl_df = nonlinear_results_to_dataframe(results)
                     save_nonlinear_dataset(nl_df, cycle_dir)
@@ -437,6 +442,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                         i, optimal_params, optimal_metric, cycle_best_performance, delta_correction))
                     _jco_save_feedback_summary(output_path, feedback_count, feedback_history)
                     completed_correction_cycles = i
+                    println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=complete status=completed")
 
                     let p = plot_delta_vs_amplitude(results)
                         if p !== nothing
@@ -485,6 +491,8 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             )
             save_output_file(stopping_details, joinpath(optimal_params_dir, "nonlinear_feedback_stopping.json"))
             _jco_save_feedback_summary(output_path, feedback_count, feedback_history; stopping=stopping_details)
+            feedback_reason = feedback_converged ? "converged" : "cycle_limit"
+            println("FEEDBACK_DONE cycles=$completed_correction_cycles max=$maximum_correction_cycles reason=$feedback_reason")
 
             # Direct Julia users retain the convergence figure; GUI runs suppress it.
             p = _jco_plot_correction_convergence(correction_terms)
