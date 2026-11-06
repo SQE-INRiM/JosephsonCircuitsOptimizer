@@ -9,7 +9,9 @@ Status: implementation on `gui/run-feedback-cycle-progress`; real Julia/HB deskt
 - Feedback requires a varying device-parameter space and the **full** Run pipeline. Single-configuration and partial-stage runs do not claim to execute feedback cycles.
 - In a full run, the first three cards show Cycle 0 (baseline), then reset for each corrected cycle. Their existing Julia stage/progress/ETA reporter remains the source of numerical progress.
 - The cycle banner above the cards shows the active iteration relative to the configured maximum. The feedback card counts *completed corrected cycles*, not a guessed fraction of the work. Metric-convergence runs may finish before the maximum.
-- The fourth card opens a compact detail area identifying correction, Linear, Optimization, and HB phases. Failed, cancelled, complete and converged outcomes are distinguished. After corrected-cycle failure, do not offer a misleading stage-only resume button; a new full Run remains available.
+- The feedback card is **noninteractive** and visually separated from the three numerical cards (no connecting arrow), using the secondary-accent Insights icon and subtle top border, consistent with the Results feedback view.
+- During a run, a per-cycle segmented indicator shows finished corrected cycles and highlights the current cycle (with a proportional fallback above 16 cycles). Cycle 0 is baseline, never a corrected cycle. At terminal completion, convergence, cancellation or failure, the progress indicator disappears in favor of the explicit final count and status. No percentage is shown for converged-before-limit runs.
+- Failed, cancelled, complete and converged outcomes are distinguished. After corrected-cycle failure, do not offer a misleading stage-only resume button; a new full Run remains available.
 
 ## Protocol and implementation
 
