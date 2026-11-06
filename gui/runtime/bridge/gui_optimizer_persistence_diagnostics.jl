@@ -23,6 +23,7 @@ function _gui_save_optimization_history(param_cols::Vector{String}, initial_coun
 
     params_history = get(cost_history, "params_vecs", Vector{Vector{Float64}}())
     metric_history = get(cost_history, "metrics", Float64[])
+    feasible_history = get(cost_history, "feasible", Bool[])
     total = min(length(params_history), length(metric_history))
     first_bo = min(total + 1, max(1, initial_count + 1))
     bo_count = max(0, total - initial_count)
@@ -45,7 +46,8 @@ function _gui_save_optimization_history(param_cols::Vector{String}, initial_coun
 
     bo_params = params_history[first_bo:total]
     bo_metrics = Float64.(metric_history[first_bo:total])
-    matrix = Matrix{Float64}(undef, bo_count, length(param_cols) + 2)
+    # Keep metric at the same index; append feasibility after it.
+    matrix = Matrix{Float64}(undef, bo_count, length(param_cols) + 3)
 
     try
         for i in 1:bo_count
@@ -54,13 +56,17 @@ function _gui_save_optimization_history(param_cols::Vector{String}, initial_coun
             for j in eachindex(param_cols)
                 matrix[i, j + 1] = Float64(bo_params[i][j])
             end
-            matrix[i, end] = bo_metrics[i]
+            matrix[i, end - 1] = bo_metrics[i]
+            history_index = first_bo + i - 1
+            matrix[i, end] = history_index <= length(feasible_history) ?
+                (feasible_history[history_index] ? 1.0 : 0.0) :
+                (isfinite(bo_metrics[i]) && bo_metrics[i] < LEGACY_MASK_THRESHOLD ? 1.0 : 0.0)
         end
 
         filepath = joinpath(output_path, "df_optimization_analysis.h5")
         h5open(filepath, "w") do file
             write(file, "df_optimization_matrix", matrix)
-            write(file, "df_optimization_column_names", vcat(["evaluation"], param_cols, ["metric"]))
+            write(file, "df_optimization_column_names", vcat(["evaluation"], param_cols, ["metric", "feasible"]))
         end
 
         diagnostic["hdf5_written"] = true
