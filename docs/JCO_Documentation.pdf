@@ -82,7 +82,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
 endobj
 9 0 obj
-<< /Length 5119 >>
+<< /Length 5127 >>
 stream
 0.125 0.741 0.678 rg 54 797 36 2 re f
 BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
@@ -93,8 +93,8 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 722.50 Td (returns a JosephsonCircuits ci
 0.946 0.958 0.969 rg 54 645.10 487 59.60 re f
 0.75 0.83 0.87 rg 54 645.10 2 59.60 re f
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 693.70 Td (function create_user_circuit\(device_params_set\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 682.80 Td (# Define components, nodes, and ports.) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 671.90 Td (return circuit, circuitdefs) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 682.80 Td (    # Define components, nodes, and ports.) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 671.90 Td (    return circuit, circuitdefs) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 661.00 Td (end) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 638.10 Td (Under Device parameters, give each parameter a name, unit, and a mode:) Tj ET
 BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 616.30 Td (-) Tj ET
@@ -137,7 +137,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
 endobj
 11 0 obj
-<< /Length 5689 >>
+<< /Length 5717 >>
 stream
 0.125 0.741 0.678 rg 54 797 36 2 re f
 BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
@@ -164,17 +164,17 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 453.10 Td (user_cost_and_performance.jl f
 0.946 0.958 0.969 rg 54 353.90 487 81.40 re f
 0.75 0.83 0.87 rg 54 353.90 2 81.40 re f
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 424.30 Td (function user_cost\(sol, device_params_set, nonlinear_correction\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 413.40 Td (s11 = sol.linearized.S\(\(0,\), 1, \(0,\), 1, :\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 402.50 Td (s11_db = 10 .* log10.\(abs2.\(s11\)\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 391.60 Td (objective = mean\(s11_db\) + nonlinear_correction) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 380.70 Td (return \(metric = objective, mean_s11_db = mean\(s11_db\)\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 413.40 Td (    s11 = sol.linearized.S\(\(0,\), 1, \(0,\), 1, :\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 402.50 Td (    s11_db = 10 .* log10.\(abs2.\(s11\)\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 391.60 Td (    objective = mean\(s11_db\) + nonlinear_correction) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 380.70 Td (    return \(metric = objective, mean_s11_db = mean\(s11_db\)\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 369.80 Td (end) Tj ET
 0.946 0.958 0.969 rg 54 280.40 487 70.50 re f
 0.75 0.83 0.87 rg 54 280.40 2 70.50 re f
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 339.90 Td (function user_performance\(sol, device_params_set, source_amps, source_freqs\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 329.00 Td (s21 = sol.linearized.S\(\(0,\), 2, \(0,\), 1, :\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 318.10 Td (gain_db = 10 .* log10.\(abs2.\(s21\)\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 307.20 Td (return \(performance = mean\(gain_db\), peak_gain_db = maximum\(gain_db\)\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 329.00 Td (    s21 = sol.linearized.S\(\(0,\), 2, \(0,\), 1, :\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 318.10 Td (    gain_db = 10 .* log10.\(abs2.\(s21\)\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 307.20 Td (    return \(performance = mean\(gain_db\), peak_gain_db = maximum\(gain_db\)\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 296.30 Td (end) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 273.40 Td (In both functions, sol is the complete JosephsonCircuits HB solution, not an S-parameter dictionary. The) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 259.30 Td (first named returned value is the scalar objective: cost is minimized, performance is maximized. Additional) Tj ET
@@ -196,7 +196,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
 endobj
 13 0 obj
-<< /Length 5305 >>
+<< /Length 5324 >>
 stream
 0.125 0.741 0.678 rg 54 797 36 2 re f
 BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
@@ -212,10 +212,10 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 631.30 Td (HB solutions. For example, a c
 0.946 0.958 0.969 rg 54 532.10 487 81.40 re f
 0.75 0.83 0.87 rg 54 532.10 2 81.40 re f
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 602.50 Td (function user_nonlinear_correction\(sol_linear, sol_nonlinear, device_params_set\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 591.60 Td (s_lin = sol_linear.linearized.S\(\(0,\), 1, \(0,\), 1, :\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 580.70 Td (s_on = sol_nonlinear.linearized.S\(\(0,\), 1, \(0,\), 1, :\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 569.80 Td (db\(x\) = 10 .* log10.\(abs2.\(x\)\)) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 558.90 Td (return mean\(db\(s_on\)\) - mean\(db\(s_lin\)\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 591.60 Td (    s_lin = sol_linear.linearized.S\(\(0,\), 1, \(0,\), 1, :\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 580.70 Td (    s_on  = sol_nonlinear.linearized.S\(\(0,\), 1, \(0,\), 1, :\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 569.80 Td (    db\(x\) = 10 .* log10.\(abs2.\(x\)\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 558.90 Td (    return mean\(db\(s_on\)\) - mean\(db\(s_lin\)\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 548.00 Td (end) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 525.10 Td (JCO passes the returned value as nonlinear_correction to user_cost in the next corrected cycle. Your) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 511.00 Td (cost function must explicitly use the value; otherwise enabling feedback does not change the objective. The) Tj ET
@@ -244,8 +244,8 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 174.90 Td (performance in that cycle \(ma
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 160.80 Td (cycles with values a and b, JCO stops when:) Tj ET
 0.946 0.958 0.969 rg 54 105.20 487 37.80 re f
 0.75 0.83 0.87 rg 54 105.20 2 37.80 re f
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 132.00 Td (Absolute: abs\(b - a\) <= tolerance) Tj ET
-BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 121.10 Td (Relative: 100 * abs\(b - a\) / max\(abs\(a\), abs\(b\), eps\) <= tolerance \(%\)) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 132.00 Td (Absolute:  abs\(b - a\) <= tolerance) Tj ET
+BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 121.10 Td (Relative:  100 * abs\(b - a\) / max\(abs\(a\), abs\(b\), eps\) <= tolerance \(%\)) Tj ET
 0.83 0.86 0.89 RG 0.6 w 54 48 m 541 48 l S
 BT /F1 8.20 Tf 0.38 0.45 0.51 rg 54.00 34.00 Td (JCO  |  November 2026) Tj ET
 BT /F1 8.20 Tf 0.38 0.45 0.51 rg 501.00 34.00 Td (4 / 6) Tj ET
@@ -413,28 +413,28 @@ xref
 0000000646 00000 n 
 0000005515 00000 n 
 0000005661 00000 n 
-0000010831 00000 n 
-0000010979 00000 n 
-0000016720 00000 n 
-0000016868 00000 n 
-0000022225 00000 n 
-0000022373 00000 n 
-0000028388 00000 n 
-0000028536 00000 n 
-0000033105 00000 n 
-0000033180 00000 n 
-0000033289 00000 n 
-0000033410 00000 n 
-0000033537 00000 n 
-0000033672 00000 n 
-0000033812 00000 n 
-0000033941 00000 n 
-0000034071 00000 n 
-0000034217 00000 n 
-0000034344 00000 n 
-0000034454 00000 n 
+0000010839 00000 n 
+0000010987 00000 n 
+0000016756 00000 n 
+0000016904 00000 n 
+0000022280 00000 n 
+0000022428 00000 n 
+0000028443 00000 n 
+0000028591 00000 n 
+0000033160 00000 n 
+0000033235 00000 n 
+0000033344 00000 n 
+0000033465 00000 n 
+0000033592 00000 n 
+0000033727 00000 n 
+0000033867 00000 n 
+0000033996 00000 n 
+0000034126 00000 n 
+0000034272 00000 n 
+0000034399 00000 n 
+0000034509 00000 n 
 trailer
 << /Size 30 /Root 1 0 R /Info 29 0 R >>
 startxref
-34582
+34637
 %%EOF
