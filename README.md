@@ -18,7 +18,9 @@ JCO includes a desktop GUI and portable `.jco` project files for saving and shar
 
 ## Documentation
 
-See the **[JCO User Manual (PDF)](docs/JCO_Documentation.pdf)** for a detailed guide to the GUI, simulations, optimization, and project configuration.
+The **[JCO User Manual (PDF)](docs/JCO_Documentation.pdf)** provides a detailed guide to using the GUI and configuring simulations, optimization, and nonlinear feedback.
+
+It also describes the project format, custom Julia functions, and result data.
 
 ## Quick Start
 
@@ -26,9 +28,15 @@ See the **[JCO User Manual (PDF)](docs/JCO_Documentation.pdf)** for a detailed g
 
 Download the latest desktop application from **[JCO-GUI Releases](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/releases/latest)**.
 
-### Windows
+- **Windows:** Run `JCO-GUI-<version>-Windows-Setup.exe` to install JCO, or use `JCO-GUI-<version>-Windows-Portable.exe` without installation.
+- **Linux:** Download `JCO-GUI-<version>-Linux-x64.AppImage`, then make it executable and launch it:
 
-Download and run `JCO-GUI-<version>-Windows-Setup.exe` to install JCO, or use `JCO-GUI-<version>-Windows-Portable.exe` without installation.
+  ```bash
+  chmod +x JCO-GUI-<version>-Linux-x64.AppImage
+  ./JCO-GUI-<version>-Linux-x64.AppImage
+  ```
+
+> **Linux packaged support is currently x86-64 and preliminary.** Linux has been less extensively validated than Windows and may still depend on distribution-specific system libraries.
 
 <details>
 <summary>⚠️ If Windows blocks installation or simulation</summary>
@@ -43,26 +51,17 @@ As a workaround, you can disable Smart App Control under **Windows Security → 
 
 </details>
 
-### Linux
-
-Download `JCO-GUI-<version>-Linux-x64.AppImage`, then run:
-
-```bash
-chmod +x JCO-GUI-<version>-Linux-x64.AppImage
-./JCO-GUI-<version>-Linux-x64.AppImage
-```
-
-Linux support is currently preliminary and limited to x86-64.
-
-On first launch, JCO may need an internet connection to prepare its Julia environment. Use **Settings** to select your Julia executable and the number of threads.
+On first launch, JCO may need an internet connection to prepare its Julia environment. In **Settings**, choose the Julia executable and the desired number of threads.
 
 ## The `.jco` Project
 
-A `.jco` file stores the circuit definition, simulation settings, custom Julia functions, and numerical results in one portable project.
+A `.jco` file contains everything needed to preserve a JCO experiment: circuit and parameter definitions, simulation settings, custom Julia functions, and saved numerical results.
 
-Projects can be saved, shared, and reopened from the GUI. See the [User Manual](docs/JCO_Documentation.pdf) for details.
+Projects can be saved, shared, and reopened from the GUI, making it easy to revisit an experiment or continue working on another computer. The full project format is described in the [User Manual](docs/JCO_Documentation.pdf).
 
 ## Desktop GUI
+
+The desktop application follows the same scientific workflow through three main areas.
 
 ### Setup
 
@@ -70,7 +69,7 @@ Projects can be saved, shared, and reopened from the GUI. See the [User Manual](
   <img src="docs/images/jco_gui_setup.png" alt="JCO Setup screen" width="800">
 </p>
 
-<p align="center"><em>Define the circuit, parameters, and simulation settings.</em></p>
+<p align="center"><em>Define the circuit, device parameters, sources, and computation settings, and inspect the resolved lumped-element circuit preview.</em></p>
 
 ### Run
 
@@ -78,7 +77,7 @@ Projects can be saved, shared, and reopened from the GUI. See the [User Manual](
   <img src="docs/images/jco_gui_run.png" alt="JCO Run screen" width="800">
 </p>
 
-<p align="center"><em>Run and monitor the simulation and optimization stages.</em></p>
+<p align="center"><em>Execute the Linear, Optimization, and Harmonic Balance stages, with stage status, reuse, cancellation, and simulation logs managed from one view.</em></p>
 
 ### Results
 
@@ -86,7 +85,7 @@ Projects can be saved, shared, and reopened from the GUI. See the [User Manual](
   <img src="docs/images/jco_gui_results.png" alt="JCO Results screen" width="800">
 </p>
 
-<p align="center"><em>Explore design spaces, optimization results, and nonlinear responses.</em></p>
+<p align="center"><em>Explore the sampled design space, selected configurations, scalar metrics, and retained frequency-resolved data.</em></p>
 
 ## Citation
 
