@@ -110,7 +110,7 @@ function _optimizer_search(df::DataFrame, scaling)
     constrained = lowercase(strip(sur_name)) == "kriging" &&
                   lowercase(strip(opt_name)) == "srbf"
     global cost_progress_ctx = Progress.start!(;
-        N=constrained ? n_maxiters : n_maxiters * n_num_new_samples,
+        N=(constrained ? n_maxiters : n_maxiters * n_num_new_samples),
         stage="BO"
     )
     try
@@ -120,6 +120,8 @@ function _optimizer_search(df::DataFrame, scaling)
                 throw(ArgumentError("All linear grid points are masked; no feasible metric surrogate can be fitted."))
             feasible_points = initial_points[feasible_indices]
             feasible_values = initial_values[feasible_indices]
+            length(unique(feasible_points)) >= 2 ||
+                throw(ArgumentError("At least two distinct feasible linear points are required to fit Kriging."))
             surrogate = _make_surrogate_model(sur_name, feasible_points, feasible_values,
                                               scaling.lb, scaling.ub)
 
