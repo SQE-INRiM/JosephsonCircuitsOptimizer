@@ -7,7 +7,7 @@ import { useAppStore } from '../store'
 import { parameterLabel } from '../utils/resultUnits'
 import { exportPlotCsv } from '../utils/plotCsv'
 import { HeatmapGrid } from './HeatmapGrid'
-import { preferredResultAxes, ResultsAxesContext } from './ResultAxesContext'
+import { initialLinearResultAxes, ResultsAxesContext } from './ResultAxesContext'
 import { PointComparisonPanel, PointSelectionControls, updateComparisonSelection } from './PointComparison'
 import type { ResultSelectionMode } from './PointComparison'
 
@@ -196,11 +196,7 @@ function LinearDataset({ run, table }: { run: RunResults; table: ResultTable }) 
   const rows = useMemo(() => rowsAsNumbers(table), [table]); const maskedIds = useMemo(() => maskedPointIds(table), [table]); const params = parameterColumns(table); const metrics = metricColumns(table); const varied = varyingParameterColumns(table); const pointIndex = table.columns.indexOf('point_id')
   const singleConfiguration = table.rows.length <= 1 || varied.length === 0
   const axesContext = useContext(ResultsAxesContext)
-  const initialAxes = preferredResultAxes(
-    varied.length >= 2 ? varied : params,
-    { x: varied[0] ?? params[0] ?? '', y: varied[1] ?? varied[0] ?? params[1] ?? params[0] ?? '' },
-    axesContext?.linear,
-  )
+  const initialAxes = initialLinearResultAxes(table, axesContext?.linear)
   const [view, setView] = useState<LinearView>('landscape'); const [metric, setMetric] = useState(metrics[0]); const [x, setX] = useState(initialAxes.x); const [y, setY] = useState(initialAxes.y || initialAxes.x); const [correlationExtras, setCorrelationExtras] = useState<CorrelationExtras>('none'); const [fixedValues, setFixedValues] = useState<Record<string, number>>(() => Object.fromEntries(varied.map((parameter) => [parameter, parameterValueOptions(table, parameter)[0]]).filter(([, value]) => Number.isFinite(value)))); const [selectedPointId, setSelectedPointId] = useState<number | null>(() => rows.find((row) => Number.isFinite(row[pointIndex]) && !maskedIds.has(row[pointIndex]))?.[pointIndex] ?? rows[0]?.[pointIndex] ?? null); const [showConfigurations, setShowConfigurations] = useState(false)
   const [selectionMode, setSelectionMode] = useState<ResultSelectionMode>('single')
   const [comparisonIds, setComparisonIds] = useState<number[]>([])
