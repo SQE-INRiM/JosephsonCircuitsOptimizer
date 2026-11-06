@@ -91,7 +91,7 @@ function OptimizerScatter({
   const min = colorValues.length ? Math.min(...colorValues) : 0
   const max = colorValues.length ? Math.max(...colorValues) : 1
   const best = bestSample(samples)
-  const linearMinimum = mode === 'slice' && slice
+  const linearMinimum = mode === 'slice' && slice && slice.x.length * slice.y.length > 1
     ? slice.values.flatMap((row, yi) => row.map((value, xi) =>
       value !== null && Number.isFinite(value)
         ? { x: slice.x[xi], y: slice.y[yi], metric: value }
@@ -129,7 +129,16 @@ function OptimizerScatter({
             const x1 = xPosition(xEdges[1])
             const y0 = yPosition(yEdges[1])
             const y1 = yPosition(yEdges[0])
-            return <rect key={'cell-' + yi + '-' + xi} x={x0} y={y0} width={Math.max(0, x1 - x0)} height={Math.max(0, y1 - y0)}
+            // Draw singleton dimensions as a discrete marker, never as an
+            // extrapolated region outside the sampled Linear coordinates.
+            const singletonX = slice.x.length === 1
+            const singletonY = slice.y.length === 1
+            const cellX = singletonX ? xPosition(slice.x[xi]) - 8 : x0
+            const cellY = singletonY ? yPosition(slice.y[yi]) - 8 : y0
+            const cellWidth = singletonX ? 16 : Math.max(0, x1 - x0)
+            const cellHeight = singletonY ? 16 : Math.max(0, y1 - y0)
+            return <rect key={'cell-' + yi + '-' + xi} data-testid="optimizer-linear-slice-cell"
+              x={cellX} y={cellY} width={cellWidth} height={cellHeight}
               fill={value == null ? (dark ? '#314052' : '#ffffff') : sequentialColor(value, min, max)}
               stroke={dark ? '#304258' : '#e8edf2'} strokeWidth={0.9}>
               <title>{xName + '=' + displayNumber(slice.x[xi]) + ', ' + yName + '=' + displayNumber(slice.y[yi]) + ': ' + (value == null ? 'masked / unavailable' : displayNumber(value))}</title>
@@ -254,8 +263,10 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   const variedLinear = linearNames.filter((name) => linear && storedValues(linear, name).length > 1)
   const compatible = Boolean(linear && names.every((name) => linear.columns.includes(name))
     && variedLinear.every((name) => names.includes(name)))
+  // Even a one-cell Linear dataset is a valid exact slice: it locates
+  // an optimization sample, although it cannot form a two-dimensional heatmap.
   const canSlice = compatible && x !== y && Boolean(linear)
-    && storedValues(linear!, x).length >= 2 && storedValues(linear!, y).length >= 2
+    && storedValues(linear!, x).length >= 1 && storedValues(linear!, y).length >= 1
   const effectiveMode: LandscapeMode = mode === 'slice' && canSlice ? 'slice' : 'projection'
   const otherNames = linear ? names.filter((name) => name !== x && name !== y && linear.columns.includes(name)) : []
   const fixed = otherNames.reduce<Record<string, number>>((values, name) => {
