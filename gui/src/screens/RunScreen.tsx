@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Chip,
-  ButtonBase,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -16,11 +15,12 @@ import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded'
 import CircleOutlinedIcon from '@mui/icons-material/CircleOutlined'
-import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded'
+import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded'
 import PauseRoundedIcon from '@mui/icons-material/PauseRounded'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded'
 import { StatusChip } from '../components/StatusChip'
+import { alpha } from '@mui/material/styles'
 import { getJcoAdapter } from '../services/jcoAdapter'
 import { useAppStore } from '../store'
 import type { StageId } from '../types'
@@ -89,14 +89,11 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
   const feedbackConfigured = project.computation.nonlinearCorrectionCycles > 0
   const feedbackAvailable = feedbackConfigured && hasVaryingDeviceParameters(project)
   const maxFeedbackCycles = feedbackRun?.maximumCycles ?? project.computation.nonlinearCorrectionCycles
-  const [feedbackExpanded, setFeedbackExpanded] = useState(false)
-  const feedbackSteps = [
-    { id: 'correction', name: 'Correction' },
-    { id: 'linear', name: 'Linear' },
-    { id: 'optimization', name: 'Optimization' },
-    { id: 'hb', name: 'Harmonic balance' },
-  ] as const
-  const currentFeedbackStep = feedbackSteps.findIndex((step) => step.id === feedbackRun?.phase)
+  const feedbackEnded = feedbackRun != null && feedbackRun.status !== 'running'
+  const feedbackStoppedEarly = feedbackRun != null && (feedbackRun.status === 'converged' || feedbackRun.status === 'cancelled' || feedbackRun.status === 'failed')
+  const feedbackCountLabel = feedbackRun
+    ? `${feedbackRun.completedCycles} / ${maxFeedbackCycles} correction cycles completed`
+    : ''
   const feedbackStatusLabel = !feedbackAvailable ? 'Disabled' : !feedbackRun ? 'Ready'
     : feedbackRun.status === 'converged' ? 'Converged'
     : feedbackRun.status === 'cancelled' ? 'Stopped'
@@ -174,11 +171,15 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
     <Paper variant="outlined" sx={{ p: 2.4 }}>
       <Stack spacing={1.6}>
         {feedbackAvailable && feedbackRun && <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-          <AutorenewRoundedIcon fontSize="small" color={running ? 'secondary' : 'action'} />
+          <InsightsRoundedIcon fontSize="small" sx={{ color: 'secondary.main' }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
             {feedbackRun.cycle === 0
               ? `Nonlinear feedback · Baseline (Cycle 0 / ${maxFeedbackCycles})`
-              : `Nonlinear feedback · Cycle ${feedbackRun.cycle} / ${maxFeedbackCycles}`}
+              : feedbackEnded && feedbackRun.status === 'converged'
+                ? `Nonlinear feedback · Converged after ${feedbackRun.completedCycles} / ${maxFeedbackCycles} cycles`
+                : feedbackEnded && feedbackRun.status === 'completed'
+                  ? `Nonlinear feedback · Completed (${feedbackRun.completedCycles} / ${maxFeedbackCycles} cycles)`
+                  : `Nonlinear feedback · Cycle ${feedbackRun.cycle} / ${maxFeedbackCycles}`}
           </Typography>
           {feedbackRun.status === 'converged' && <Chip size="small" color="success" label="Converged" />}
           {feedbackRun.status === 'cancelled' && <Chip size="small" label="Stopped" />}
@@ -210,87 +211,96 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
           {index < stages.length - 1 && <ArrowForwardRoundedIcon color="disabled" sx={{ alignSelf: 'center', display: { xs: 'none', lg: 'block' } }} />}
         </Stack>
       })}
-      <ArrowForwardRoundedIcon color="disabled" sx={{ alignSelf: 'center', display: { xs: 'none', lg: 'block' } }} />
-      <Stack sx={{ flex: 1, minWidth: 0 }}>
-        <ButtonBase
-          disabled={!feedbackAvailable}
-          aria-label="Nonlinear feedback details"
-          aria-expanded={feedbackAvailable ? feedbackExpanded : undefined}
-          onClick={() => setFeedbackExpanded((value) => !value)}
-          sx={{ width: '100%', display: 'block', textAlign: 'left', borderRadius: 2 }}
-        >
-          <Paper variant="outlined" sx={{
+      <Stack sx={{
+        flex: 1,
+        minWidth: 0,
+        ml: { xs: 0, lg: 1 },
+        pl: { xs: 0, lg: 2.3 },
+        borderLeft: { xs: 'none', lg: '1px solid' },
+        borderColor: 'divider',
+      }}>
+        <Paper
+          variant="outlined"
+          aria-label="Nonlinear feedback status"
+          sx={{
             minHeight: 218, p: 2.1,
-            borderWidth: feedbackRun?.status === 'running' && feedbackRun.cycle > 0 ? 2 : 1,
-            borderColor: feedbackRun?.status === 'running' && feedbackRun.cycle > 0 ? 'secondary.main' : 'divider',
-            backgroundColor: feedbackRun?.status === 'running' && feedbackRun.cycle > 0 ? 'action.hover' : 'background.paper',
-            opacity: feedbackAvailable ? 1 : 0.48,
-          }}>
-            <Stack spacing={1.5} sx={{ height: '100%' }}>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ width: 40, height: 40, borderRadius: 2, display: 'grid', placeItems: 'center', backgroundColor: 'background.default', color: feedbackAvailable ? 'primary.main' : 'text.disabled' }}><AutorenewRoundedIcon /></Box>
-                <Chip size="small" variant="outlined" color={feedbackRun?.status === 'converged' || feedbackRun?.status === 'completed' ? 'success' : feedbackRun?.status === 'failed' ? 'error' : 'default'} label={feedbackStatusLabel} />
-              </Stack>
-              <Box>
-                <Typography variant="h6">Nonlinear feedback</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, minHeight: 42 }}>
-                  {!feedbackConfigured ? 'Disabled in Setup'
-                    : !feedbackAvailable ? 'Requires a device-parameter sweep'
-                    : feedbackRun?.cycle ? `Correction cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
-                    : feedbackRun ? 'Running baseline simulation'
-                    : `Configured · up to ${maxFeedbackCycles} cycles`}
-                </Typography>
+            borderTop: '3px solid',
+            borderTopColor: feedbackAvailable ? 'secondary.main' : 'divider',
+            backgroundColor: (theme) => feedbackAvailable
+              ? alpha(theme.palette.secondary.main, theme.palette.mode === 'dark' ? 0.045 : 0.025)
+              : 'background.paper',
+            opacity: feedbackAvailable ? 1 : 0.55,
+          }}
+        >
+          <Stack spacing={1.5} sx={{ height: '100%' }}>
+            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{
+                width: 40, height: 40, borderRadius: 2, display: 'grid', placeItems: 'center',
+                color: feedbackAvailable ? 'secondary.main' : 'text.disabled',
+                backgroundColor: (theme) => alpha(theme.palette.secondary.main, 0.1),
+              }}>
+                <InsightsRoundedIcon />
               </Box>
-              <Box sx={{ mt: 'auto !important' }}>
-                {feedbackRun && feedbackAvailable ? <Stack spacing={0.8}>
-                  <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-                    <Typography variant="caption" color="text.secondary">{feedbackRun.completedCycles} / {maxFeedbackCycles} cycles completed</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 700 }}>{Math.round(100 * feedbackRun.completedCycles / maxFeedbackCycles)}%</Typography>
-                  </Stack>
-                  <LinearProgress variant="determinate" value={100 * feedbackRun.completedCycles / maxFeedbackCycles} color={feedbackRun.status === 'converged' || feedbackRun.status === 'completed' ? 'success' : 'secondary'} sx={{ height: 7, borderRadius: 99 }} />
-                </Stack> : <Typography variant="caption" color="text.secondary">{feedbackAvailable ? 'Click to inspect feedback' : 'Not active'}</Typography>}
-              </Box>
+              <Chip
+                size="small"
+                variant="outlined"
+                color={feedbackRun?.status === 'converged' || feedbackRun?.status === 'completed' ? 'success' : feedbackRun?.status === 'failed' ? 'error' : 'default'}
+                label={feedbackStatusLabel}
+              />
             </Stack>
-          </Paper>
-        </ButtonBase>
+            <Box>
+              <Typography variant="h6">Nonlinear feedback</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, minHeight: 42 }}>
+                {!feedbackConfigured ? 'Disabled in Setup'
+                  : !feedbackAvailable ? 'Requires a device-parameter sweep'
+                  : !feedbackRun ? `Configured · up to ${maxFeedbackCycles} cycles`
+                  : feedbackRun.status === 'converged' ? `Converged after ${feedbackRun.completedCycles} of ${maxFeedbackCycles} cycles`
+                  : feedbackRun.status === 'completed' ? `${feedbackRun.completedCycles} correction cycles completed`
+                  : feedbackRun.status === 'cancelled' ? `Stopped during cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
+                  : feedbackRun.status === 'failed' ? `Failed during cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
+                  : feedbackRun.cycle > 0 ? `Correction cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
+                  : 'Running baseline simulation'}
+              </Typography>
+            </Box>
+            <Box sx={{ mt: 'auto !important' }}>
+              {feedbackRun && feedbackAvailable ? feedbackEnded
+                ? <Stack direction="row" spacing={0.7} sx={{ alignItems: 'center' }}>
+                    {feedbackStoppedEarly && feedbackRun.status !== 'converged'
+                      ? <CircleOutlinedIcon color={feedbackRun.status === 'failed' ? 'error' : 'disabled'} sx={{ fontSize: 16 }} />
+                      : <CheckCircleRoundedIcon color="success" sx={{ fontSize: 16 }} />}
+                    <Typography variant="caption" color="text.secondary">{feedbackCountLabel}</Typography>
+                  </Stack>
+                : <Stack spacing={0.9}>
+                    <Typography variant="caption" color="text.secondary">
+                      {feedbackRun.cycle === 0 ? 'Baseline in progress' : `${feedbackCountLabel} · Cycle ${feedbackRun.cycle} running`}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} role="progressbar"
+                      aria-label="Completed feedback correction cycles"
+                      aria-valuemin={0} aria-valuemax={maxFeedbackCycles}
+                      aria-valuenow={feedbackRun.completedCycles}>
+                      {Array.from({ length: Math.min(maxFeedbackCycles, 16) }, (_, index) => {
+                        const completed = index < feedbackRun.completedCycles
+                        const activeCycle = index === feedbackRun.cycle - 1 && feedbackRun.cycle > 0
+                        return <Box key={index} sx={{
+                          height: 7, flex: 1, borderRadius: 99,
+                          bgcolor: completed ? 'success.main'
+                            : activeCycle ? 'secondary.main' : 'action.disabledBackground',
+                          opacity: !completed && activeCycle ? 0.6 : 1,
+                        }} />
+                      })}
+                      {maxFeedbackCycles > 16 && <Typography variant="caption" sx={{ display: 'none' }}>More than 16 cycles configured</Typography>}
+                    </Stack>
+                  </Stack>
+              : <Typography variant="caption" color="text.secondary">
+                  {feedbackAvailable ? `Ready for up to ${maxFeedbackCycles} cycles` : 'Not active'}
+                </Typography>}
+            </Box>
+          </Stack>
+        </Paper>
       </Stack>
     </Stack>
     </Stack>
     </Paper>
-
-    {feedbackAvailable && feedbackExpanded && <Paper variant="outlined" sx={{ p: 2.2 }}>
-      <Stack spacing={1.3}>
-        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Nonlinear feedback</Typography>
-          <Chip size="small" variant="outlined" label={feedbackStatusLabel} />
-        </Stack>
-        {!feedbackRun ? <Typography variant="body2" color="text.secondary">The full Run pipeline must start before feedback cycles can be tracked.</Typography> :
-          <>
-            <Typography variant="body2" color="text.secondary">
-              {feedbackRun.cycle === 0 ? 'Baseline: Linear, Optimization and Harmonic balance.' :
-                `Cycle ${feedbackRun.cycle} of ${maxFeedbackCycles} · ${feedbackRun.completedCycles} correction ${feedbackRun.completedCycles === 1 ? 'cycle' : 'cycles'} completed`}
-            </Typography>
-            {feedbackRun.cycle > 0 && <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-              {feedbackSteps.map((step, index) => {
-                const finished = feedbackRun.phase === 'complete' || currentFeedbackStep > index
-                const executing = currentFeedbackStep === index && feedbackRun.status === 'running'
-                return <Stack key={step.id} spacing={0.7} sx={{ flex: 1 }}>
-                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                    {finished ? <CheckCircleRoundedIcon color="success" sx={{ fontSize: 16 }} /> :
-                      executing ? <AutorenewRoundedIcon color="secondary" sx={{ fontSize: 16 }} /> :
-                        <CircleOutlinedIcon color="disabled" sx={{ fontSize: 16 }} />}
-                    <Typography variant="caption" sx={{ fontWeight: executing ? 700 : 500 }}>{step.name}</Typography>
-                  </Stack>
-                  <Typography variant="caption" color="text.secondary">{finished ? 'Completed' : executing ? 'Running' : 'Pending'}</Typography>
-                </Stack>
-              })}
-            </Stack>}
-            {project.computation.nonlinearFeedbackStopMode === 'convergence' &&
-              <Typography variant="caption" color="text.secondary">The loop may stop before the maximum cycle count when the convergence criterion is reached.</Typography>}
-          </>
-        }
-      </Stack>
-    </Paper>}
 
     <Paper variant="outlined" sx={{ p: 2.2 }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: { md: 'center' }, justifyContent: 'space-between' }}>
