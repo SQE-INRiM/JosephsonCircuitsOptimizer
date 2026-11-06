@@ -66,6 +66,7 @@ using .Bookkeeping
 include("CircuitModule.jl")
 include("CostModule.jl")
 include("FeedbackConvergence.jl")
+include("FeedbackReuse.jl")
 include("simulator.jl")
 include("optimizer.jl")
 include("FeedbackResults.jl")
@@ -343,6 +344,12 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         if feedback_count > 0
             correction_terms = Float64[]
             reference_amplitudes = get_delta_correction_amplitudes()
+            # nonlinear_correction() uses the default scalar frequencies in sim_vars,
+            # not every frequency of the HB sweep. Match them as well as all currents.
+            reference_frequencies = [
+                sim_vars[Symbol("source_$(i)_frequency")]
+                for i in 1:length(reference_amplitudes)
+            ]
             feedback_stop_mode = lowercase(String(get(sim_vars, :nonlinear_feedback_stop_mode, "cycles")))
             feedback_metric = lowercase(String(get(sim_vars, :nonlinear_feedback_metric, "correction")))
             tolerance_type = lowercase(String(get(sim_vars, :nonlinear_feedback_tolerance_type, "absolute")))
@@ -383,7 +390,19 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 mkpath(cycle_dir)
                 CURRENT_OUTPUT_PATH[] = cycle_dir
                 try
-                    term = nonlinear_correction(optimal_params, reference_amplitudes)
+                    # The preceding nonlinear sweep already evaluated
+                    # user_nonlinear_correction at every retained HB point.
+                    # Reuse its scalar for an identical, converged reference point.
+                    # Otherwise keep the original standalone linear + nonlinear HB.
+                    cached_term = feedback_correction_from_sweep(
+                        results, reference_amplitudes, reference_frequencies)
+                    if cached_term === nothing
+                        @info "Feedback reference not present as a converged HB sweep point; solving explicitly." cycle=i
+                        term = nonlinear_correction(optimal_params, reference_amplitudes)
+                    else
+                        @info "Reusing nonlinear correction from previous HB sweep." cycle=i amplitudes=reference_amplitudes frequencies=reference_frequencies
+                        term = cached_term
+                    end
                     global delta_correction = term
                     @info "Nonlinear correction term: $delta_correction"
                     push!(correction_terms, delta_correction)
