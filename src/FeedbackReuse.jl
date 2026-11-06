@@ -5,14 +5,17 @@
 
 # Use a tight floating-point tolerance for sweep-grid arithmetic, without
 # confusing physically distinct source configurations. Every source must match.
+function _jco_feedback_valid_source_vector(values)
+    return values isa AbstractVector && !isempty(values) &&
+        all(x -> x isa Real && isfinite(x), values)
+end
+
 function _jco_feedback_sources_match(actual, reference)
-    actual isa AbstractVector || return false
-    reference isa AbstractVector || return false
+    _jco_feedback_valid_source_vector(actual) || return false
+    _jco_feedback_valid_source_vector(reference) || return false
     length(actual) == length(reference) || return false
-    !isempty(actual) || return false
     return all(zip(actual, reference)) do (a, b)
-        a isa Real && b isa Real && isfinite(a) && isfinite(b) &&
-            isapprox(a, b; rtol=1e-12, atol=0)
+        isapprox(a, b; rtol=1e-12, atol=0)
     end
 end
 
@@ -34,8 +37,9 @@ reused.
 """
 function feedback_correction_from_sweep(results, reference_amplitudes, reference_frequencies)
     results === nothing && return nothing
-    _jco_feedback_sources_match(reference_amplitudes, reference_frequencies) ||
-        return nothing
+    _jco_feedback_valid_source_vector(reference_amplitudes) || return nothing
+    _jco_feedback_valid_source_vector(reference_frequencies) || return nothing
+    length(reference_amplitudes) == length(reference_frequencies) || return nothing
     for point in results
         hasproperty(point, :converged) && point.converged === true || continue
         hasproperty(point, :amps) && hasproperty(point, :freqs) &&
