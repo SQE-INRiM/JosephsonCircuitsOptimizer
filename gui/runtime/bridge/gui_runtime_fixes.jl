@@ -8,6 +8,7 @@ function _gui_save_optimization_history(param_cols::Vector{String}, initial_coun
 
     params_history = cost_history["params_vecs"]
     metric_history = cost_history["metrics"]
+    feasible_history = get(cost_history, "feasible", Bool[])
     first_bo = initial_count + 1
     first_bo > length(metric_history) && return nothing
 
@@ -16,19 +17,25 @@ function _gui_save_optimization_history(param_cols::Vector{String}, initial_coun
     n = length(bo_metrics)
     n == 0 && return nothing
 
-    matrix = Matrix{Float64}(undef, n, length(param_cols) + 2)
+    # Keep `metric` immediately after the device parameters: GUI axes
+    # detect parameter columns by the interval (evaluation, metric).
+    matrix = Matrix{Float64}(undef, n, length(param_cols) + 3)
     for i in 1:n
         matrix[i, 1] = i
         for (j, _) in enumerate(param_cols)
             matrix[i, j + 1] = Float64(bo_params[i][j])
         end
-        matrix[i, end] = bo_metrics[i]
+        history_index = first_bo + i - 1
+        matrix[i, end - 1] = bo_metrics[i]
+        matrix[i, end] = history_index <= length(feasible_history) ?
+            (feasible_history[history_index] ? 1.0 : 0.0) :
+            (isfinite(bo_metrics[i]) && bo_metrics[i] < LEGACY_MASK_THRESHOLD ? 1.0 : 0.0)
     end
 
     filepath = joinpath(output_path, "df_optimization_analysis.h5")
     h5open(filepath, "w") do file
         write(file, "df_optimization_matrix", matrix)
-        write(file, "df_optimization_column_names", vcat(["evaluation"], param_cols, ["metric"]))
+        write(file, "df_optimization_column_names", vcat(["evaluation"], param_cols, ["metric", "feasible"]))
     end
     @info "Saved optimization evaluation history" filepath=filepath evaluations=n
     return filepath
