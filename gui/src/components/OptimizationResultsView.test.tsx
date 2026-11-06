@@ -86,6 +86,30 @@ describe('Optimization Results landscape and history views', () => {
     expect(screen.queryByTestId('linear-slice-minimum')).toBeNull()
   })
 
+  it('uses the stored Linear XY order by default, even when Optimization columns differ', () => {
+    const rearranged: ResultTable = {
+      ...optimization,
+      columns: ['evaluation', 'Ladd', 'Cg', 'I0', 'metric'],
+      rows: optimization.rows.map(([evaluation, i0, cg, ladd, metric]) => [evaluation, ladd, cg, i0, metric]),
+    }
+    render(<OptimizationResultsView run={{ ...run(), optimization: rearranged }} table={rearranged} />)
+    expect(screen.getByRole('combobox', { name: 'X axis' }).textContent).toContain('I0')
+    expect(screen.getByRole('combobox', { name: 'Y axis' }).textContent).toContain('Cg')
+    expect((screen.getByRole('button', { name: 'Slice · Linear' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('uses Linear defaults even if Optimization has only one sampled point', () => {
+    const rearranged: ResultTable = {
+      ...optimization,
+      columns: ['evaluation', 'Ladd', 'Cg', 'I0', 'metric'],
+      rows: [[1, 70e-12, 200e-15, 1e-6, -8]],
+    }
+    render(<OptimizationResultsView run={{ ...run(), optimization: rearranged }} table={rearranged} />)
+    expect(screen.getByRole('combobox', { name: 'X axis' }).textContent).toContain('I0')
+    expect(screen.getByRole('combobox', { name: 'Y axis' }).textContent).toContain('Cg')
+    expect((screen.getByRole('button', { name: 'History' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
   it('inherits Linear axes but keeps Optimization edits independent', () => {
     const onChange = vi.fn()
     render(<ResultsAxesContext.Provider value={{ linear: { x: 'Cg', y: 'I0' }, onChange }}>
@@ -121,13 +145,34 @@ describe('Optimization Results landscape and history views', () => {
     expect(screen.getAllByTestId('optimizer-history-chart')).toHaveLength(4)
   })
 
-  it('disables History for a single evaluated point without displaying a masked-objective warning', () => {
+  it('keeps the Linear slice accessible for a single optimizer evaluation', () => {
     const single: ResultTable = { ...optimization, rows: [optimization.rows[0]] }
     render(<OptimizationResultsView run={{ ...run(), optimization: single }} table={single} />)
     const history = screen.getByRole('button', { name: 'History' }) as HTMLButtonElement
+    const linearSlice = screen.getByRole('button', { name: 'Slice · Linear' }) as HTMLButtonElement
     expect(history.disabled).toBe(true)
+    expect(linearSlice.disabled).toBe(false)
+    fireEvent.click(linearSlice)
+    expect(screen.getAllByTestId('optimizer-linear-slice-cell')).toHaveLength(linear.rows.length / 2)
+    expect(screen.getByRole('button', { name: /Evaluation 1, objective/ })).toBeTruthy()
     expect(screen.queryByText(/All objective evaluations are masked/)).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Objective' })).toBeNull()
+  })
+
+  it('allows a one-cell Linear slice without representing it as a sampled area', () => {
+    const single: ResultTable = { ...optimization, rows: [optimization.rows[0]] }
+    const oneCell: ResultTable = { ...linear, rows: [linear.rows[0]] }
+    render(<OptimizationResultsView run={{ ...run(), optimization: single, linear: oneCell }} table={single} />)
+    const linearSlice = screen.getByRole('button', { name: 'Slice · Linear' }) as HTMLButtonElement
+    expect(linearSlice.disabled).toBe(false)
+    fireEvent.click(linearSlice)
+    const cell = screen.getByTestId('optimizer-linear-slice-cell')
+    expect(cell.getAttribute('width')).toBe('16')
+    expect(cell.getAttribute('height')).toBe('16')
+    expect(screen.queryByTestId('linear-slice-minimum')).toBeNull()
+    const sample = screen.getByRole('button', { name: /Evaluation 1, objective/ })
+    fireEvent.click(sample)
+    expect(screen.getByText(/Selected evaluation 1/)).toBeTruthy()
   })
 
   it('disables History when only one evaluation survives the objective mask', () => {

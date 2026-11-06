@@ -66,6 +66,7 @@ using .Bookkeeping
 include("CircuitModule.jl")
 include("CostModule.jl")
 include("FeedbackConvergence.jl")
+include("FeedbackReuse.jl")
 include("simulator.jl")
 include("optimizer.jl")
 include("FeedbackResults.jl")
@@ -343,6 +344,12 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         if feedback_count > 0
             correction_terms = Float64[]
             reference_amplitudes = get_delta_correction_amplitudes()
+            # nonlinear_correction() uses the default scalar frequencies in sim_vars,
+            # not every frequency of the HB sweep. Match them as well as all currents.
+            reference_frequencies = [
+                sim_vars[Symbol("source_$(i)_frequency")]
+                for i in 1:length(reference_amplitudes)
+            ]
             feedback_stop_mode = lowercase(String(get(sim_vars, :nonlinear_feedback_stop_mode, "cycles")))
             feedback_metric = lowercase(String(get(sim_vars, :nonlinear_feedback_metric, "correction")))
             tolerance_type = lowercase(String(get(sim_vars, :nonlinear_feedback_tolerance_type, "absolute")))
@@ -373,6 +380,8 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 stop_if_requested!(config.WORKING_SPACE)
                 println("-----------------------------------------------------")
                 @info "Implementing nonlinear correction: iteration $i"
+                # Machine-readable UI event; numerical progress still comes from Progress.jl.
+                println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=correction status=running")
                 println("-----------------------------------------------------")
 
                 # The optimizer's HDF5 writer and save_datas() use CURRENT_OUTPUT_PATH.
@@ -381,7 +390,19 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                 mkpath(cycle_dir)
                 CURRENT_OUTPUT_PATH[] = cycle_dir
                 try
-                    term = nonlinear_correction(optimal_params, reference_amplitudes)
+                    # The preceding nonlinear sweep already evaluated
+                    # user_nonlinear_correction at every retained HB point.
+                    # Reuse its scalar for an identical, converged reference point.
+                    # Otherwise keep the original standalone linear + nonlinear HB.
+                    cached_term = feedback_correction_from_sweep(
+                        results, reference_amplitudes, reference_frequencies)
+                    if cached_term === nothing
+                        @info "Feedback reference not present as a converged HB sweep point; solving explicitly." cycle=i
+                        term = nonlinear_correction(optimal_params, reference_amplitudes)
+                    else
+                        @info "Reusing nonlinear correction from previous HB sweep." cycle=i amplitudes=reference_amplitudes frequencies=reference_frequencies
+                        term = cached_term
+                    end
                     global delta_correction = term
                     @info "Nonlinear correction term: $delta_correction"
                     push!(correction_terms, delta_correction)
@@ -392,11 +413,14 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                     # The new correction enters user_cost through delta_correction;
                     # the updated best design is selected anew within the same domain.
                     device_parameters_space = load_params(device_params_file)
+                    println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=linear status=running")
                     df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
                     save_dataset(df, cycle_dir)
+                    println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=optimization status=running")
                     optimal_params, optimal_metric = run_optimization(df)
 
                     # The optimizer persists its own BO-only history into cycle_dir.
+                    println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=hb status=running")
                     results = run_nonlinear_simulations_sweep(optimal_params)
                     nl_df = nonlinear_results_to_dataframe(results)
                     save_nonlinear_dataset(nl_df, cycle_dir)
@@ -437,6 +461,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                         i, optimal_params, optimal_metric, cycle_best_performance, delta_correction))
                     _jco_save_feedback_summary(output_path, feedback_count, feedback_history)
                     completed_correction_cycles = i
+                    println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=complete status=completed")
 
                     let p = plot_delta_vs_amplitude(results)
                         if p !== nothing
@@ -485,6 +510,8 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             )
             save_output_file(stopping_details, joinpath(optimal_params_dir, "nonlinear_feedback_stopping.json"))
             _jco_save_feedback_summary(output_path, feedback_count, feedback_history; stopping=stopping_details)
+            feedback_reason = feedback_converged ? "converged" : "cycle_limit"
+            println("FEEDBACK_DONE cycles=$completed_correction_cycles max=$maximum_correction_cycles reason=$feedback_reason")
 
             # Direct Julia users retain the convergence figure; GUI runs suppress it.
             p = _jco_plot_correction_convergence(correction_terms)

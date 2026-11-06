@@ -233,3 +233,64 @@ describe('Shared Results run selection', () => {
     expect(useAppStore.getState().results).toBeNull()
   })
 })
+
+describe('Live nonlinear feedback cycle progress', () => {
+  const runId = 'output_feedback_test'
+  const timestamp = '2026-11-06T12:00:00.000Z'
+  const emit = useAppStore.getState().applyRunEvent
+
+  beforeEach(() => {
+    const project = structuredClone(originalProject)
+    project.parameters[0] = { ...project.parameters[0], mode: 'Range', start: '1', stop: '2', step: '1' }
+    project.computation.nonlinearCorrectionCycles = 5
+    useAppStore.getState().loadProject(project)
+  })
+
+  it('starts at baseline and resets the three numerical stage cards for each correction cycle', () => {
+    emit({ type: 'run-started', runId, stages: ['linear', 'optimization', 'hb'], timestamp })
+    expect(useAppStore.getState().feedbackRun).toMatchObject({
+      cycle: 0, maximumCycles: 5, phase: 'baseline', status: 'running',
+    })
+    for (const stage of ['linear', 'optimization', 'hb'] as const) {
+      emit({ type: 'stage-status', runId, stage, status: 'completed', timestamp })
+    }
+    emit({ type: 'feedback-cycle', runId, cycle: 1, maximumCycles: 5, phase: 'correction', status: 'running', timestamp })
+    expect(useAppStore.getState().stages.map((stage) => stage.status)).toEqual(['ready', 'ready', 'ready'])
+    expect(useAppStore.getState().stages.map((stage) => stage.progress)).toEqual([0, 0, 0])
+    emit({ type: 'feedback-cycle', runId, cycle: 1, maximumCycles: 5, phase: 'optimization', status: 'running', timestamp })
+    emit({ type: 'stage-status', runId, stage: 'linear', status: 'completed', timestamp })
+    emit({ type: 'progress', runId, stage: 'optimization', completed: 4, total: 10, timestamp })
+    expect(useAppStore.getState().stages.find((stage) => stage.id === 'optimization')?.progress).toBe(40)
+    expect(useAppStore.getState().feedbackRun?.phase).toBe('optimization')
+    emit({ type: 'feedback-cycle', runId, cycle: 1, maximumCycles: 5, phase: 'complete', status: 'completed', timestamp })
+    expect(useAppStore.getState().feedbackRun?.completedCycles).toBe(1)
+    emit({ type: 'feedback-cycle', runId, cycle: 2, maximumCycles: 5, phase: 'correction', status: 'running', timestamp })
+    expect(useAppStore.getState().feedbackRun?.cycle).toBe(2)
+    expect(useAppStore.getState().stages.map((stage) => stage.status)).toEqual(['ready', 'ready', 'ready'])
+    emit({ type: 'feedback-done', runId, completedCycles: 2, maximumCycles: 5, reason: 'converged', timestamp })
+    emit({ type: 'run-finished', runId, outcome: 'completed', timestamp })
+    expect(useAppStore.getState().feedbackRun).toMatchObject({
+      cycle: 2, completedCycles: 2, maximumCycles: 5, status: 'converged',
+    })
+  })
+
+  it('ignores old-run feedback events and preserves failure/cancellation', () => {
+    emit({ type: 'run-started', runId, stages: ['linear', 'optimization', 'hb'], timestamp })
+    emit({ type: 'feedback-cycle', runId: 'different', cycle: 3, maximumCycles: 5, phase: 'correction', status: 'running', timestamp })
+    expect(useAppStore.getState().feedbackRun?.cycle).toBe(0)
+    emit({ type: 'feedback-cycle', runId, cycle: 1, maximumCycles: 5, phase: 'correction', status: 'running', timestamp })
+    emit({ type: 'run-finished', runId, outcome: 'cancelled', timestamp })
+    expect(useAppStore.getState().feedbackRun?.status).toBe('cancelled')
+    expect(useAppStore.getState().stages[0].status).toBe('cancelled')
+  })
+
+  it('does not create feedback progress for stage-only or disabled feedback', () => {
+    emit({ type: 'run-started', runId, stages: ['hb'], timestamp })
+    expect(useAppStore.getState().feedbackRun).toBeNull()
+    const project = structuredClone(useAppStore.getState().project)
+    project.computation.nonlinearCorrectionCycles = 0
+    useAppStore.getState().loadProject(project)
+    emit({ type: 'run-started', runId, stages: ['linear', 'optimization', 'hb'], timestamp })
+    expect(useAppStore.getState().feedbackRun).toBeNull()
+  })
+})

@@ -6,6 +6,7 @@ import { hasVaryingDeviceParameters } from './utils/runSummary'
 import { affectedComputationStage, affectedSourceStage, finishRunStages, invalidateFrom, prepareStagesForRun } from './utils/runStages'
 import type {
   ComputationConfig,
+  FeedbackRunState,
   LogEntry,
   NavigationSection,
   ParameterSpec,
@@ -110,6 +111,7 @@ interface AppStore {
   stages: StageState[]
   logs: LogEntry[]
   running: boolean
+  feedbackRun: FeedbackRunState | null
   currentRunId: string | null
   activeRunStages: StageId[]
   selectedPumpAmplitude: number
@@ -155,6 +157,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   stages: initialStages,
   logs: initialLogs,
   running: false,
+  feedbackRun: null,
   currentRunId: null,
   activeRunStages: [],
   selectedPumpAmplitude: 1.122,
@@ -275,7 +278,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return { dirty: true, project, stages: invalidateFrom(state.stages, project, affected) }
     }),
   markSaved: () => set({ dirty: false }),
-  resetProject: () => set({ project: initialProject, setupStep: 0, setupPanel: 'circuit', dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, activeRunStages: [], results: null, selectedResultsRunId: null }),
+  resetProject: () => set({ project: initialProject, setupStep: 0, setupPanel: 'circuit', dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, feedbackRun: null, activeRunStages: [], results: null, selectedResultsRunId: null }),
   setStage: (id, patch) => set((state) => ({ stages: state.stages.map((stage) => (stage.id === id ? { ...stage, ...patch } : stage)) })),
   addLog: (entry) =>
     set((state) => ({
@@ -300,6 +303,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       results: null,
       selectedResultsRunId: null,
       currentRunId: null,
+      feedbackRun: null,
       activeRunStages: [],
     })
   },
@@ -316,8 +320,56 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (event.type === 'run-started') {
       set((state) => ({
         running: true, section: 'run', currentRunId: event.runId,
+        // Feedback only runs in the complete Julia pipeline, never in stage-only runs.
+        feedbackRun: event.stages?.includes('linear') && event.stages?.includes('hb') &&
+          state.project.computation.nonlinearCorrectionCycles > 0 &&
+          hasVaryingDeviceParameters(state.project)
+          ? { cycle: 0, maximumCycles: state.project.computation.nonlinearCorrectionCycles,
+              completedCycles: 0, phase: 'baseline', status: 'running' }
+          : null,
         activeRunStages: event.stages ?? [],
         stages: event.stages?.length ? prepareStagesForRun(state.stages, state.project, event.stages) : state.stages,
+      }))
+      return
+    }
+    if (event.type === 'feedback-cycle') {
+      set((state) => {
+        if (event.runId !== state.currentRunId || !state.feedbackRun) return state
+        // A fresh correction cycle replaces the baseline/previous cycle in the
+        // three existing stage cards. Keep the standard Julia stage/progress events.
+        const fresh = event.phase === 'correction' && event.status === 'running' &&
+          event.cycle > state.feedbackRun.cycle
+        const stages = fresh ? state.stages.map((stage) => ({
+          ...stage,
+          status: stage.status === 'skipped' ? 'skipped' as const : 'ready' as const,
+          progress: 0, points: 0, startedAt: undefined,
+          completedAt: undefined, duration: undefined,
+        })) : state.stages
+        return {
+          stages,
+          feedbackRun: {
+            ...state.feedbackRun,
+            cycle: event.cycle,
+            maximumCycles: event.maximumCycles,
+            phase: event.phase,
+            completedCycles: event.status === 'completed'
+              ? Math.max(state.feedbackRun.completedCycles, event.cycle)
+              : state.feedbackRun.completedCycles,
+          },
+        }
+      })
+      return
+    }
+    if (event.type === 'feedback-done') {
+      set((state) => event.runId !== state.currentRunId || !state.feedbackRun ? state : ({
+        feedbackRun: {
+          ...state.feedbackRun,
+          cycle: event.completedCycles,
+          completedCycles: event.completedCycles,
+          maximumCycles: event.maximumCycles,
+          phase: 'complete',
+          status: event.reason === 'converged' ? 'converged' : 'completed',
+        },
       }))
       return
     }
@@ -344,7 +396,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
           : state.stages.map((stage) => stage.status === 'running'
             ? { ...stage, status: event.outcome === 'completed' ? 'failed' as const : event.outcome }
             : stage)
-        return { running: false, activeRunStages: [], stages }
+        return {
+          running: false, activeRunStages: [], stages,
+          feedbackRun: state.feedbackRun ? {
+            ...state.feedbackRun,
+            status: event.outcome === 'cancelled' ? 'cancelled'
+              : event.outcome === 'failed' ? 'failed'
+              : state.feedbackRun.status === 'converged' ? 'converged' : 'completed',
+          } : null,
+        }
       })
     }
   },

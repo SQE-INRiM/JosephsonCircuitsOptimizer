@@ -5,12 +5,16 @@ import { initialStages } from '../data/carthago'
 import { useAppStore } from '../store'
 import { formatStageCompletion, RunScreen } from './RunScreen'
 
+const baseProject = structuredClone(useAppStore.getState().project)
+
 describe('Run screen controls', () => {
   beforeEach(() => {
     useAppStore.setState({
       stages: structuredClone(initialStages),
       running: false,
       currentRunId: null,
+      feedbackRun: null,
+      project: structuredClone(baseProject),
     })
   })
 afterEach(() => {
@@ -82,6 +86,64 @@ it('runs the stage named by the selected-stage button', async () => {
 
     expect(screen.getAllByText(/Starting…/).length).toBeGreaterThan(0)
     expect(screen.queryByText('0 / 1')).toBeNull()
+  })
+
+  it('keeps feedback separate, noninteractive and hides cycles when disabled', () => {
+    render(<RunScreen desktop cancelling={false} onRunAll={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
+    expect(screen.getByLabelText('Nonlinear feedback status')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Nonlinear feedback details' })).toBeNull()
+    expect(screen.getByText('Disabled in Setup')).toBeTruthy()
+    expect(screen.queryByText(/Nonlinear feedback · Cycle/)).toBeNull()
+  })
+
+  it('shows cycle-aligned progress only while correction cycles are running', () => {
+    const project = structuredClone(baseProject)
+    project.parameters[0] = { ...project.parameters[0], mode: 'Range', start: '1', stop: '2', step: '1' }
+    project.computation.nonlinearCorrectionCycles = 5
+    useAppStore.setState({
+      project, running: true, currentRunId: 'run-feedback',
+      feedbackRun: { cycle: 2, maximumCycles: 5, completedCycles: 1, phase: 'optimization', status: 'running' },
+    })
+    render(<RunScreen desktop cancelling={false} onRunAll={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
+    expect(screen.getByText('Nonlinear feedback · Cycle 2 / 5')).toBeTruthy()
+    expect(screen.getByText('1 / 5 correction cycles completed · Cycle 2 running')).toBeTruthy()
+    const bar = screen.getByRole('progressbar', { name: 'Completed feedback correction cycles' })
+    expect(bar.getAttribute('aria-valuenow')).toBe('1')
+    expect(bar.getAttribute('aria-valuemax')).toBe('5')
+    expect(screen.queryByRole('button', { name: 'Nonlinear feedback details' })).toBeNull()
+  })
+
+  it('replaces the progress line with final completion or convergence details', () => {
+    const project = structuredClone(baseProject)
+    project.parameters[0] = { ...project.parameters[0], mode: 'Range', start: '1', stop: '2', step: '1' }
+    project.computation.nonlinearCorrectionCycles = 5
+    useAppStore.setState({
+      project, running: false, currentRunId: 'run-feedback',
+      feedbackRun: { cycle: 2, maximumCycles: 5, completedCycles: 2, phase: 'complete', status: 'converged' },
+    })
+    const props = { desktop: true, cancelling: false, onRunAll: vi.fn(), onRunStage: vi.fn(), onStop: vi.fn() }
+    const { rerender } = render(<RunScreen {...props} />)
+    expect(screen.getByText('Converged after 2 of 5 cycles')).toBeTruthy()
+    expect(screen.getByText('2 / 5 correction cycles completed')).toBeTruthy()
+    expect(screen.queryByRole('progressbar', { name: 'Completed feedback correction cycles' })).toBeNull()
+
+    useAppStore.setState({
+      project: { ...project, computation: { ...project.computation, nonlinearCorrectionCycles: 2 } },
+      feedbackRun: { cycle: 2, maximumCycles: 2, completedCycles: 2, phase: 'complete', status: 'completed' },
+    })
+    rerender(<RunScreen {...props} />)
+    expect(screen.getByText('2 correction cycles completed')).toBeTruthy()
+    expect(screen.getByText('2 / 2 correction cycles completed')).toBeTruthy()
+    expect(screen.queryByRole('progressbar', { name: 'Completed feedback correction cycles' })).toBeNull()
+  })
+
+  it('shows disabled feedback without a cycle banner for a single configuration', () => {
+    const project = structuredClone(baseProject)
+    project.computation.nonlinearCorrectionCycles = 5
+    useAppStore.setState({ project })
+    render(<RunScreen desktop cancelling={false} onRunAll={vi.fn()} onRunStage={vi.fn()} onStop={vi.fn()} />)
+    expect(screen.getByText('Requires a device-parameter sweep')).toBeTruthy()
+    expect(screen.queryByText(/Nonlinear feedback · Cycle/)).toBeNull()
   })
 
   it('uses one completion-time format for live and stored run timestamps', () => {

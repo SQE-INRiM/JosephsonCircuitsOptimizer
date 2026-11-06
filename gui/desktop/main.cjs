@@ -14,6 +14,7 @@ const { createRunId, outcomeForClose, requireDurableProject, terminateProcessTre
 const { assertProcessIdle, captureRunSession } = require('./run-session.cjs')
 const { normalizeZoom, stepZoom, zoomShortcut } = require('./zoom.cjs')
 const { isProvablyEmptyRun, updateLatestPointer } = require('./empty-run-cleanup.cjs')
+const { parseFeedbackProgressLine } = require('./feedback-progress.cjs')
 
 let mainWindow
 let session = null
@@ -228,6 +229,11 @@ async function exportEditableWorkspace(project) {
 function parseOutputLine(line, runId) {
   const trimmed = line.trim()
   if (!trimmed) return
+  const feedbackEvent = parseFeedbackProgressLine(trimmed, runId)
+  if (feedbackEvent) {
+    emit(feedbackEvent)
+    return
+  }
   let match = trimmed.match(/^STAGE name=(\S+)/)
   if (match) {
     const stage = match[1] === 'LIN' ? 'linear' : match[1] === 'BO' ? 'optimization' : match[1] === 'HB' ? 'hb' : match[1].toLowerCase()

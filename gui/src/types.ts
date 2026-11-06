@@ -253,6 +253,15 @@ export interface ResultsBundle {
   runs: RunResults[]
 }
 
+/** Live feedback loop in the Run view. Cycle 0 is the baseline full run. */
+export interface FeedbackRunState {
+  cycle: number
+  maximumCycles: number
+  completedCycles: number
+  phase: 'baseline' | 'correction' | StageId | 'complete'
+  status: 'running' | 'completed' | 'converged' | 'cancelled' | 'failed'
+}
+
 export interface StageState {
   id: StageId
   label: string
