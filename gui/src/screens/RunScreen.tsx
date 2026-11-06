@@ -268,7 +268,7 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
           <>
             <Typography variant="body2" color="text.secondary">
               {feedbackRun.cycle === 0 ? 'Baseline: Linear, Optimization and Harmonic balance.' :
-                `Cycle ${feedbackRun.cycle} of ${maxFeedbackCycles} · ${feedbackRun.completedCycles} corrected cycles completed`}
+                `Cycle ${feedbackRun.cycle} of ${maxFeedbackCycles} · ${feedbackRun.completedCycles} correction ${feedbackRun.completedCycles === 1 ? 'cycle' : 'cycles'} completed`}
             </Typography>
             {feedbackRun.cycle > 0 && <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               {feedbackSteps.map((step, index) => {
