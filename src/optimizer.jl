@@ -54,6 +54,40 @@ function _make_surrogate_model(name::AbstractString, initial_points, initial_val
 end
 
 
+# Only surrogate coordinates are dimensionless. The original inputs, simulations,
+# histories, files and GUI values always stay in user-selected physical units.
+function _optimizer_scaled_inputs(df::DataFrame, param_cols::Vector{String})
+    physical_lower = Float64[minimum(df[!, col]) for col in param_cols]
+    physical_upper = Float64[maximum(df[!, col]) for col in param_cols]
+    all(isfinite, physical_lower) && all(isfinite, physical_upper) ||
+        throw(ArgumentError("Optimizer parameter bounds must be finite."))
+    spans = physical_upper .- physical_lower
+    any(>(0.0), spans) ||
+        throw(ArgumentError("Optimizer requires at least one varying parameter."))
+
+    # A constant parameter is retained at coordinate zero, with bounds (0,0),
+    # to preserve the current parameter-vector shape and legacy 1D workarounds.
+    points = [Tuple(spans[j] == 0.0 ? 0.0 :
+                    (Float64(row[col]) - physical_lower[j]) / spans[j]
+                    for (j, col) in enumerate(param_cols)) for row in eachrow(df)]
+    return (
+        points = points,
+        lb = zeros(length(param_cols)),
+        ub = Float64[span > 0.0 ? 1.0 : 0.0 for span in spans],
+        physical_lower = physical_lower,
+        physical_spans = spans,
+    )
+end
+
+"Convert an internal surrogate point back to the physical parameters used by cost."
+function _optimizer_physical_point(z, scaling)
+    length(z) == length(scaling.physical_lower) ||
+        throw(DimensionMismatch("Optimizer point has the wrong number of parameters."))
+    return Float64[scaling.physical_lower[i] + scaling.physical_spans[i] * Float64(z[i])
+                   for i in eachindex(scaling.physical_lower)]
+end
+
+
 """
     run_optimization(df::DataFrame)
 
@@ -78,8 +112,13 @@ function run_optimization(df::DataFrame)
         error("The input DataFrame in the optimizer is empty. Please provide a non-empty DataFrame.")
     end   
     
-    # Determine the number of parameters (dimensions) from the DataFrame
-    param_cols = names(df)[1:end-1]
+    # Select device parameters explicitly: the dataset may also contain point_id,
+    # metric, feasibility and user-defined analysis columns.
+    param_cols = String.(collect(keys(device_parameters_space)))
+    missing_cols = setdiff(param_cols, names(df))
+    isempty(missing_cols) ||
+        error("Optimization dataset is missing device parameters: $(join(missing_cols, ", "))")
+    :metric in propertynames(df) || error("Optimization dataset has no metric column.")
     d = length(param_cols)
 
     if d < 2
@@ -96,27 +135,17 @@ function run_optimization(df::DataFrame)
     """)
     end
 
-    # Determine the bounds for the optimization variables from the DataFrame
-    bounds = [(minimum(df[:, col]), maximum(df[:, col])) for col in names(df)[1:end-1]]
-
-    println("Bounds: ", bounds)
-
-    # Extract lower and upper bounds as Float64
-    lb = [b[1] for b in bounds]
-    ub = [b[2] for b in bounds]
-    println("Lower bounds:", lb)
-    println("Upper bounds:", ub)
-    lb = Float64.(lb)  # Ensure bounds are of type Float64
-    ub = Float64.(ub)
-
-    # Extract initial points from the DataFrame (all columns except the last one)
-    initial_points = [Tuple(row[1:end-1]) for row in eachrow(df)]
+    scaling = _optimizer_scaled_inputs(df, param_cols)
+    lb, ub = scaling.lb, scaling.ub
+    initial_points = scaling.points
+    println("Optimization parameters: ", param_cols)
+    println("Normalized bounds: ", collect(zip(lb, ub)))
     
     global number_initial_points = length(initial_points)
     global plot_index = number_initial_points
 
-    # Extract initial values (the last column of the DataFrame)
-    initial_values = df[:, end]
+    # Preserve the original cost and mask values in this first migration step.
+    initial_values = Float64.(df[!, :metric])
 
     #println("initial_points: ", initial_points)
     #println("initial_values: ", initial_values)
@@ -143,7 +172,7 @@ function run_optimization(df::DataFrame)
 
     # Perform surrogate optimization using the surrogate optimizer function
     result = surrogate_optimize!(
-        cost,              # The cost function to optimize
+        z -> cost(_optimizer_physical_point(z, scaling)), # simulations use physical units
         strategy,            # The surrogate model type (SRBF)
         lb,                # Lower bounds
         ub,                # Upper bounds
@@ -160,11 +189,11 @@ function run_optimization(df::DataFrame)
     end
 
     # Extract the optimized vector and its corresponding metric
-    optimal_vec = result[1]                # Optimized vector
+    optimal_vec = _optimizer_physical_point(result[1], scaling) # Return physical units
     optimal_metric = result[2]             # Optimal metric value
 
     # Extract column names (excluding the last column) and convert them to symbols
-    column_names = names(df)[1:end-1]  
+    column_names = param_cols  
     column_symbols = Symbol.(column_names)  # Convert to Vector{Symbol}
     
     # Convert the optimized vector to a dictionary of parameters
