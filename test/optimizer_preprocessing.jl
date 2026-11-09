@@ -88,8 +88,14 @@ end
     inferred, _ = JCO._optimizer_surrogate_training(select(df, Not(:feasible)), "Kriging", "SRBF")
     @test inferred[end] == -11.0
 
-    # Other combinations retain their original objective and acquisition behavior.
-    legacy, no_proxy = JCO._optimizer_surrogate_training(df, "Kriging", "EI")
+    # EI and LCBS get the SAME bounded training copy, no new search loop.
+    for strategy in ("EI", "LCBS")
+        adjusted, adjusted_proxy = JCO._optimizer_surrogate_training(df, "Kriging", strategy)
+        @test adjusted == training
+        @test adjusted_proxy == proxy
+    end
+    # Non-Kriging surrogate types retain the original objective.
+    legacy, no_proxy = JCO._optimizer_surrogate_training(df, "RadialBasis", "EI")
     @test legacy == df.metric
     @test no_proxy === nothing
 
@@ -99,4 +105,15 @@ end
     )
     @test all(isfinite, training)
     @test minimum(training) == minimum(df.metric)
+end
+
+
+@testset "Missing EI/LCBS return selects best evaluated point" begin
+    # Stand-in for the only Kriging fields the fallback needs.
+    surrogate = (x=[(0.0, 0.0), (1.0, 0.0)], y=[-12.0, -10.0])
+    @test JCO._optimizer_result_or_best_sampled(nothing, surrogate, "EI") == ((0.0, 0.0), -12.0)
+    @test JCO._optimizer_result_or_best_sampled(nothing, surrogate, "LCBS") == ((0.0, 0.0), -12.0)
+    @test JCO._optimizer_result_or_best_sampled(((0.5, 0.5), -13.0), surrogate, "EI") ==
+          ((0.5, 0.5), -13.0)
+    @test_throws ArgumentError JCO._optimizer_result_or_best_sampled(nothing, surrogate, "SRBF")
 end
