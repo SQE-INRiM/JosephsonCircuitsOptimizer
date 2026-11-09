@@ -92,7 +92,7 @@ end
 """
     _optimizer_surrogate_training(df, surrogate_name, strategy_name)
 
-For Kriging + SRBF only, keep all seed positions but replace masked metric
+For Kriging with SRBF, EI or LCBS, keep all seed positions but replace masked
 penalties in the surrogate *training copy*. This is a bounded numerical proxy,
 not an implementation of constrained Bayesian optimization. Actual user_cost
 values and feasible flags remain unchanged in the saved datasets and history.
@@ -100,8 +100,9 @@ values and feasible flags remain unchanged in the saved datasets and history.
 function _optimizer_surrogate_training(df::DataFrame, surrogate_name::AbstractString,
                                         strategy_name::AbstractString)
     values = Float64.(df[!, :metric])
+    strategy = lowercase(strip(strategy_name))
     if lowercase(strip(surrogate_name)) != "kriging" ||
-       lowercase(strip(strategy_name)) != "srbf"
+       !(strategy in ("srbf", "ei", "lcbs", "lcb"))
         return values, nothing
     end
 
@@ -109,7 +110,7 @@ function _optimizer_surrogate_training(df::DataFrame, surrogate_name::AbstractSt
                 for (i, row) in enumerate(eachrow(df))]
     valid_values = values[feasible]
     isempty(valid_values) &&
-        throw(ArgumentError("The linear dataset has no feasible points for Kriging + SRBF."))
+        throw(ArgumentError("The linear dataset has no feasible points for Kriging optimization."))
 
     minimum_valid, maximum_valid = extrema(valid_values)
     # Always make masked configurations worse than any measured feasible point.
@@ -120,11 +121,11 @@ function _optimizer_surrogate_training(df::DataFrame, surrogate_name::AbstractSt
 
     training_values = [feasible[i] ? values[i] : mask_proxy
                        for i in eachindex(values)]
-    @info "Kriging + SRBF: $(count(identity, feasible)) feasible / $(count(!, feasible)) masked seed points; surrogate-only mask value = $(mask_proxy)"
+    @info "Kriging + $(uppercase(strategy)): $(count(identity, feasible)) feasible / $(count(!, feasible)) masked seed points; surrogate-only mask value = $(mask_proxy)"
     return training_values, mask_proxy
 end
 
-"Evaluate physical cost, returning only a bounded mask proxy to Kriging + SRBF."
+"Evaluate physical cost, returning a bounded mask proxy only to supported Kriging strategies."
 function _optimizer_surrogate_evaluate(z, scaling, mask_proxy)
     observed = cost(_optimizer_physical_point(z, scaling))
     mask_proxy === nothing && return observed
@@ -133,6 +134,23 @@ function _optimizer_surrogate_evaluate(z, scaling, mask_proxy)
     return isfinite(observed) && feasible == 1.0 ? observed : mask_proxy
 end
 
+
+"""
+    _optimizer_result_or_best_sampled(result, surrogate, strategy_name)
+
+Some Surrogates.jl EI/LCBS paths return nothing when they exhaust maxiters.
+When that happens, return the best *already evaluated* point, not a prediction.
+The underlying search and its stopping conditions are intentionally unchanged.
+"""
+function _optimizer_result_or_best_sampled(result, surrogate, strategy_name)
+    result !== nothing && return result
+    strategy = lowercase(strip(strategy_name))
+    strategy in ("ei", "lcbs", "lcb") ||
+        throw(ArgumentError("Optimizer $(strategy_name) returned no result."))
+    idx = argmin(surrogate.y)
+    @warn "Surrogates.jl $(uppercase(strategy)) ended without a return value; using best evaluated point. This does not certify convergence."
+    return surrogate.x[idx], surrogate.y[idx]
+end
 
 """
     run_optimization(df::DataFrame)
@@ -195,8 +213,8 @@ function run_optimization(df::DataFrame)
     opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
     initial_values, mask_proxy = _optimizer_surrogate_training(df, sur_name, opt_name)
 
-    # The surrogate sees normalized points and (for Kriging + SRBF) a bounded
-    # training-only mask penalty. The recorded physical objective is unchanged.
+    # Kriging uses normalized inputs and a bounded training-only mask penalty.
+    # The recorded physical objective is unchanged.
     # Read the configured search budget.
     n_maxiters = optimizer_config[:max_optimizer_iterations]
     n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]    
@@ -227,7 +245,9 @@ function run_optimization(df::DataFrame)
     catch
     end
 
-    # Extract the optimized vector and its corresponding metric
+    # EI/LCBS may return nothing on iteration exhaustion; use the best sampled
+    # surrogate point in that case. Never substitute a predicted optimum.
+    result = _optimizer_result_or_best_sampled(result, surrogate, opt_name)
     optimal_vec = _optimizer_physical_point(result[1], scaling) # Return physical units
     optimal_metric = result[2]             # Optimal metric value
 
