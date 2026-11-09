@@ -118,8 +118,8 @@ end
     end
 
     # Both entry points must seed before constructing the surrogate.
-    engine = read(joinpath(@__DIR__, "..", "src", "optimizer.jl"), String)
-    gui = read(joinpath(@__DIR__, "..", "gui", "runtime", "bridge", "gui_runtime_fixes.jl"), String)
+    engine = replace(read(joinpath(@__DIR__, "..", "src", "optimizer.jl"), String), "\r\n" => "\n")
+    gui = replace(read(joinpath(@__DIR__, "..", "gui", "runtime", "bridge", "gui_runtime_fixes.jl"), String), "\r\n" => "\n")
     @test occursin("_optimizer_apply_seed!()\n    surrogate = _make_surrogate_model", engine)
     @test occursin("_optimizer_apply_seed!()\n    surrogate = _make_surrogate_model", gui)
 end
