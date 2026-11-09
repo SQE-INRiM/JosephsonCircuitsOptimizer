@@ -243,6 +243,9 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         @debug "Running linear simulations with device parameters space: $device_parameters_space"
         GC.gc()
         global delta_correction = 0.0
+        if !single_point_mode && Int(sim_vars[:n_iterations_nonlinear_correction]) > 0
+            _feedback_linear_cache_start!()
+        end
 
         df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
         save_dataset(df, output_path)
@@ -555,6 +558,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             @warn "Bookkeeping step failed (run still OK): $err"
         end
 
+        _feedback_linear_cache_stop!()
         GC.gc()
     end
 
