@@ -16,6 +16,7 @@ const api = {
   validateProject: (project) => ipcRenderer.invoke('jco:validate', project),
   previewCircuit: (project) => ipcRenderer.invoke('jco:preview-circuit', project),
   startRun: (request) => ipcRenderer.invoke('jco:start-run', request),
+  resumeRun: (action) => ipcRenderer.invoke('jco:resume-run', action),
   cancelRun: (runId) => ipcRenderer.invoke('jco:cancel-run', runId),
   deleteRun: (runId) => ipcRenderer.invoke('jco:delete-run', runId),
   readResults: () => ipcRenderer.invoke('jco:read-results'),
