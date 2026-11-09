@@ -89,75 +89,6 @@ end
 
 
 """
-    _optimizer_search(df, scaling)
-
-Single search entry point used by both Julia and GUI. Feasibility-aware
-Kriging+SRBF uses an objective surrogate trained only on feasible linear
-points, plus a separate all-point classifier. Other combinations preserve
-their existing Surrogates.jl behavior until their acquisition is adapted.
-"""
-function _optimizer_search(df::DataFrame, scaling)
-    initial_values = Float64.(df[!, :metric])
-    initial_points = scaling.points
-    flags = _optimizer_feasible_flags(df)
-    n_maxiters = Int(optimizer_config[:max_optimizer_iterations])
-    n_num_new_samples = Int(optimizer_config[:new_samples_per_optimizer_iteration])
-    sur_name = string(get(optimizer_config, :surrogate_model, "Kriging"))
-    opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
-    samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
-    sampler = _make_sampling_strategy(samp_name)
-
-    constrained = lowercase(strip(sur_name)) == "kriging" &&
-                  lowercase(strip(opt_name)) == "srbf"
-    global cost_progress_ctx = Progress.start!(;
-        N=(constrained ? n_maxiters : n_maxiters * n_num_new_samples),
-        stage="BO"
-    )
-    try
-        if constrained
-            feasible_indices = findall(identity, flags)
-            isempty(feasible_indices) &&
-                throw(ArgumentError("All linear grid points are masked; no feasible metric surrogate can be fitted."))
-            feasible_points = initial_points[feasible_indices]
-            feasible_values = initial_values[feasible_indices]
-            length(unique(feasible_points)) >= 2 ||
-                throw(ArgumentError("At least two distinct feasible linear points are required to fit Kriging."))
-            surrogate = _make_surrogate_model(sur_name, feasible_points, feasible_values,
-                                              scaling.lb, scaling.ub)
-
-            evaluate = function (z)
-                metric = cost(_optimizer_physical_point(z, scaling))
-                # cost records the exact user-defined flag (or legacy threshold).
-                flag = get(last_cost_metrics, :feasible,
-                           isfinite(metric) && metric < LEGACY_MASK_THRESHOLD ? 1.0 : 0.0)
-                return (metric, flag == 1.0)
-            end
-            return _optimizer_constrained_srbf!(evaluate, surrogate,
-                initial_points, flags, scaling.lb, scaling.ub, sampler;
-                maxiters=n_maxiters, num_new_samples=n_num_new_samples)
-        else
-            if any(!, flags)
-                @warn "Feasibility-aware acquisition currently supports Kriging + SRBF only; using legacy penalties for this optimizer combination." surrogate=sur_name strategy=opt_name
-            end
-            surrogate = _make_surrogate_model(sur_name, initial_points, initial_values,
-                                              scaling.lb, scaling.ub)
-            return surrogate_optimize!(
-                z -> cost(_optimizer_physical_point(z, scaling)),
-                _make_optimizer_strategy(opt_name),
-                scaling.lb, scaling.ub, surrogate, sampler;
-                maxiters=n_maxiters, num_new_samples=n_num_new_samples,
-            )
-        end
-    finally
-        try
-            Progress.finish!(cost_progress_ctx)
-        catch
-        end
-    end
-end
-
-
-"""
     run_optimization(df::DataFrame)
 
 Optimize the cost function through a configurable surrogate and search strategy.
@@ -213,8 +144,48 @@ function run_optimization(df::DataFrame)
     global number_initial_points = length(initial_points)
     global plot_index = number_initial_points
 
-    # Shared with the GUI runtime: the scientific search logic lives in one place.
-    result = _optimizer_search(df, scaling)
+    # Preserve the original cost and mask values in this first migration step.
+    initial_values = Float64.(df[!, :metric])
+
+    #println("initial_points: ", initial_points)
+    #println("initial_values: ", initial_values)
+
+    # Initialize the chosen surrogate from every linear evaluation.
+
+    # Retrieve optimization parameters such as the maximum number of iterations and the number of new samples per iteration
+    n_maxiters = optimizer_config[:max_optimizer_iterations]
+    n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]    
+
+    sur_name  = string(get(optimizer_config, :surrogate_model, "Kriging"))
+    surrogate = _make_surrogate_model(sur_name, initial_points, initial_values, lb, ub)
+    opt_name  = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
+    strategy  = _make_optimizer_strategy(opt_name)
+    samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
+    sampler   = _make_sampling_strategy(samp_name)
+
+    # Used by `cost(vec)` to distinguish between the initial dataset and BO evaluations
+    global number_initial_points = length(initial_points)
+
+    # Progress lines for the GUI: BO evaluations only
+    global cost_progress_ctx = Progress.start!(; N=n_maxiters*n_num_new_samples, stage="BO")
+
+    # Perform surrogate optimization using the surrogate optimizer function
+    result = surrogate_optimize!(
+        z -> cost(_optimizer_physical_point(z, scaling)), # simulations use physical units
+        strategy,            # Acquisition / search strategy
+        lb,                # Lower bounds
+        ub,                # Upper bounds
+        surrogate,           # Surrogate fitted on normalized coordinates
+        sampler,             # Random / Sobol / Latin hypercube
+        maxiters = n_maxiters,                  # Maximum number of iterations
+        num_new_samples = n_num_new_samples     # Number of new points to generate for each iteration
+    )
+
+    # Close progress context (best-effort)
+    try
+        Progress.finish!(cost_progress_ctx)
+    catch
+    end
 
     # Extract the optimized vector and its corresponding metric
     optimal_vec = _optimizer_physical_point(result[1], scaling) # Return physical units
