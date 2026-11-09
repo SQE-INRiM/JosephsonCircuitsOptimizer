@@ -75,7 +75,9 @@ function run_optimization(df::DataFrame)
     # Feasibility is stored separately. The numerical objective remains
     # unchanged until constrained acquisition is implemented in a later step.
     initial_points = scaling.points
-    initial_values = Float64.(df[!, :metric])
+    sur_name = string(get(optimizer_config, :surrogate_model, "Kriging"))
+    opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
+    initial_values, mask_proxy = _optimizer_surrogate_training(df, sur_name, opt_name)
     lb, ub = scaling.lb, scaling.ub
 
     global number_initial_points = length(initial_points)
@@ -88,9 +90,7 @@ function run_optimization(df::DataFrame)
     n_maxiters = optimizer_config[:max_optimizer_iterations]
     n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]
 
-    sur_name = string(get(optimizer_config, :surrogate_model, "Kriging"))
     surrogate = _make_surrogate_model(sur_name, initial_points, initial_values, lb, ub)
-    opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
     strategy = _make_optimizer_strategy(opt_name)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler = _make_sampling_strategy(samp_name)
@@ -98,7 +98,7 @@ function run_optimization(df::DataFrame)
     global cost_progress_ctx = Progress.start!(; N=n_maxiters * n_num_new_samples, stage="BO")
 
     result = surrogate_optimize!(
-        z -> cost(_optimizer_physical_point(z, scaling)),
+        z -> _optimizer_surrogate_evaluate(z, scaling, mask_proxy),
         strategy,
         lb,
         ub,
