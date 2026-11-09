@@ -3,7 +3,13 @@
 // Machine-readable markers emitted only by Julia's full-run feedback loop.
 // Normal STAGE / PROGRESS / PROGRESS_DONE continue to describe each numerical stage.
 function parseFeedbackProgressLine(line, runId, timestamp = new Date().toISOString()) {
-  let match = line.match(/^FEEDBACK_CYCLE cycle=(\d+) max=(\d+) phase=(correction|linear|optimization|hb|complete) status=(running|completed)$/)
+  let match = line.match(/^RUN_PAUSED cycle=(\\d+) after=(linear|optimization|hb)$/)
+  if (match) {
+    const cycle = Number(match[1])
+    if (!Number.isSafeInteger(cycle) || cycle < 0) return null
+    return { type: 'run-paused', runId, cycle, after: match[2], timestamp }
+  }
+  match = line.match(/^FEEDBACK_CYCLE cycle=(\d+) max=(\d+) phase=(correction|linear|optimization|hb|complete) status=(running|completed)$/)
   if (match) {
     const cycle = Number(match[1])
     const maximumCycles = Number(match[2])
