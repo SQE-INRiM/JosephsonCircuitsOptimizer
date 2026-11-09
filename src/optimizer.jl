@@ -88,6 +88,52 @@ function _optimizer_physical_point(z, scaling)
 end
 
 
+
+"""
+    _optimizer_surrogate_training(df, surrogate_name, strategy_name)
+
+For Kriging + SRBF only, keep all seed positions but replace masked metric
+penalties in the surrogate *training copy*. This is a bounded numerical proxy,
+not an implementation of constrained Bayesian optimization. Actual user_cost
+values and feasible flags remain unchanged in the saved datasets and history.
+"""
+function _optimizer_surrogate_training(df::DataFrame, surrogate_name::AbstractString,
+                                        strategy_name::AbstractString)
+    values = Float64.(df[!, :metric])
+    if lowercase(strip(surrogate_name)) != "kriging" ||
+       lowercase(strip(strategy_name)) != "srbf"
+        return values, nothing
+    end
+
+    feasible = [isfinite(values[i]) && _linear_row_feasible(row)
+                for (i, row) in enumerate(eachrow(df))]
+    valid_values = values[feasible]
+    isempty(valid_values) &&
+        throw(ArgumentError("The linear dataset has no feasible points for Kriging + SRBF."))
+
+    minimum_valid, maximum_valid = extrema(valid_values)
+    # Always make masked configurations worse than any measured feasible point.
+    # Use the objective's actual variation, never the arbitrary 1e8 sentinel.
+    mask_proxy = maximum_valid + max(1.0, maximum_valid - minimum_valid)
+    isfinite(mask_proxy) ||
+        throw(ArgumentError("Cannot construct a finite surrogate mask penalty."))
+
+    training_values = [feasible[i] ? values[i] : mask_proxy
+                       for i in eachindex(values)]
+    @info "Kriging + SRBF: $(count(identity, feasible)) feasible / $(count(!, feasible)) masked seed points; surrogate-only mask value = $(mask_proxy)"
+    return training_values, mask_proxy
+end
+
+"Evaluate physical cost, returning only a bounded mask proxy to Kriging + SRBF."
+function _optimizer_surrogate_evaluate(z, scaling, mask_proxy)
+    observed = cost(_optimizer_physical_point(z, scaling))
+    mask_proxy === nothing && return observed
+    feasible = get(last_cost_metrics, :feasible,
+                   isfinite(observed) && observed < LEGACY_MASK_THRESHOLD ? 1.0 : 0.0)
+    return isfinite(observed) && feasible == 1.0 ? observed : mask_proxy
+end
+
+
 """
     run_optimization(df::DataFrame)
 
@@ -144,8 +190,10 @@ function run_optimization(df::DataFrame)
     global number_initial_points = length(initial_points)
     global plot_index = number_initial_points
 
-    # Preserve the original cost and mask values in this first migration step.
-    initial_values = Float64.(df[!, :metric])
+    # Only the surrogate training copy is changed; the DataFrame stays physical.
+    sur_name = string(get(optimizer_config, :surrogate_model, "Kriging"))
+    opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
+    initial_values, mask_proxy = _optimizer_surrogate_training(df, sur_name, opt_name)
 
     #println("initial_points: ", initial_points)
     #println("initial_values: ", initial_values)
@@ -156,10 +204,8 @@ function run_optimization(df::DataFrame)
     n_maxiters = optimizer_config[:max_optimizer_iterations]
     n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]    
 
-    sur_name  = string(get(optimizer_config, :surrogate_model, "Kriging"))
     surrogate = _make_surrogate_model(sur_name, initial_points, initial_values, lb, ub)
-    opt_name  = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
-    strategy  = _make_optimizer_strategy(opt_name)
+    strategy = _make_optimizer_strategy(opt_name)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler   = _make_sampling_strategy(samp_name)
 
@@ -171,7 +217,7 @@ function run_optimization(df::DataFrame)
 
     # Perform surrogate optimization using the surrogate optimizer function
     result = surrogate_optimize!(
-        z -> cost(_optimizer_physical_point(z, scaling)), # simulations use physical units
+        z -> _optimizer_surrogate_evaluate(z, scaling, mask_proxy), # physical simulation; bounded mask only for the surrogate
         strategy,            # Acquisition / search strategy
         lb,                # Lower bounds
         ub,                # Upper bounds
