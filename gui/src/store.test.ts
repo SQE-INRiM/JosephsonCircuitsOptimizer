@@ -274,6 +274,21 @@ describe('Live nonlinear feedback cycle progress', () => {
     })
   })
 
+  it('records and clears a stepped checkpoint without changing completed stages', () => {
+    emit({ type: 'run-started', runId, stages: ['linear', 'optimization', 'hb'], timestamp })
+    emit({ type: 'stage-status', runId, stage: 'hb', status: 'completed', timestamp })
+    emit({ type: 'run-paused', runId: 'other', cycle: 0, after: 'hb', timestamp })
+    expect(useAppStore.getState().pausedRun).toBeNull()
+    emit({ type: 'run-paused', runId, cycle: 0, after: 'hb', timestamp })
+    expect(useAppStore.getState().pausedRun).toEqual({ cycle: 0, after: 'hb' })
+    expect(useAppStore.getState().stages[2].status).toBe('completed')
+    emit({ type: 'run-resumed', runId, timestamp })
+    expect(useAppStore.getState().pausedRun).toBeNull()
+    emit({ type: 'run-paused', runId, cycle: 1, after: 'linear', timestamp })
+    emit({ type: 'run-finished', runId, outcome: 'cancelled', timestamp })
+    expect(useAppStore.getState().pausedRun).toBeNull()
+  })
+
   it('ignores old-run feedback events and preserves failure/cancellation', () => {
     emit({ type: 'run-started', runId, stages: ['linear', 'optimization', 'hb'], timestamp })
     emit({ type: 'feedback-cycle', runId: 'different', cycle: 3, maximumCycles: 5, phase: 'correction', status: 'running', timestamp })
