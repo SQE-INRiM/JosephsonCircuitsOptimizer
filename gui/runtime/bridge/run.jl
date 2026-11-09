@@ -44,7 +44,8 @@ elseif mode == "nonlinear_only"
         optimal_params_path=isempty(stage_optimum) ? nothing : stage_optimum,
         dataset_path=isempty(stage_dataset) ? nothing : stage_dataset)
 elseif mode == "from_latest"
-    JCO.run_from_latest_dataset_only(; workspace)
+    JCO.run_from_latest_dataset_only(; workspace,
+        dataset_path=isempty(stage_dataset) ? nothing : stage_dataset)
 else
     error("Unknown JCO mode: $mode")
 end
