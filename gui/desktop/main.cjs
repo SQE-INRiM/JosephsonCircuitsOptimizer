@@ -306,7 +306,10 @@ async function startRun(request) {
     const outcome = outcomeForClose(code, cancelRequested)
     try { fs.rmSync(path.join(runSession.workspace, 'STOP'), { force: true }) } catch {}
     const outputPath = path.join(runSession.workspace, 'outputs', runId)
-    try { fs.rmSync(path.join(outputPath, '.jco_gui_run_control'), { force: true }) } catch {}
+    try {
+      fs.rmSync(path.join(outputPath, '.jco_gui_run_control'), { force: true })
+      fs.rmSync(path.join(outputPath, '.jco_gui_run_control.pending'), { force: true })
+    } catch {}
     if (displayMetadata && fs.existsSync(path.join(outputPath, 'inputs_snapshot'))) {
       try {
         fs.writeFileSync(path.join(outputPath, 'inputs_snapshot', 'jco_gui_metadata.json'), displayMetadata)
@@ -339,7 +342,10 @@ function resumeRun(_event, action) {
   }
   if (activeRun.cancelRequested) throw new Error('Run cancellation is in progress.')
   const controlFile = path.join(activeRun.workspace, 'outputs', activeRun.runId, '.jco_gui_run_control')
-  fs.writeFileSync(controlFile, action + '\n', { encoding: 'utf8', flag: 'wx' })
+  const pendingFile = controlFile + '.pending'
+  fs.writeFileSync(pendingFile, action + '\n', { encoding: 'utf8', flag: 'wx' })
+  try { fs.renameSync(pendingFile, controlFile) }
+  catch (error) { fs.rmSync(pendingFile, { force: true }); throw error }
   activeRun.paused = false
   emit({ type: 'run-resumed', runId: activeRun.runId, timestamp: new Date().toISOString() })
   return { accepted: true }
