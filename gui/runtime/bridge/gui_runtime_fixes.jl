@@ -94,6 +94,7 @@ function run_optimization(df::DataFrame)
     strategy = _make_optimizer_strategy(opt_name)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler = _make_sampling_strategy(samp_name)
+    _optimizer_apply_seed!()
 
     global cost_progress_ctx = Progress.start!(; N=n_maxiters * n_num_new_samples, stage="BO")
 
