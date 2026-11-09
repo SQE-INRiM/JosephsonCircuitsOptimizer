@@ -68,7 +68,6 @@ include("CostModule.jl")
 include("FeedbackConvergence.jl")
 include("FeedbackReuse.jl")
 include("simulator.jl")
-include("ConstrainedSRBF.jl")
 include("optimizer.jl")
 include("FeedbackResults.jl")
 # Analysis_plots.jl is loaded only by _ensure_plotting_loaded!().
