@@ -320,7 +320,7 @@ function cost(vec)
 
     # Save history (best-effort)
     try
-        push!(cost_history["params_vecs"], Float64.(vec))
+        push!(cost_history["params_vecs"], collect(Float64.(vec)))
         push!(cost_history["metrics"], Float64(metric))
         push!(cost_history["feasible"], feasible)
         push!(cost_history["timestamps_utc"], Dates.format(Dates.now(Dates.UTC), dateformat"yyyy-mm-ddTHH:MM:SS"))

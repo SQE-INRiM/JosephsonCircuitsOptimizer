@@ -7,6 +7,19 @@ function setup_optimizer()
     optimizer_config = load_params(joinpath(config.user_inputs_dir, "optimizer_config.json"))
 end
 
+# Apply the seed supplied by the project before constructing/sampling the surrogate.
+# Older project files without a seed keep their existing RNG behavior.
+function _optimizer_apply_seed!()
+    seed = get(optimizer_config, :random_seed, nothing)
+    seed === nothing && return nothing
+    (seed isa Real && isfinite(seed) && isinteger(seed) &&
+     0 <= seed <= typemax(Int)) ||
+        throw(ArgumentError("Optimizer random_seed must be a non-negative integer."))
+    Random.seed!(Int(seed))
+    @info "Optimizer random seed" seed=Int(seed)
+    return Int(seed)
+end
+
 
 "Map config string -> Surrogates optimizer strategy (acquisition / search loop)."
 function _make_optimizer_strategy(name::AbstractString)
@@ -169,9 +182,10 @@ function _optimizer_finalize_result(result, df::DataFrame, param_cols::Vector{St
                                     scaling, history_before_bo::Integer)
     if result === nothing
         @warn "Surrogate optimizer returned nothing; selecting the best feasible evaluated point from the sweep and optimization history."
-        return _optimizer_best_evaluated(df, param_cols, history_before_bo)
     end
-    return _optimizer_physical_point(result[1], scaling), result[2]
+    # The surrogate may report a masked or unevaluated candidate. The returned
+    # optimum must always be the best *measured* feasible cost, including seeds.
+    return _optimizer_best_evaluated(df, param_cols, history_before_bo)
 end
 
 
@@ -242,6 +256,7 @@ function run_optimization(df::DataFrame)
     n_maxiters = optimizer_config[:max_optimizer_iterations]
     n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]    
 
+    _optimizer_apply_seed!()
     surrogate = _make_surrogate_model(sur_name, initial_points, initial_values, lb, ub)
     strategy = _make_optimizer_strategy(opt_name)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
