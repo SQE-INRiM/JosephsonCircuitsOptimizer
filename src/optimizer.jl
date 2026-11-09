@@ -195,12 +195,9 @@ function run_optimization(df::DataFrame)
     opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
     initial_values, mask_proxy = _optimizer_surrogate_training(df, sur_name, opt_name)
 
-    #println("initial_points: ", initial_points)
-    #println("initial_values: ", initial_values)
-
-    # Initialize the chosen surrogate from every linear evaluation.
-
-    # Retrieve optimization parameters such as the maximum number of iterations and the number of new samples per iteration
+    # The surrogate sees normalized points and (for Kriging + SRBF) a bounded
+    # training-only mask penalty. The recorded physical objective is unchanged.
+    # Read the configured search budget.
     n_maxiters = optimizer_config[:max_optimizer_iterations]
     n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]    
 
@@ -208,9 +205,6 @@ function run_optimization(df::DataFrame)
     strategy = _make_optimizer_strategy(opt_name)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler   = _make_sampling_strategy(samp_name)
-
-    # Used by `cost(vec)` to distinguish between the initial dataset and BO evaluations
-    global number_initial_points = length(initial_points)
 
     # Progress lines for the GUI: BO evaluations only
     global cost_progress_ctx = Progress.start!(; N=n_maxiters*n_num_new_samples, stage="BO")
