@@ -490,6 +490,7 @@ function ComputationStep() {
   const frequencyPoints = Math.floor(((config.frequencyStopGHz - config.frequencyStartGHz) * 1000) / config.frequencyStepMHz) + 1
   const variableParameterCount = project.parameters.filter((parameter) => parameter.mode !== 'Fixed').length
   const optimizationSkipped = !hasVaryingDeviceParameters(project)
+  const usesStandardOptimizer = config.surrogate === 'Kriging' && config.strategy === 'SRBF'
   const linearFirstOrder = config.linearStrongToneHarmonics === 1
     && config.linearModulationHarmonics === 1
     && Number(config.maxIntermodOrder) === 1
@@ -516,7 +517,7 @@ function ComputationStep() {
         >
           <CardContent>
             <Box sx={{ opacity: optimizationSkipped ? 0.55 : 1 }}>
-              <SectionHeading icon={<FunctionsRoundedIcon />} title="Optimization" description="Surrogate model and acquisition strategy." />
+              <SectionHeading icon={<FunctionsRoundedIcon />} title="Optimization" description="Optimize the linear design space using Kriging + SRBF." />
             </Box>
             <Stack spacing={2} sx={{ mt: 2.5 }}>
               <Stack direction="row" spacing={1.5}>
@@ -524,11 +525,14 @@ function ComputationStep() {
                 <NumberField label="Samples / iteration" value={config.samplesPerIteration} disabled={optimizationSkipped} onChange={(value) => update({ samplesPerIteration: value })} />
                 <NumberField label="Random seed" value={config.randomSeed} disabled={optimizationSkipped} onChange={(value) => update({ randomSeed: value })} />
               </Stack>
-              <Stack direction="row" spacing={1.5}>
-                <TextField select label="Surrogate" value={config.surrogate} disabled={optimizationSkipped} onChange={(event) => update({ surrogate: event.target.value })} fullWidth><MenuItem value="Kriging">Kriging</MenuItem><MenuItem value="RadialBasis" disabled title="Experimental — not yet validated">Radial basis (experimental)</MenuItem><MenuItem value="SecondOrderPolynomial" disabled title="Experimental — not yet validated">Second-order polynomial (experimental)</MenuItem></TextField>
-                <TextField select label="Strategy" value={config.strategy} disabled={optimizationSkipped} onChange={(event) => update({ strategy: event.target.value })} fullWidth><MenuItem value="SRBF">SRBF</MenuItem><MenuItem value="EI" disabled title="Experimental — not yet validated">Expected improvement (experimental)</MenuItem><MenuItem value="LCBS" disabled title="Experimental — not yet validated">Lower confidence bound (experimental)</MenuItem></TextField>
-                <TextField select label="Sampler" value={config.sampler} disabled={optimizationSkipped} onChange={(event) => update({ sampler: event.target.value })} fullWidth><MenuItem value="RandomSample">Random</MenuItem><MenuItem value="SobolSample">Sobol</MenuItem><MenuItem value="LatinHypercubeSample">Latin hypercube</MenuItem></TextField>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                <Paper variant="outlined" sx={{ p: 1.25, flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Optimizer</Typography>
+                  <Typography variant="body1" fontWeight={600}>{config.surrogate} + {config.strategy}</Typography>
+                </Paper>
+                <TextField select label="Sampler" value={config.sampler} disabled={optimizationSkipped} onChange={(event) => update({ sampler: event.target.value })} fullWidth sx={{ flex: 1 }}><MenuItem value="RandomSample">Random</MenuItem><MenuItem value="SobolSample">Sobol</MenuItem><MenuItem value="LatinHypercubeSample">Latin hypercube</MenuItem></TextField>
               </Stack>
+              {!usesStandardOptimizer && <Alert severity="warning" action={<Button size="small" color="inherit" disabled={optimizationSkipped} onClick={() => update({ surrogate: 'Kriging', strategy: 'SRBF' })}>Use Kriging + SRBF</Button>}>This project uses a legacy optimizer configuration. It is preserved and will be used unless you switch to the standard method.</Alert>}
               {optimizationSkipped
                 ? <Alert severity="info">Optimization skipped — only one device configuration in Linear; no optimization is needed.</Alert>
                 : <Alert severity="success">Optimization enabled · {variableParameterCount} variable device parameter{variableParameterCount === 1 ? '' : 's'}.</Alert>}
