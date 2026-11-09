@@ -1,8 +1,9 @@
 # Optimizer preprocessing: physical coordinates and feasibility
 
-This branch introduces two deliberately separate changes to the existing optimizer.
-It does **not** change `user_cost`, the objective values, the optimizer strategy
-(SRBF / EI / LCBS), or how constrained acquisition works.
+This branch introduces parameter normalization and feasibility metadata,
+plus a small, reversible adjustment to the **Kriging + SRBF** surrogate targets.
+It does **not** change `user_cost`, the original stored metric values, the
+underlying Surrogates.jl SRBF algorithm, or the GUI project file format.
 
 ## 1. Coordinates only inside the surrogate
 
@@ -57,20 +58,34 @@ return (
 The optional field accepts Bool or 0/1. An explicitly declared flag overrides
 the legacy threshold when the objective is finite.
 
-**Important:** feasibility is **metadata only in this step**. The optimizer
-still fits and minimizes the same metric, including any user-defined penalties.
-A return value `(metric = -25.0, feasible = false)` is recorded as infeasible,
-but its unpenalized `metric` still influences the surrogate. Existing numerical
-penalties must therefore remain in `user_cost` until constrained acquisition
-is implemented and tested in a separate change. This makes the migration
-backward compatible instead of silently changing the optimization.
+**Important:** feasibility is still recorded separately from the physical
+objective. For **Kriging + SRBF**, JCO now makes a *training-only* copy of the
+objective values, replacing masked entries with a finite penalty:
+
+```julia
+valid_min, valid_max = extrema(values_of_feasible_points)
+surrogate_mask_value = valid_max + max(1.0, valid_max - valid_min)
+```
+
+The original masked entries (often `1e8`) remain unchanged in the linear
+dataset and saved history. The same proxy is supplied to the **existing**
+Surrogates.jl SRBF when a newly evaluated point is masked; the physical
+`cost` still executes and stores its actual result. This prevents artificial
+`1e8` values from dominating Kriging without introducing a new search loop.
+
+This is **not** a fully constrained optimizer: masked points are still present
+in Kriging's training set, with bounded proxy values. SRBF still uses the
+library's original sampling, weighting, and stopping rules, which are
+independent issues. EI, LCBS, RBF and polynomial combinations retain their
+previous behavior. For a `feasible = false` return, the user may keep the
+original penalty convention; the surrogate proxy is chosen internally.
 
 ## 3. Intentionally out of scope
 
 - Optimizer stopping and `maxiters` semantics in Surrogates.jl
-- Surrogate choice and acquisition logic
-- Separate feasibility classifiers / constrained Bayesian optimization
-- Penalty magnitudes or changes to user-defined mask conditions
+- Surrogate choice and acquisition algorithms
+- Separate feasibility classifiers / fully constrained Bayesian optimization
+- Changes to user-defined mask conditions or actual stored penalty magnitudes
 - GUI plot redesign and external `.jco` file format
 
 Previously saved linear datasets without `feasible` remain loadable.
@@ -85,7 +100,8 @@ julia --project=. test/optimizer_preprocessing.jl
 ```
 
 Tests cover scaling, inverse conversion, constant parameter handling, invalid
-bounds, explicit and legacy feasibility, and filtering. For integration
+bounds, explicit and legacy feasibility, filtering, bounded surrogate training
+values, and preservation of original dataset metrics. For integration
 testing, run an existing `.jco` with an `I0` / `Cg` sweep and verify:
 the saved coordinates have physical units, the new `feasible` columns match
 mask results, and no masked point changes its numerical `metric`.
