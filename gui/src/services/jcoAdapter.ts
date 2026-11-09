@@ -21,6 +21,7 @@ export interface RunRequest {
   project: ProjectModel
   stages: StageId[]
   resumeFromRunId?: string
+  stepThroughFeedback?: boolean
 }
 
 export interface CancelResult {
@@ -63,6 +64,8 @@ export type RunEvent =
   | { type: 'progress'; runId: string; stage: StageId; completed: number; total: number; etaSeconds?: number; timestamp: string }
   | { type: 'feedback-cycle'; runId: string; cycle: number; maximumCycles: number; phase: 'correction' | StageId | 'complete'; status: 'running' | 'completed'; timestamp: string }
   | { type: 'feedback-done'; runId: string; completedCycles: number; maximumCycles: number; reason: 'converged' | 'cycle_limit'; timestamp: string }
+  | { type: 'run-paused'; runId: string; cycle: number; after: StageId; timestamp: string }
+  | { type: 'run-resumed'; runId: string; timestamp: string }
   | { type: 'log'; runId: string; level: 'INFO' | 'WARN' | 'ERROR'; message: string; timestamp: string }
   | { type: 'result-available'; runId: string; stage: StageId; metricIds: string[]; timestamp: string }
   | { type: 'run-finished'; runId: string; outcome: 'completed' | 'failed' | 'cancelled'; timestamp: string }
@@ -80,6 +83,7 @@ export interface JcoAdapter {
   validateProject(project: ProjectModel): Promise<ValidationIssue[]>
   previewCircuit(project: ProjectModel): Promise<CircuitPreviewData>
   startRun(request: RunRequest): Promise<{ runId: string }>
+  resumeRun(action: 'next' | 'remaining'): Promise<{ accepted: boolean }>
   cancelRun(runId: string): Promise<CancelResult>
   deleteRun(runId: string): Promise<ResultsBundle>
   exportData(request: ExportRequest): Promise<string | null>
