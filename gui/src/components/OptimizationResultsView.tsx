@@ -308,18 +308,16 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
   if (!samples.length) return <Alert severity="info">No optimizer evaluations with finite objective values are available.</Alert>
 
   return <Stack spacing={1.1}>
-    <Paper variant="outlined" sx={{ p: 0.9 }}>
-      <Stack direction="row" useFlexGap spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-        <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, mr: 'auto' }}>
-          {view === 'landscape' ? 'Optimization landscape' : 'Optimization history'}
-        </Typography>
+    <Paper variant="outlined" sx={{ p: 1.25 }}>
+      <Stack direction="row" spacing={1.2} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <Button size="small" variant={view === 'landscape' ? 'contained' : 'outlined'} onClick={() => setView('landscape')}>Landscape</Button>
         <Button size="small" variant={view === 'history' ? 'contained' : 'outlined'} disabled={!historyAvailable} onClick={() => setView('history')}>History</Button>
-        <Chip size="small" variant="outlined" label={samples.length.toLocaleString() + ' evaluations'} />
+        <Chip sx={{ ml: { md: 'auto' } }} size="small" variant="outlined" label={samples.length.toLocaleString() + ' evaluations'} />
       </Stack>
     </Paper>
     {view === 'landscape' && <Paper variant="outlined" sx={{ p: 1.2 }}>
       <Stack spacing={0.9}>
+        <Typography variant="h6">Optimization landscape</Typography>
         {canPlot ? <>
           <Stack direction="row" useFlexGap spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <FormControl size="small" sx={{ minWidth: 140, width: 148 }}>
@@ -391,8 +389,8 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
     <Divider sx={{ my: 0.6 }} />
     <Stack spacing={1}>
       <Typography variant="h6">Parameters</Typography>
-      {names.length ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.2 }}>
-        {names.map((name) => <Paper key={name} variant="outlined" sx={{ p: 1.1, minWidth: 0 }}>
+      {varying.length ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.2 }}>
+        {varying.map((name) => <Paper key={name} variant="outlined" sx={{ p: 1.1, minWidth: 0 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.8 }}>{display(name)}</Typography>
           <LineChart height={215} margin={{ bottom: 38, left: 80 }}
             xAxis={[{ data: evaluations, scaleType: 'linear', label: 'Evaluation number', tickMinStep: 1, valueFormatter: (value: number | null) => displayNumber(value) }]}
@@ -400,7 +398,7 @@ export function OptimizationResultsView({ run, table }: { run: RunResults; table
             series={[{ data: samples.map((sample) => Number.isFinite(sample.values[name]) ? sample.values[name] : null), label: display(name), showMark: samples.length <= 60, curve: 'linear', valueFormatter: (value: number | null) => displayNumber(value) }]}
             grid={{ horizontal: true }} />
         </Paper>)}
-      </Box> : <Alert severity="info">No optimizer parameter columns are available.</Alert>}
+      </Box> : <Alert severity="info">No varying parameters to display.</Alert>}
     </Stack>
     </Stack>}
   </Stack>
