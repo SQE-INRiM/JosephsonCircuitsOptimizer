@@ -1,6 +1,6 @@
 # JCO User Manual — November 2026 update
 
-*Supplement to the original 19-page JCO User Manual. The original chapters, figures and formatting are preserved in the PDF. This supplement updates the desktop GUI, project handling, saved Results and nonlinear feedback. Where an older GUI instruction conflicts with this update, follow this section.*
+*Prepared for the upcoming JCO v0.5.0 release (not yet published). Supplement to the original 19-page JCO User Manual. The original chapters, figures and formatting are preserved in the PDF. This supplement updates the desktop GUI, project handling, saved Results and nonlinear feedback. Where an older GUI instruction conflicts with this update, follow this section.*
 
 ## 1. Current desktop application
 
