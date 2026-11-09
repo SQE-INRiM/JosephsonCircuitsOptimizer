@@ -195,6 +195,69 @@ describe('Single-point optimization panel', () => {
   })
 })
 
+describe('Optimizer method availability', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: {
+        ...structuredClone(originalProject),
+        parameters: originalProject.parameters.map((parameter, index) =>
+          index === 0
+            ? { ...parameter, mode: 'List' as const, values: '250, 350' }
+            : { ...parameter, mode: 'Fixed' as const, value: '200' }),
+      },
+      setupStep: 1,
+      dirty: false,
+    })
+  })
+
+  afterEach(() => cleanup())
+
+  it('shows experimental models and strategies disabled, while sampling choices remain available', () => {
+    render(<SetupScreen />)
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Surrogate' }))
+    for (const name of ['Radial basis (experimental)', 'Second-order polynomial (experimental)']) {
+      expect(screen.getByRole('option', { name }).getAttribute('aria-disabled')).toBe('true')
+    }
+    expect(screen.getByRole('option', { name: 'Kriging' }).getAttribute('aria-disabled')).not.toBe('true')
+    fireEvent.click(screen.getByRole('option', { name: 'Kriging' }))
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Strategy' }))
+    for (const name of ['Expected improvement (experimental)', 'Lower confidence bound (experimental)']) {
+      expect(screen.getByRole('option', { name }).getAttribute('aria-disabled')).toBe('true')
+    }
+    fireEvent.click(screen.getByRole('option', { name: 'SRBF' }))
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Sampler' }))
+    for (const name of ['Random', 'Sobol', 'Latin hypercube']) {
+      expect(screen.getByRole('option', { name }).getAttribute('aria-disabled')).not.toBe('true')
+    }
+    fireEvent.click(screen.getByRole('option', { name: 'Sobol' }))
+    expect(useAppStore.getState().project.computation.sampler).toBe('SobolSample')
+  })
+
+  it('preserves legacy experimental selections until the user chooses a supported option', () => {
+    useAppStore.getState().updateComputation({ surrogate: 'RadialBasis', strategy: 'EI' })
+    render(<SetupScreen />)
+
+    expect(screen.getByRole('combobox', { name: 'Surrogate' }).textContent).toContain('Radial basis (experimental)')
+    expect(screen.getByRole('combobox', { name: 'Strategy' }).textContent).toContain('Expected improvement (experimental)')
+    expect(useAppStore.getState().project.computation).toMatchObject({
+      surrogate: 'RadialBasis',
+      strategy: 'EI',
+    })
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Surrogate' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Kriging' }))
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Strategy' }))
+    fireEvent.click(screen.getByRole('option', { name: 'SRBF' }))
+    expect(useAppStore.getState().project.computation).toMatchObject({
+      surrogate: 'Kriging',
+      strategy: 'SRBF',
+    })
+  })
+})
+
 describe('Device parameter mode editor regression', () => {
   beforeEach(() => {
     useAppStore.setState({
