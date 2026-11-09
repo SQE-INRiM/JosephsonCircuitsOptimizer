@@ -528,7 +528,7 @@ function ComputationStep() {
               <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                 <Paper variant="outlined" sx={{ p: 1.25, flex: 1 }}>
                   <Typography variant="body2" color="text.secondary">Optimizer</Typography>
-                  <Typography variant="body1" fontWeight={600}>{config.surrogate} + {config.strategy}</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>{config.surrogate} + {config.strategy}</Typography>
                 </Paper>
                 <TextField select label="Sampler" value={config.sampler} disabled={optimizationSkipped} onChange={(event) => update({ sampler: event.target.value })} fullWidth sx={{ flex: 1 }}><MenuItem value="RandomSample">Random</MenuItem><MenuItem value="SobolSample">Sobol</MenuItem><MenuItem value="LatinHypercubeSample">Latin hypercube</MenuItem></TextField>
               </Stack>
