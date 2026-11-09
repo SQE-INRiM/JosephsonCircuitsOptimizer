@@ -46,6 +46,19 @@ test('allows valid partial runs and nonlinear-only changes without repeating Lin
     validatePartialRunInputs(f.workspace, 'nonlinear_only')
   } finally { f.cleanup() }
 })
+test('combined remaining stages use a validated Linear dataset, not LATEST after an abandoned run', () => {
+  const f = fixture()
+  try {
+    const abandoned = path.join(f.workspace, 'outputs', 'output_2026-11-03_16-30-00-000Z')
+    fs.mkdirSync(abandoned)
+    fs.writeFileSync(path.join(f.workspace, 'outputs', 'LATEST.txt'), abandoned + '\n')
+    const input = validatePartialRunInputs(f.workspace, 'from_latest')
+    assert.equal(input.datasetPath, path.join(f.run, 'df_uniform_analysis.h5'))
+    writeJson(f.input, 'drive_physical_quantities.json', { source_1_linear_amplitude: [20] })
+    assert.throws(() => validatePartialRunInputs(f.workspace, 'from_latest'), /Run Linear/)
+  } finally { f.cleanup() }
+})
+
 test('optimizer changes keep Linear reusable but invalidate an HB-only optimum', () => {
   const f = fixture()
   try {
