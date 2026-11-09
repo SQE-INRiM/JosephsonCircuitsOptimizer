@@ -268,7 +268,7 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onRunRema
                   : feedbackRun.status === 'completed' ? `${feedbackRun.completedCycles} correction cycles completed`
                   : feedbackRun.status === 'cancelled' ? `Stopped during cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
                   : feedbackRun.status === 'failed' ? `Failed during cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
-                  : pausedRun ? `Paused after ${pausedRun.after === 'hb' ? 'Harmonic balance' : pausedRun.after === 'linear' ? 'Linear' : 'Optimization'} · Cycle ${pausedRun.cycle} `
+                  : pausedRun ? `Paused after ${pausedRun.after === 'hb' ? 'Harmonic balance' : pausedRun.after === 'linear' ? 'Linear' : 'Optimization'} · Cycle ${pausedRun.cycle}
                   : feedbackRun.cycle > 0 ? `Correction cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
                   : 'Running baseline simulation'}
               </Typography>
@@ -283,7 +283,8 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onRunRema
                   </Stack>
                 : <Stack spacing={0.9}>
                     <Typography variant="caption" color="text.secondary">
-                      {feedbackRun.cycle === 0 ? 'Baseline in progress'
+                      {pausedRun ? `${feedbackCountLabel} · Waiting for next stage`
+                        : feedbackRun.cycle === 0 ? 'Baseline in progress'
                         : feedbackRun.phase === 'complete' ? `${feedbackCountLabel} · Checking completion`
                         : `${feedbackCountLabel} · Cycle ${feedbackRun.cycle} running`}
                     </Typography>
