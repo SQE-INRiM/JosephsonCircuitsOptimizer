@@ -26,6 +26,8 @@ export function NonlinearFeedbackResults({ run }: { run: RunResults }) {
     ).sort((a, b) => a.cycle - b.cycle), [run.feedback])
   const cycles = entries.map((item) => item.cycle)
   const names = [...new Set(entries.flatMap((entry) => Object.keys(entry.parameters ?? {})))]
+  const varyingNames = names.filter((name) =>
+    new Set(entries.map((entry) => entry.parameters?.[name]).filter(hasValue)).size > 1)
   const active = run.cycles ?? []
   const accent = theme.palette.secondary.main
 
@@ -64,8 +66,8 @@ export function NonlinearFeedbackResults({ run }: { run: RunResults }) {
     {names.length > 0 && <>
       <Divider sx={{ my: 0.3 }} />
       <Typography variant="h6">Parameter convergence</Typography>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.2 }}>
-        {names.map((name) => <Paper key={name} variant="outlined" sx={{ p: 1.2, minWidth: 0 }}>
+      {varyingNames.length > 0 ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.2 }}>
+        {varyingNames.map((name) => <Paper key={name} variant="outlined" sx={{ p: 1.2, minWidth: 0 }}>
           <Typography variant="subtitle2">{parameterLabel(parameters, name)}</Typography>
           <LineChart height={205} margin={{ bottom: 42, left: 82 }}
             xAxis={[{ data: cycles, scaleType: 'linear', label: 'Cycle', tickMinStep: 1 }]}
@@ -76,7 +78,7 @@ export function NonlinearFeedbackResults({ run }: { run: RunResults }) {
             }), parameterLabel(parameters, name))]}
             grid={{ horizontal: true }} />
         </Paper>)}
-      </Box>
+      </Box> : <Alert severity="info">No varying parameters to display.</Alert>}
     </>}
   </Stack>
 }
