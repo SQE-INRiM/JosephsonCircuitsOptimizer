@@ -37,7 +37,7 @@ const computation: ComputationConfig = {
   samplesPerIteration: 5,
   surrogate: 'Kriging',
   strategy: 'SRBF',
-  sampler: 'Random',
+  sampler: 'RandomSample',
   randomSeed: 1234,
   threeWaveMixing: false,
   fourWaveMixing: true,

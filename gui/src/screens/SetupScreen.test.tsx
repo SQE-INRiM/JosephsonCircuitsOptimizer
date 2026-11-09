@@ -158,9 +158,8 @@ describe('Single-point optimization panel', () => {
     for (const label of ['Iterations', 'Samples / iteration', 'Random seed']) {
       expect((screen.getByRole('spinbutton', { name: label }) as HTMLInputElement).disabled).toBe(true)
     }
-    for (const label of ['Surrogate', 'Strategy', 'Sampler']) {
-      expect(screen.getByRole('combobox', { name: label }).getAttribute('aria-disabled')).toBe('true')
-    }
+    expect(screen.getByRole('combobox', { name: 'Sampler' }).getAttribute('aria-disabled')).toBe('true')
+    expect(screen.getByText('Kriging + SRBF')).toBeTruthy()
   })
 
   it('keeps a single-value List disabled and automatically re-enables optimization for multiple points', () => {
@@ -190,8 +189,83 @@ describe('Single-point optimization panel', () => {
     expect(screen.getByText(/Optimization enabled/)).toBeTruthy()
     expect(screen.getByText('Optimization').closest('.MuiCard-root')?.getAttribute('aria-disabled')).toBe('false')
     expect((screen.getByRole('spinbutton', { name: 'Iterations' }) as HTMLInputElement).disabled).toBe(false)
-    expect(screen.getByRole('combobox', { name: 'Surrogate' }).getAttribute('aria-disabled')).not.toBe('true')
+    expect(screen.getByRole('combobox', { name: 'Sampler' }).getAttribute('aria-disabled')).not.toBe('true')
     expect(useAppStore.getState().project.computation.optimizerIterations).toBe(startingIterations)
+  })
+})
+
+describe('Standard optimizer presentation', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      project: {
+        ...structuredClone(originalProject),
+        parameters: originalProject.parameters.map((parameter, index) =>
+          index === 0
+            ? { ...parameter, mode: 'List' as const, values: '250, 350' }
+            : { ...parameter, mode: 'Fixed' as const, value: '200' }),
+      },
+      setupStep: 1,
+      dirty: false,
+    })
+  })
+
+  afterEach(() => cleanup())
+
+  it('shows Kriging + SRBF without method selectors while keeping all sampling options', () => {
+    render(<SetupScreen />)
+
+    expect(screen.getByText('Kriging + SRBF')).toBeTruthy()
+    expect(screen.queryByRole('combobox', { name: 'Surrogate' })).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Strategy' })).toBeNull()
+    expect(screen.queryByText(/This project uses a legacy optimizer configuration/)).toBeNull()
+    expect(useAppStore.getState().project.computation.sampler).toBe('RandomSample')
+    expect(screen.getByRole('combobox', { name: 'Sampler' }).textContent).toBe('Random')
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Sampler' }))
+    for (const name of ['Random', 'Sobol', 'Latin hypercube']) {
+      expect(screen.getByRole('option', { name }).getAttribute('aria-disabled')).not.toBe('true')
+    }
+    fireEvent.click(screen.getByRole('option', { name: 'Sobol' }))
+    expect(useAppStore.getState().project.computation.sampler).toBe('SobolSample')
+  })
+
+  it('preserves legacy project methods until the user explicitly switches', () => {
+    useAppStore.getState().updateComputation({ surrogate: 'RadialBasis', strategy: 'EI' })
+    render(<SetupScreen />)
+
+    expect(screen.getByText('RadialBasis + EI')).toBeTruthy()
+    expect(screen.getByText(/This project uses a legacy optimizer configuration/)).toBeTruthy()
+    expect(useAppStore.getState().project.computation).toMatchObject({
+      surrogate: 'RadialBasis',
+      strategy: 'EI',
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use Kriging + SRBF' }))
+    expect(useAppStore.getState().project.computation).toMatchObject({
+      surrogate: 'Kriging',
+      strategy: 'SRBF',
+    })
+    expect(screen.getByText('Kriging + SRBF')).toBeTruthy()
+    expect(screen.queryByText(/This project uses a legacy optimizer configuration/)).toBeNull()
+  })
+
+  it('does not allow switching a legacy method when optimization is skipped', () => {
+    useAppStore.setState((state) => ({
+      project: {
+        ...state.project,
+        parameters: state.project.parameters.map((parameter) => ({
+          ...parameter, mode: 'Fixed' as const, value: '250',
+        })),
+      },
+    }))
+    useAppStore.getState().updateComputation({ surrogate: 'RadialBasis', strategy: 'EI' })
+
+    render(<SetupScreen />)
+    expect((screen.getByRole('button', { name: 'Use Kriging + SRBF' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(useAppStore.getState().project.computation).toMatchObject({
+      surrogate: 'RadialBasis',
+      strategy: 'EI',
+    })
   })
 })
 
