@@ -256,13 +256,13 @@ function run_optimization(df::DataFrame)
     n_maxiters = optimizer_config[:max_optimizer_iterations]
     n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]    
 
+    _optimizer_apply_seed!()
     surrogate = _make_surrogate_model(sur_name, initial_points, initial_values, lb, ub)
     strategy = _make_optimizer_strategy(opt_name)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler   = _make_sampling_strategy(samp_name)
 
     history_before_bo = length(cost_history["metrics"])
-    _optimizer_apply_seed!()
 
     # Progress lines for the GUI: BO evaluations only
     global cost_progress_ctx = Progress.start!(; N=n_maxiters*n_num_new_samples, stage="BO")
