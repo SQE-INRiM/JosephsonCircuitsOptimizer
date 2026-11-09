@@ -54,16 +54,96 @@ function _make_surrogate_model(name::AbstractString, initial_points, initial_val
 end
 
 
+# Only surrogate coordinates are dimensionless. The original inputs, simulations,
+# histories, files and GUI values always stay in user-selected physical units.
+function _optimizer_scaled_inputs(df::DataFrame, param_cols::Vector{String})
+    physical_lower = Float64[minimum(df[!, col]) for col in param_cols]
+    physical_upper = Float64[maximum(df[!, col]) for col in param_cols]
+    all(isfinite, physical_lower) && all(isfinite, physical_upper) ||
+        throw(ArgumentError("Optimizer parameter bounds must be finite."))
+    spans = physical_upper .- physical_lower
+    any(>(0.0), spans) ||
+        throw(ArgumentError("Optimizer requires at least one varying parameter."))
+
+    # A constant parameter is retained at coordinate zero, with bounds (0,0),
+    # to preserve the current parameter-vector shape and legacy 1D workarounds.
+    points = [Tuple(spans[j] == 0.0 ? 0.0 :
+                    (Float64(row[col]) - physical_lower[j]) / spans[j]
+                    for (j, col) in enumerate(param_cols)) for row in eachrow(df)]
+    return (
+        points = points,
+        lb = zeros(length(param_cols)),
+        ub = Float64[span > 0.0 ? 1.0 : 0.0 for span in spans],
+        physical_lower = physical_lower,
+        physical_spans = spans,
+    )
+end
+
+"Convert an internal surrogate point back to the physical parameters used by cost."
+function _optimizer_physical_point(z, scaling)
+    length(z) == length(scaling.physical_lower) ||
+        throw(DimensionMismatch("Optimizer point has the wrong number of parameters."))
+    return Float64[scaling.physical_lower[i] + scaling.physical_spans[i] * Float64(z[i])
+                   for i in eachindex(scaling.physical_lower)]
+end
+
+
+
+"""
+    _optimizer_surrogate_training(df, surrogate_name, strategy_name)
+
+For Kriging + SRBF only, keep all seed positions but replace masked metric
+penalties in the surrogate *training copy*. This is a bounded numerical proxy,
+not an implementation of constrained Bayesian optimization. Actual user_cost
+values and feasible flags remain unchanged in the saved datasets and history.
+"""
+function _optimizer_surrogate_training(df::DataFrame, surrogate_name::AbstractString,
+                                        strategy_name::AbstractString)
+    values = Float64.(df[!, :metric])
+    if lowercase(strip(surrogate_name)) != "kriging" ||
+       lowercase(strip(strategy_name)) != "srbf"
+        return values, nothing
+    end
+
+    feasible = [isfinite(values[i]) && _linear_row_feasible(row)
+                for (i, row) in enumerate(eachrow(df))]
+    valid_values = values[feasible]
+    isempty(valid_values) &&
+        throw(ArgumentError("The linear dataset has no feasible points for Kriging + SRBF."))
+
+    minimum_valid, maximum_valid = extrema(valid_values)
+    # Always make masked configurations worse than any measured feasible point.
+    # Use the objective's actual variation, never the arbitrary 1e8 sentinel.
+    mask_proxy = maximum_valid + max(1.0, maximum_valid - minimum_valid)
+    isfinite(mask_proxy) ||
+        throw(ArgumentError("Cannot construct a finite surrogate mask penalty."))
+
+    training_values = [feasible[i] ? values[i] : mask_proxy
+                       for i in eachindex(values)]
+    @info "Kriging + SRBF: $(count(identity, feasible)) feasible / $(count(!, feasible)) masked seed points; surrogate-only mask value = $(mask_proxy)"
+    return training_values, mask_proxy
+end
+
+"Evaluate physical cost, returning only a bounded mask proxy to Kriging + SRBF."
+function _optimizer_surrogate_evaluate(z, scaling, mask_proxy)
+    observed = cost(_optimizer_physical_point(z, scaling))
+    mask_proxy === nothing && return observed
+    feasible = get(last_cost_metrics, :feasible,
+                   isfinite(observed) && observed < LEGACY_MASK_THRESHOLD ? 1.0 : 0.0)
+    return isfinite(observed) && feasible == 1.0 ? observed : mask_proxy
+end
+
+
 """
     run_optimization(df::DataFrame)
 
-This function performs optimization of the cost function using surrogate-based optimization. 
-It uses Kriging as the surrogate model and performs the optimization by selecting new points 
-based on previous results and iterating to improve the solution.
+Optimize the cost function through a configurable surrogate and search strategy.
+All surrogate coordinates are scaled to [0,1] (fixed coordinates stay zero).
+The actual `cost` evaluations and returned parameters use physical units.
 
 # Arguments:
-- `df::DataFrame`: A DataFrame containing the input parameter space and the corresponding metric values. 
-  The last column should contain the metric (objective function value).
+- `df::DataFrame`: Linear results containing the named device-parameter columns,
+  a `metric` column, and optionally feasibility and analysis columns.
 
 # Returns:
 - `optimal_params`: The optimized parameters as a dictionary.
@@ -78,8 +158,13 @@ function run_optimization(df::DataFrame)
         error("The input DataFrame in the optimizer is empty. Please provide a non-empty DataFrame.")
     end   
     
-    # Determine the number of parameters (dimensions) from the DataFrame
-    param_cols = names(df)[1:end-1]
+    # Select device parameters explicitly: the dataset may also contain point_id,
+    # metric, feasibility and user-defined analysis columns.
+    param_cols = String.(collect(keys(device_parameters_space)))
+    missing_cols = setdiff(param_cols, names(df))
+    isempty(missing_cols) ||
+        error("Optimization dataset is missing device parameters: $(join(missing_cols, ", "))")
+    :metric in propertynames(df) || error("Optimization dataset has no metric column.")
     d = length(param_cols)
 
     if d < 2
@@ -96,59 +181,42 @@ function run_optimization(df::DataFrame)
     """)
     end
 
-    # Determine the bounds for the optimization variables from the DataFrame
-    bounds = [(minimum(df[:, col]), maximum(df[:, col])) for col in names(df)[1:end-1]]
-
-    println("Bounds: ", bounds)
-
-    # Extract lower and upper bounds as Float64
-    lb = [b[1] for b in bounds]
-    ub = [b[2] for b in bounds]
-    println("Lower bounds:", lb)
-    println("Upper bounds:", ub)
-    lb = Float64.(lb)  # Ensure bounds are of type Float64
-    ub = Float64.(ub)
-
-    # Extract initial points from the DataFrame (all columns except the last one)
-    initial_points = [Tuple(row[1:end-1]) for row in eachrow(df)]
+    scaling = _optimizer_scaled_inputs(df, param_cols)
+    lb, ub = scaling.lb, scaling.ub
+    initial_points = scaling.points
+    println("Optimization parameters: ", param_cols)
+    println("Normalized bounds: ", collect(zip(lb, ub)))
     
     global number_initial_points = length(initial_points)
     global plot_index = number_initial_points
 
-    # Extract initial values (the last column of the DataFrame)
-    initial_values = df[:, end]
+    # Only the surrogate training copy is changed; the DataFrame stays physical.
+    sur_name = string(get(optimizer_config, :surrogate_model, "Kriging"))
+    opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
+    initial_values, mask_proxy = _optimizer_surrogate_training(df, sur_name, opt_name)
 
-    #println("initial_points: ", initial_points)
-    #println("initial_values: ", initial_values)
-
-    # Initialize a Kriging model (surrogate model) using the initial points and values
-    # my_k_SRBFN = Kriging(initial_points, initial_values, lb, ub)
-
-    # Retrieve optimization parameters such as the maximum number of iterations and the number of new samples per iteration
+    # The surrogate sees normalized points and (for Kriging + SRBF) a bounded
+    # training-only mask penalty. The recorded physical objective is unchanged.
+    # Read the configured search budget.
     n_maxiters = optimizer_config[:max_optimizer_iterations]
     n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]    
 
-    sur_name  = string(get(optimizer_config, :surrogate_model, "Kriging"))
     surrogate = _make_surrogate_model(sur_name, initial_points, initial_values, lb, ub)
-    opt_name  = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
-    strategy  = _make_optimizer_strategy(opt_name)
+    strategy = _make_optimizer_strategy(opt_name)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler   = _make_sampling_strategy(samp_name)
-
-    # Used by `cost(vec)` to distinguish between the initial dataset and BO evaluations
-    global number_initial_points = length(initial_points)
 
     # Progress lines for the GUI: BO evaluations only
     global cost_progress_ctx = Progress.start!(; N=n_maxiters*n_num_new_samples, stage="BO")
 
     # Perform surrogate optimization using the surrogate optimizer function
     result = surrogate_optimize!(
-        cost,              # The cost function to optimize
-        strategy,            # The surrogate model type (SRBF)
+        z -> _optimizer_surrogate_evaluate(z, scaling, mask_proxy), # physical simulation; bounded mask only for the surrogate
+        strategy,            # Acquisition / search strategy
         lb,                # Lower bounds
         ub,                # Upper bounds
-        surrogate,        # The surrogate model instance
-        sampler,        # Sampling strategy (random sampling)
+        surrogate,           # Surrogate fitted on normalized coordinates
+        sampler,             # Random / Sobol / Latin hypercube
         maxiters = n_maxiters,                  # Maximum number of iterations
         num_new_samples = n_num_new_samples     # Number of new points to generate for each iteration
     )
@@ -160,17 +228,16 @@ function run_optimization(df::DataFrame)
     end
 
     # Extract the optimized vector and its corresponding metric
-    optimal_vec = result[1]                # Optimized vector
+    optimal_vec = _optimizer_physical_point(result[1], scaling) # Return physical units
     optimal_metric = result[2]             # Optimal metric value
 
-    # Extract column names (excluding the last column) and convert them to symbols
-    column_names = names(df)[1:end-1]  
+    # Map the physical optimal vector back to the device-parameter names.
+    column_names = param_cols  
     column_symbols = Symbol.(column_names)  # Convert to Vector{Symbol}
     
     # Convert the optimized vector to a dictionary of parameters
     optimal_params = vector_to_param(optimal_vec, column_symbols)
 
-    #!! To add the value for the dynamical correction of the metric !! (e.g., if you have a dynamic correction here)
 
     return optimal_params, optimal_metric
 end

@@ -8,6 +8,7 @@ function _gui_save_optimization_history(param_cols::Vector{String}, initial_coun
 
     params_history = cost_history["params_vecs"]
     metric_history = cost_history["metrics"]
+    feasible_history = get(cost_history, "feasible", Bool[])
     first_bo = initial_count + 1
     first_bo > length(metric_history) && return nothing
 
@@ -16,19 +17,25 @@ function _gui_save_optimization_history(param_cols::Vector{String}, initial_coun
     n = length(bo_metrics)
     n == 0 && return nothing
 
-    matrix = Matrix{Float64}(undef, n, length(param_cols) + 2)
+    # Keep `metric` immediately after the device parameters: GUI axes
+    # detect parameter columns by the interval (evaluation, metric).
+    matrix = Matrix{Float64}(undef, n, length(param_cols) + 3)
     for i in 1:n
         matrix[i, 1] = i
         for (j, _) in enumerate(param_cols)
             matrix[i, j + 1] = Float64(bo_params[i][j])
         end
-        matrix[i, end] = bo_metrics[i]
+        history_index = first_bo + i - 1
+        matrix[i, end - 1] = bo_metrics[i]
+        matrix[i, end] = history_index <= length(feasible_history) ?
+            (feasible_history[history_index] ? 1.0 : 0.0) :
+            (isfinite(bo_metrics[i]) && bo_metrics[i] < LEGACY_MASK_THRESHOLD ? 1.0 : 0.0)
     end
 
     filepath = joinpath(output_path, "df_optimization_analysis.h5")
     h5open(filepath, "w") do file
         write(file, "df_optimization_matrix", matrix)
-        write(file, "df_optimization_column_names", vcat(["evaluation"], param_cols, ["metric"]))
+        write(file, "df_optimization_column_names", vcat(["evaluation"], param_cols, ["metric", "feasible"]))
     end
     @info "Saved optimization evaluation history" filepath=filepath evaluations=n
     return filepath
@@ -61,15 +68,17 @@ function run_optimization(df::DataFrame)
     """)
     end
 
-    bounds = [(minimum(df[!, col]), maximum(df[!, col])) for col in param_cols]
+    scaling = _optimizer_scaled_inputs(df, param_cols)
     println("Optimization parameter columns: ", param_cols)
-    println("Bounds: ", bounds)
+    println("Normalized bounds: ", collect(zip(scaling.lb, scaling.ub)))
 
-    lb = Float64[b[1] for b in bounds]
-    ub = Float64[b[2] for b in bounds]
-
-    initial_points = [Tuple(Float64(row[col]) for col in param_cols) for row in eachrow(df)]
-    initial_values = Float64.(df[!, :metric])
+    # Preserve physical metrics in Results. For Kriging + SRBF only,
+    # replace artificial mask values in the surrogate training copy.
+    initial_points = scaling.points
+    sur_name = string(get(optimizer_config, :surrogate_model, "Kriging"))
+    opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
+    initial_values, mask_proxy = _optimizer_surrogate_training(df, sur_name, opt_name)
+    lb, ub = scaling.lb, scaling.ub
 
     global number_initial_points = length(initial_points)
     global plot_index = number_initial_points
@@ -81,9 +90,7 @@ function run_optimization(df::DataFrame)
     n_maxiters = optimizer_config[:max_optimizer_iterations]
     n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]
 
-    sur_name = string(get(optimizer_config, :surrogate_model, "Kriging"))
     surrogate = _make_surrogate_model(sur_name, initial_points, initial_values, lb, ub)
-    opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
     strategy = _make_optimizer_strategy(opt_name)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler = _make_sampling_strategy(samp_name)
@@ -91,7 +98,7 @@ function run_optimization(df::DataFrame)
     global cost_progress_ctx = Progress.start!(; N=n_maxiters * n_num_new_samples, stage="BO")
 
     result = surrogate_optimize!(
-        cost,
+        z -> _optimizer_surrogate_evaluate(z, scaling, mask_proxy),
         strategy,
         lb,
         ub,
@@ -108,7 +115,7 @@ function run_optimization(df::DataFrame)
 
     _gui_save_optimization_history(param_cols, history_before_bo)
 
-    optimal_vec = result[1]
+    optimal_vec = _optimizer_physical_point(result[1], scaling)
     optimal_metric = result[2]
     optimal_params = vector_to_param(optimal_vec, Symbol.(param_cols))
 
@@ -186,7 +193,7 @@ function run_linear_simulations_sweep(device_parameters_space::Dict; filter_df::
     end
 
     if filter_df
-        filtered_df = filter(row -> row.metric < 9e7, df)
+        filtered_df = filter(_linear_row_feasible, df)
         return df, filtered_df
     else
         return df

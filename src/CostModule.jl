@@ -7,11 +7,43 @@ using ..Config  # Access WORKING_SPACE
 global cost_history = Dict{String,Any}(
     "params_vecs" => Vector{Vector{Float64}}(),
     "metrics"     => Float64[],
+    "feasible"    => Bool[],
     "timestamps_utc" => String[]
 )
 
 global last_cost_metrics = Dict{Symbol, Float64}()
 global last_performance_metrics = Dict{Symbol, Float64}()
+
+# Legacy user_cost masks return a large objective instead of a separate constraint.
+# Preserve that convention until JCO implements constrained surrogate acquisition.
+const LEGACY_MASK_THRESHOLD = 9e7
+
+"""
+    _cost_point_feasible(user_output, objective)
+
+Read optional `feasible = true/false` from a named user_cost return value.
+Older user_cost implementations remain valid: objective >= 9e7 (or non-finite)
+means masked. This flag is metadata; it does not change the objective.
+"""
+function _cost_point_feasible(user_output, objective::Real)
+    isfinite(objective) || return false
+    if user_output isa NamedTuple && haskey(user_output, :feasible)
+        flag = user_output.feasible
+        (flag isa Bool || flag === 0 || flag === 1 ||
+            flag === 0.0 || flag === 1.0) ||
+            throw(ArgumentError("user_cost feasible must be Bool or numeric 0/1."))
+        return Bool(flag)
+    end
+    return objective < LEGACY_MASK_THRESHOLD
+end
+
+"Read explicit feasibility when available, falling back to the legacy mask."
+function _linear_row_feasible(row)
+    if hasproperty(row, :feasible)
+        return row.feasible == 1.0
+    end
+    return isfinite(row.metric) && row.metric < LEGACY_MASK_THRESHOLD
+end
 
 function unpack_user_metrics(out; default_name::Symbol)
     if out isa NamedTuple
@@ -35,6 +67,7 @@ function setup_cost()
     # reset history for a fresh run
     empty!(cost_history["params_vecs"])
     empty!(cost_history["metrics"])
+    empty!(cost_history["feasible"])
     empty!(cost_history["timestamps_utc"])
 
     user_cost_path = joinpath(config.user_inputs_dir, "user_cost_and_performance.jl")
@@ -222,7 +255,12 @@ function cost(vec)
     out = Base.invokelatest(user_cost, sol, device_params_temp, delta_correction)
 
     metric, metrics_dict = unpack_user_metrics(out; default_name=:metric)
-    
+
+    # Store feasibility separately from the numerical objective. For existing
+    # projects, detect the conventional mask penalty without editing user_cost.
+    feasible = _cost_point_feasible(out, metric)
+    metrics_dict[:feasible] = feasible ? 1.0 : 0.0
+
     global last_cost_metrics
     last_cost_metrics = metrics_dict
 
@@ -231,6 +269,7 @@ function cost(vec)
     try
         push!(cost_history["params_vecs"], Float64.(vec))
         push!(cost_history["metrics"], Float64(metric))
+        push!(cost_history["feasible"], feasible)
         push!(cost_history["timestamps_utc"], Dates.format(Dates.now(Dates.UTC), dateformat"yyyy-mm-ddTHH:MM:SS"))
     catch
     end

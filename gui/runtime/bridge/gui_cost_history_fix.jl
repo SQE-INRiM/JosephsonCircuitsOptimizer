@@ -39,6 +39,11 @@ function cost(vec)
     out = Base.invokelatest(user_cost, sol, device_params_temp, delta_correction)
     metric, metrics_dict = unpack_user_metrics(out; default_name=:metric)
 
+    # The GUI override must preserve the same feasibility metadata as
+    # CostModule.cost; this method is included after the engine implementation.
+    feasible = _cost_point_feasible(out, metric)
+    metrics_dict[:feasible] = feasible ? 1.0 : 0.0
+
     global last_cost_metrics
     last_cost_metrics = metrics_dict
 
@@ -46,6 +51,7 @@ function cost(vec)
         recorded_vec = collect(Float64.(vec))
         push!(cost_history["params_vecs"], recorded_vec)
         push!(cost_history["metrics"], Float64(metric))
+        push!(cost_history["feasible"], feasible)
         push!(cost_history["timestamps_utc"], Dates.format(Dates.now(Dates.UTC), dateformat"yyyy-mm-ddTHH:MM:SS"))
     catch err
         @warn "Could not record cost-history evaluation" exception=(err, catch_backtrace())

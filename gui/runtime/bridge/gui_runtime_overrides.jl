@@ -148,7 +148,7 @@ function run_linear_simulations_sweep(device_parameters_space::Dict; filter_df::
     end
 
     if filter_df
-        filtered_df = filter(row -> row.metric < 9e7, df)
+        filtered_df = filter(_linear_row_feasible, df)
         return df, filtered_df
     else
         return df
@@ -478,7 +478,7 @@ end
 
 # Summary tables remain the canonical low-cost index of every simulated point.
 function save_dataset(df::DataFrame, output_path)
-    filtered_df = filter(row -> row.metric < 9e7, df)
+    filtered_df = filter(_linear_row_feasible, df)
     output_file = joinpath(output_path, "df_uniform_analysis.h5")
 
     h5open(output_file, "w") do file
