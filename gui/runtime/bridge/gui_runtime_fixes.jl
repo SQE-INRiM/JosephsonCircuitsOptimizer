@@ -72,8 +72,8 @@ function run_optimization(df::DataFrame)
     println("Optimization parameter columns: ", param_cols)
     println("Normalized bounds: ", collect(zip(scaling.lb, scaling.ub)))
 
-    # Feasibility is stored separately. The numerical objective remains
-    # unchanged until constrained acquisition is implemented in a later step.
+    # Preserve physical metrics in Results. For Kriging + SRBF only,
+    # replace artificial mask values in the surrogate training copy.
     initial_points = scaling.points
     sur_name = string(get(optimizer_config, :surrogate_model, "Kriging"))
     opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
