@@ -115,8 +115,8 @@ function run_optimization(df::DataFrame)
 
     _gui_save_optimization_history(param_cols, history_before_bo)
 
-    optimal_vec = _optimizer_physical_point(result[1], scaling)
-    optimal_metric = result[2]
+    optimal_vec, optimal_metric = _optimizer_finalize_result(
+        result, df, param_cols, scaling, history_before_bo)
     optimal_params = vector_to_param(optimal_vec, Symbol.(param_cols))
 
     return optimal_params, optimal_metric
