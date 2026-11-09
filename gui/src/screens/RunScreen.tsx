@@ -25,7 +25,7 @@ import { getJcoAdapter } from '../services/jcoAdapter'
 import { useAppStore } from '../store'
 import type { StageId } from '../types'
 import { configuredStageSummary, hasVaryingDeviceParameters } from '../utils/runSummary'
-import { nextRunStage } from '../utils/runStages'
+import { nextRunStage, remainingRunStages } from '../utils/runStages'
 
 const logColors = { INFO: '#b7cadb', WARN: '#f2c97d', ERROR: '#f19a9a', PROGRESS: '#77c9ae' }
 const ETA_WINDOW = 7
@@ -68,19 +68,25 @@ interface RunScreenProps {
   cancelling: boolean
   onRunAll: () => Promise<void>
   onRunStage: (stage: StageId) => Promise<void>
+  onRunRemaining: (stages: StageId[]) => Promise<void>
+  onRunStep: () => Promise<void>
+  onResumeRun: (action: 'next' | 'remaining') => Promise<void>
   onStop: () => Promise<void>
 }
 
-export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }: RunScreenProps) {
+export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onRunRemaining, onRunStep, onResumeRun, onStop }: RunScreenProps) {
   const stages = useAppStore((state) => state.stages)
   const logs = useAppStore((state) => state.logs)
   const running = useAppStore((state) => state.running)
   const feedbackRun = useAppStore((state) => state.feedbackRun)
+  const pausedRun = useAppStore((state) => state.pausedRun)
   const currentRunId = useAppStore((state) => state.currentRunId)
   const project = useAppStore((state) => state.project)
   const active = stages.find((stage) => stage.status === 'running')
   const nextStage = nextRunStage(stages)
   const nextStageState = stages.find((stage) => stage.id === nextStage)
+  const remainingStages = remainingRunStages(stages)
+  const nextPausedStage: StageId = pausedRun?.after === 'linear' ? 'optimization' : pausedRun?.after === 'optimization' ? 'hb' : 'linear'
   const [logOpen, setLogOpen] = useState(false)
   const [activeEta, setActiveEta] = useState<{ stageId: StageId; seconds: number } | null>(null)
   const [backendEta, setBackendEta] = useState<{ stageId: StageId; seconds: number } | null>(null)
@@ -99,6 +105,7 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
     : feedbackRun.status === 'cancelled' ? 'Stopped'
     : feedbackRun.status === 'failed' ? 'Failed'
     : feedbackRun.status === 'completed' ? 'Completed'
+    : pausedRun ? 'Paused'
     : feedbackRun.cycle === 0 ? 'Baseline' : 'Running'
 
   // The Julia progress reporter is the authoritative ETA source. It measures real
@@ -161,9 +168,12 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
 
   return <Stack spacing={2.5}>
     <Stack direction="row" sx={{ alignItems: 'flex-end', justifyContent: 'space-between' }}>
-      <Box><Typography variant="h4">Simulation run</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Run starts a fresh Linear → Optimization → Harmonic balance pipeline, followed by optional nonlinear feedback cycles. Run next step requires valid earlier stages.</Typography></Box>
+      <Box><Typography variant="h4">Simulation run</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Run starts a fresh Linear → Optimization → Harmonic balance pipeline with optional feedback cycles. Run next step pauses between stages; Run remaining completes the sequence.</Typography></Box>
       <Stack direction="row" spacing={1.2}>
-        {nextStage && !(feedbackRun && feedbackRun.cycle > 0) && <Button variant="outlined" disabled={running || cancelling || !desktop} onClick={() => onRunStage(nextStage)}>Run {nextStage === 'hb' ? 'Nonlinear' : nextStageState?.label ?? 'next step'}</Button>}
+        {feedbackAvailable
+          ? <Button variant="outlined" disabled={(running && !pausedRun) || cancelling || !desktop} onClick={() => pausedRun ? onResumeRun('next') : onRunStep()}>{pausedRun ? `Run ${nextPausedStage === 'hb' ? 'Nonlinear' : nextPausedStage === 'linear' ? 'Linear' : 'Optimization'}` : 'Run next step'}</Button>
+          : nextStage && <Button variant="outlined" disabled={running || cancelling || !desktop} onClick={() => onRunStage(nextStage)}>Run {nextStage === 'hb' ? 'Nonlinear' : nextStageState?.label ?? 'next step'}</Button>}
+        {(pausedRun || (!feedbackAvailable && remainingStages.length > 0 && remainingStages[0] !== 'linear')) && <Button variant="outlined" disabled={cancelling || !desktop || (running && !pausedRun)} onClick={() => pausedRun ? onResumeRun('remaining') : onRunRemaining(remainingStages)}>Run remaining</Button>}
         <Button variant="contained" color={running ? 'error' : 'primary'} disabled={cancelling || (!running && !desktop)} startIcon={running ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon />} onClick={running ? onStop : onRunAll}>{cancelling ? 'Stopping Julia…' : running ? 'Stop simulation' : 'Run'}</Button>
       </Stack>
     </Stack>
@@ -258,6 +268,7 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onStop }:
                   : feedbackRun.status === 'completed' ? `${feedbackRun.completedCycles} correction cycles completed`
                   : feedbackRun.status === 'cancelled' ? `Stopped during cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
                   : feedbackRun.status === 'failed' ? `Failed during cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
+                  : pausedRun ? `Paused after ${pausedRun.after === 'hb' ? 'Harmonic balance' : pausedRun.after === 'linear' ? 'Linear' : 'Optimization'} · Cycle ${pausedRun.cycle} `
                   : feedbackRun.cycle > 0 ? `Correction cycle ${feedbackRun.cycle} of ${maxFeedbackCycles}`
                   : 'Running baseline simulation'}
               </Typography>
