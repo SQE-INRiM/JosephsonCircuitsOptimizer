@@ -218,6 +218,8 @@ describe('Standard optimizer presentation', () => {
     expect(screen.queryByRole('combobox', { name: 'Surrogate' })).toBeNull()
     expect(screen.queryByRole('combobox', { name: 'Strategy' })).toBeNull()
     expect(screen.queryByText(/This project uses a legacy optimizer configuration/)).toBeNull()
+    expect(useAppStore.getState().project.computation.sampler).toBe('RandomSample')
+    expect(screen.getByRole('combobox', { name: 'Sampler' }).textContent).toBe('Random')
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Sampler' }))
     for (const name of ['Random', 'Sobol', 'Latin hypercube']) {
