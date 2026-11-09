@@ -189,15 +189,6 @@ end
 
     
 
-"""\
-    run(; workspace=nothing, create_workspace=true)
-
-Run the full simulation and optimization process.
-
-- `workspace`: path to the working space folder (defaults to `pwd()/working_space`).
-- `create_workspace`: if true, create missing folders inside the workspace.
-"""
-
 # GUI-only stage checkpoints. A stepped desktop run keeps the Julia process (and
 # its numerical state) alive, avoiding any repeated Linear, BO or HB solves.
 # Ordinary Julia and desktop Run calls bypass these checkpoints entirely.
@@ -223,6 +214,15 @@ function _jco_gui_step_checkpoint(output_path::AbstractString, cycle::Integer, s
         sleep(0.15)
     end
 end
+
+"""\
+    run(; workspace=nothing, create_workspace=true)
+
+Run the full simulation and optimization process.
+
+- `workspace`: path to the working space folder (defaults to `pwd()/working_space`).
+- `create_workspace`: if true, create missing folders inside the workspace.
+"""
 
 function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspace::Bool=true)
 
