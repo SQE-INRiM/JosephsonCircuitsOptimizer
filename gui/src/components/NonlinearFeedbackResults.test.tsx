@@ -42,6 +42,43 @@ describe('Nonlinear feedback convergence', () => {
     expect(screen.getByText(/Cycle 0 is the uncorrected baseline/)).toBeTruthy()
   })
 
+  it('hides constant parameters while retaining varying parameters and performance', () => {
+    const run: RunResults = {
+      ...withFeedback,
+      feedback: {
+        ...withFeedback.feedback!,
+        cycles: withFeedback.feedback!.cycles.map((cycle) => ({
+          ...cycle,
+          parameters: { ...cycle.parameters, Ladd: 70e-12 },
+        })),
+      },
+    }
+    render(<NonlinearFeedbackResults run={run} />)
+    const charts = screen.getAllByTestId('feedback-chart')
+    expect(charts).toHaveLength(3)
+    expect(charts.map((chart) => chart.getAttribute('data-label'))).not.toContain('Ladd')
+    expect(charts[0].getAttribute('data-y')).toBe('15,21,23')
+    expect(screen.queryByText('No varying parameters to display.')).toBeNull()
+  })
+
+  it('shows an explanation instead of constant parameter charts', () => {
+    const run: RunResults = {
+      ...withFeedback,
+      feedback: {
+        ...withFeedback.feedback!,
+        cycles: withFeedback.feedback!.cycles.map((cycle) => ({
+          ...cycle,
+          parameters: { I0: 1.5e-6, Cg: 250e-15 },
+        })),
+      },
+    }
+    render(<NonlinearFeedbackResults run={run} />)
+    const charts = screen.getAllByTestId('feedback-chart')
+    expect(charts).toHaveLength(1)
+    expect(charts[0].getAttribute('data-y')).toBe('15,21,23')
+    expect(screen.getByText('No varying parameters to display.')).toBeTruthy()
+  })
+
   it('keeps cycle navigation out of the convergence charts', () => {
     render(<NonlinearFeedbackResults run={withFeedback} />)
     expect(screen.queryByRole('button', { name: 'Cycle 2' })).toBeNull()
