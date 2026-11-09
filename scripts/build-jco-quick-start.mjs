@@ -186,8 +186,73 @@ function buildPdf(markdown) {
   if(/[^\x00-\x7F]/.test(pdf))throw Error("Non-ASCII PDF");
   return {pdf,stats:{pages:n,sectionBookmarks:headings.length,bytes:pdf.length,sourceChars:markdown.length}};
 }
+function restylePdf(pdf){
+ const intro=`1 1 1 rg 0 0 595 842 re f
+0.51471 0.61824 0.71098 rg 54 780 487 1.5 re f
+BT /F2 23 Tf 0.13 0.20 0.29 rg 113 733 Td (JosephsonCircuitsOptimizer.jl) Tj ET
+BT /F2 18 Tf 0.13 0.20 0.29 rg 247 704 Td (Quick Start) Tj ET
+BT /F1 10.5 Tf 0.32 0.40 0.47 rg 110 680 Td (Design, optimization and nonlinear analysis of Josephson circuits) Tj ET
+0.12549 0.47842 0.36472 rg 54 654 487 2 re f
+0.95686 0.96863 0.98040 rg 54 614 487 35 re f
+0.51471 0.61824 0.71098 RG 0.75 w 54 614 487 35 re S
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 61 629 Td (MODEL) Tj ET
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 160 629 Td (LINEAR) Tj ET
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 257 629 Td (OPTIMIZE) Tj ET
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 376 629 Td (HB) Tj ET
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 443 629 Td (FEEDBACK) Tj ET
+0.51471 0.61824 0.71098 RG 0.55 w 145 623 m 145 641 l S
+0.51471 0.61824 0.71098 RG 0.55 w 242 623 m 242 641 l S
+0.51471 0.61824 0.71098 RG 0.55 w 361 623 m 361 641 l S
+0.51471 0.61824 0.71098 RG 0.55 w 430 623 m 430 641 l S
+`;
+ const coverCut="BT /F1 9.85 Tf";
+ const restyleStream=(stream,isCover)=>{
+  if(isCover){
+    const i=stream.indexOf(coverCut);
+    if(i<0)throw Error("Could not locate original Quick Start body");
+    stream=intro+stream.slice(i);
+  }else{
+    stream=stream.replace(/0\.125 0\.741 0\.678 rg 54 797 36 2 re f\n/g,"0.12549 0.47842 0.36472 rg 54 797 36 2 re f\n")
+    .replace(/0\.17 0\.24 0\.32 rg 100 793 Td/g,"0.17 0.27 0.35 rg 100 793 Td");
+  }
+  stream=stream.replace(/0\.125 0\.741 0\.678 rg/g,"0.12549 0.47842 0.36472 rg")
+    .replace(/0\.10 0\.52 0\.54 rg/g,"0.12549 0.47842 0.36472 rg")
+    .replace(/0\.946 0\.958 0\.969 rg/g,"0.95686 0.96863 0.98040 rg")
+    .replace(/0\.75 0\.83 0\.87 rg/g,"0.51471 0.61824 0.71098 rg")
+    .replace(/0\.988 0\.961 0\.894 rg/g,"0.95686 0.96863 0.98040 rg")
+    .replace(/0\.94 0\.66 0\.21 rg/g,"0.12549 0.47842 0.36472 rg")
+    .replace(/JCO  \/  documentation source: docs\/JCO_Documentation\.md/g,"JCO  /  Quick Start | docs/JCO_Quick_Start.md");
+  return stream;
+ };
+ const re=/(\d+) 0 obj\n([\s\S]*?)\nendobj\n/g;
+ const original=[...pdf.matchAll(re)];
+ if(!original.length||!pdf.startsWith("%PDF-1.4"))throw Error("Quick Start PDF format changed");
+ let result="%PDF-1.4\n% ASCII-only PDF\n",offsets=[0],count=0;
+ for(const m of original){
+  const id=Number(m[1]);
+  if(id!==++count)throw Error("Object order changed");
+  let body=m[2];
+  if(id===3)body="<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>";
+  if(id===4)body="<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>";
+  const z=body.match(/^<< \/Length (\d+) >>\nstream\n([\s\S]*?)endstream$/);
+  if(z){
+    const revised=restyleStream(z[2],id===7);
+    body=`<< /Length ${revised.length} >>\nstream\n${revised}endstream`;
+  }
+  offsets[id]=result.length;
+  result+=`${id} 0 obj\n${body}\nendobj\n`;
+ }
+ const x=result.length;
+ result+=`xref\n0 ${count+1}\n0000000000 65535 f \n`;
+ for(let id=1;id<=count;id++)result+=`${String(offsets[id]).padStart(10,"0")} 00000 n \n`;
+ result+=`trailer\n<< /Size ${count+1} /Root 1 0 R /Info ${count} 0 R >>\nstartxref\n${x}\n%%EOF\n`;
+ if(/[^\x00-\x7F]/.test(result))throw Error("Non-ASCII PDF");
+ if(!result.slice(x).startsWith("xref\n"))throw Error("xref mismatch");
+ if(!offsets.slice(1).every((pos,i)=>result.slice(pos).startsWith(`${i+1} 0 obj\n`)))throw Error("invalid object offsets");
+ return result;
+}
 const dir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const src = readFileSync(resolve(dir, 'docs/JCO_Quick_Start.md'), 'utf8');
 const output = buildPdf(src);
-writeFileSync(resolve(dir, 'docs/JCO_Quick_Start.pdf'), Buffer.from(output.pdf, 'ascii'));
-console.log(`Wrote ${output.stats.pages} pages, ${output.stats.bytes} bytes.`);
+writeFileSync(resolve(dir, 'docs/JCO_Quick_Start.pdf'), Buffer.from(restylePdf(output.pdf), 'ascii'));
+console.log(`Wrote ${output.stats.pages} pages (original manual visual style).`);

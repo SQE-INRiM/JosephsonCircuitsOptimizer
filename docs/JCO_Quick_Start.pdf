@@ -7,10 +7,10 @@ endobj
 << /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R] /Count 6 >>
 endobj
 3 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>
 endobj
 4 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>
 endobj
 5 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
@@ -19,62 +19,62 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
 endobj
 7 0 obj
-<< /Length 4818 >>
+<< /Length 5062 >>
 stream
-0.063 0.161 0.265 rg 0 0 595 842 re f
-0.977 0.984 0.991 rg 0 0 595 674 re f
-0.125 0.741 0.678 rg 54 789 81 4 re f
-BT /F2 26 Tf 1 1 1 rg 54 745 Td (JCO Quick Start) Tj ET
-BT /F1 12 Tf 0.79 0.87 0.92 rg 54 720 Td (JosephsonCircuitsOptimizer.jl) Tj ET
-BT /F1 9.4 Tf 0.72 0.81 0.87 rg 54 693 Td (Desktop GUI  |  Julia workflow  |  November 2026) Tj ET
-0.145 0.72 0.66 rg 54 645 487 1.5 re f
-0.13 0.23 0.34 rg 54 618 86 22 re f
-BT /F2 8.5 Tf 1 1 1 rg 61 625 Td (MODEL) Tj ET
-0.13 0.23 0.34 rg 153 618 84 22 re f
-BT /F2 8.5 Tf 1 1 1 rg 160 625 Td (LINEAR) Tj ET
-0.13 0.23 0.34 rg 250 618 105 22 re f
-BT /F2 8.5 Tf 1 1 1 rg 257 625 Td (OPTIMIZE) Tj ET
-0.13 0.23 0.34 rg 369 618 56 22 re f
-BT /F2 8.5 Tf 1 1 1 rg 376 625 Td (HB) Tj ET
-0.13 0.23 0.34 rg 436 618 105 22 re f
-BT /F2 8.5 Tf 1 1 1 rg 443 625 Td (FEEDBACK) Tj ET
+1 1 1 rg 0 0 595 842 re f
+0.51471 0.61824 0.71098 rg 54 780 487 1.5 re f
+BT /F2 23 Tf 0.13 0.20 0.29 rg 113 733 Td (JosephsonCircuitsOptimizer.jl) Tj ET
+BT /F2 18 Tf 0.13 0.20 0.29 rg 247 704 Td (Quick Start) Tj ET
+BT /F1 10.5 Tf 0.32 0.40 0.47 rg 110 680 Td (Design, optimization and nonlinear analysis of Josephson circuits) Tj ET
+0.12549 0.47842 0.36472 rg 54 654 487 2 re f
+0.95686 0.96863 0.98040 rg 54 614 487 35 re f
+0.51471 0.61824 0.71098 RG 0.75 w 54 614 487 35 re S
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 61 629 Td (MODEL) Tj ET
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 160 629 Td (LINEAR) Tj ET
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 257 629 Td (OPTIMIZE) Tj ET
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 376 629 Td (HB) Tj ET
+BT /F2 8.5 Tf 0.18 0.27 0.35 rg 443 629 Td (FEEDBACK) Tj ET
+0.51471 0.61824 0.71098 RG 0.55 w 145 623 m 145 641 l S
+0.51471 0.61824 0.71098 RG 0.55 w 242 623 m 242 641 l S
+0.51471 0.61824 0.71098 RG 0.55 w 361 623 m 361 641 l S
+0.51471 0.61824 0.71098 RG 0.55 w 430 623 m 430 641 l S
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 600.00 Td (JosephsonCircuitsOptimizer.jl \(JCO\) organizes simulations from JosephsonCircuits.jl) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 585.90 Td (\(https://josephsoncircuits.org/\) into linear exploration, surrogate optimization, and nonlinear) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 571.80 Td (harmonic-balance \(HB\) analysis. This guide focuses on the controls and functions needed to run,) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 557.70 Td (understand, and preserve an experiment.) Tj ET
-0.125 0.741 0.678 rg 54 520.90 27 2 re f
+0.12549 0.47842 0.36472 rg 54 520.90 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 515.90 Td (1. Quick start) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 494.70 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 494.70 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 494.70 Td (1. Install Julia and download the JCO desktop package for Windows or Linux from GitHub Releases) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 480.60 Td (\(https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/releases\).) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 462.90 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 462.90 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 462.90 Td (2. Open JCO, then use Julia settings to select the Julia executable and number of threads.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 445.20 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 445.20 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 445.20 Td (3. Open a bundled example or create a project. Define the circuit, parameters, sources and metrics) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 431.10 Td (under Setup.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 413.40 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 413.40 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 413.40 Td (4. Save the project as a .jco file, run the computation, and inspect the numerical data under Results.) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 395.70 Td (The first launch may require internet access while the Julia environment is prepared. Windows offers an) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 381.60 Td (installer and a portable executable. Linux uses an x86-64 AppImage; Linux packaged support is preliminary) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 367.50 Td (and has been less extensively tested than Windows.) Tj ET
-0.125 0.741 0.678 rg 54 330.70 27 2 re f
+0.12549 0.47842 0.36472 rg 54 330.70 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 325.70 Td (2. Desktop GUI) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 304.50 Td (The interface has three main pages:) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 282.70 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 282.70 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 282.70 Td (Setup - Configure the experiment through Model & inputs, Computation, and Metrics & constraints. A) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 268.60 Td (circuit preview can display the resolved lumped-element model.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 250.90 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 250.90 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 250.90 Td (Run - Start the complete workflow or an available individual stage. Monitor Linear, Optimization, HB,) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 236.80 Td (and \(when enabled\) feedback-cycle progress, logs and termination status.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 219.10 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 219.10 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 219.10 Td (Results - Select a stored run, inspect Linear/Optimization/HB datasets, compare up to two points, and) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 205.00 Td (export CSV data. Feedback runs also provide cycle selection and a convergence overview.) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 187.30 Td (A .jco project may contain several runs. The Run selector in Results selects a saved experiment) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 173.20 Td (independently of the configuration currently being edited.) Tj ET
-0.125 0.741 0.678 rg 54 136.40 27 2 re f
+0.12549 0.47842 0.36472 rg 54 136.40 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 131.40 Td (3. Model and sources) Tj ET
 0.19 0.26 0.34 rg 54 40 487 0.7 re f
-BT /F1 8.20 Tf 0.38 0.45 0.51 rg 54.00 29.00 Td (JCO  /  documentation source: docs/JCO_Documentation.md) Tj ET
+BT /F1 8.20 Tf 0.38 0.45 0.51 rg 54.00 29.00 Td (JCO  /  Quick Start | docs/JCO_Quick_Start.md) Tj ET
 BT /F1 8.20 Tf 0.38 0.45 0.51 rg 501.00 34.00 Td (1 / 6) Tj ET
 endstream
 endobj
@@ -82,26 +82,26 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
 endobj
 9 0 obj
-<< /Length 5127 >>
+<< /Length 5181 >>
 stream
-0.125 0.741 0.678 rg 54 797 36 2 re f
-BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
+0.12549 0.47842 0.36472 rg 54 797 36 2 re f
+BT /F2 8.3 Tf 0.17 0.27 0.35 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
 0.84 0.87 0.89 RG 0.6 w 54 787 m 541 787 l S
 BT /F2 11.40 Tf 0.10 0.28 0.40 rg 54.00 755.00 Td (Circuit and device parameters) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 736.60 Td (Edit the Julia circuit in Model & inputs -> Circuit. Its function receives a dictionary of parameters and) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 722.50 Td (returns a JosephsonCircuits circuit and its definitions:) Tj ET
-0.946 0.958 0.969 rg 54 645.10 487 59.60 re f
-0.75 0.83 0.87 rg 54 645.10 2 59.60 re f
+0.95686 0.96863 0.98040 rg 54 645.10 487 59.60 re f
+0.51471 0.61824 0.71098 rg 54 645.10 2 59.60 re f
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 693.70 Td (function create_user_circuit\(device_params_set\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 682.80 Td (    # Define components, nodes, and ports.) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 671.90 Td (    return circuit, circuitdefs) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 661.00 Td (end) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 638.10 Td (Under Device parameters, give each parameter a name, unit, and a mode:) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 616.30 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 616.30 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 616.30 Td (Fixed - One value; no design-space sweep along this parameter.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 598.60 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 598.60 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 598.60 Td (Range - Start, stop and step; regular design-space sampling.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 580.90 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 580.90 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 580.90 Td (List - Explicit comma-separated values.) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 563.20 Td (The names used in this table must match the keys accessed by device_params_set in the circuit code. Use) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 549.10 Td (SI values in the Julia model; the GUI displays the selected units.) Tj ET
@@ -115,7 +115,7 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 416.70 Td (impedance used for dBm convers
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 402.60 Td (the editor.) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 380.80 Td (The Linear sweep uses the low-power source amplitudes. The Nonlinear stage explores the configured) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 366.70 Td (nonlinear amplitudes and source frequencies for the selected device.) Tj ET
-0.125 0.741 0.678 rg 54 329.90 27 2 re f
+0.12549 0.47842 0.36472 rg 54 329.90 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 324.90 Td (4. Computation and run modes) Tj ET
 BT /F2 11.40 Tf 0.10 0.28 0.40 rg 54.00 289.70 Td (Linear sweep and optimization) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 271.30 Td (Under Computation -> Linear sweep, choose the probe-frequency Start and Stop \(GHz\) and Step \(MHz\).) Tj ET
@@ -137,10 +137,10 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
 endobj
 11 0 obj
-<< /Length 5717 >>
+<< /Length 5759 >>
 stream
-0.125 0.741 0.678 rg 54 797 36 2 re f
-BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
+0.12549 0.47842 0.36472 rg 54 797 36 2 re f
+BT /F2 8.3 Tf 0.17 0.27 0.35 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
 0.84 0.87 0.89 RG 0.6 w 54 787 m 541 787 l S
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 769.00 Td (Harmonic and solver settings separates linear and nonlinear strong-tone/modulation harmonic limits. A) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 754.90 Td (conventional low-power linear sweep uses first-order harmonic limits; choose sufficient nonlinear) Tj ET
@@ -156,21 +156,21 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 594.30 Td (analyzed with HB.) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 572.50 Td (A running simulation can be stopped; interrupted or non-converged results should not be treated as) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 558.40 Td (completed scientific data. JCO retains the run information and numerical results that were successfully) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 544.30 Td (saved.) Tj ET
-0.125 0.741 0.678 rg 54 507.50 27 2 re f
+0.12549 0.47842 0.36472 rg 54 507.50 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 502.50 Td (5. Custom metrics and saved data) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 481.30 Td (In Metrics & constraints edit three Julia functions independently: Cost, Performance, and Nonlinear) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 467.20 Td (correction. The editors preserve other functions and helpers in the shared) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 453.10 Td (user_cost_and_performance.jl file; use the complete-file editor when needed.) Tj ET
-0.946 0.958 0.969 rg 54 353.90 487 81.40 re f
-0.75 0.83 0.87 rg 54 353.90 2 81.40 re f
+0.95686 0.96863 0.98040 rg 54 353.90 487 81.40 re f
+0.51471 0.61824 0.71098 rg 54 353.90 2 81.40 re f
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 424.30 Td (function user_cost\(sol, device_params_set, nonlinear_correction\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 413.40 Td (    s11 = sol.linearized.S\(\(0,\), 1, \(0,\), 1, :\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 402.50 Td (    s11_db = 10 .* log10.\(abs2.\(s11\)\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 391.60 Td (    objective = mean\(s11_db\) + nonlinear_correction) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 380.70 Td (    return \(metric = objective, mean_s11_db = mean\(s11_db\)\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 369.80 Td (end) Tj ET
-0.946 0.958 0.969 rg 54 280.40 487 70.50 re f
-0.75 0.83 0.87 rg 54 280.40 2 70.50 re f
+0.95686 0.96863 0.98040 rg 54 280.40 487 70.50 re f
+0.51471 0.61824 0.71098 rg 54 280.40 2 70.50 re f
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 339.90 Td (function user_performance\(sol, device_params_set, source_amps, source_freqs\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 329.00 Td (    s21 = sol.linearized.S\(\(0,\), 2, \(0,\), 1, :\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 318.10 Td (    gain_db = 10 .* log10.\(abs2.\(s21\)\)) Tj ET
@@ -196,12 +196,12 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
 endobj
 13 0 obj
-<< /Length 5324 >>
+<< /Length 5399 >>
 stream
-0.125 0.741 0.678 rg 54 797 36 2 re f
-BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
+0.12549 0.47842 0.36472 rg 54 797 36 2 re f
+BT /F2 8.3 Tf 0.17 0.27 0.35 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
 0.84 0.87 0.89 RG 0.6 w 54 787 m 541 787 l S
-0.125 0.741 0.678 rg 54 754.00 27 2 re f
+0.12549 0.47842 0.36472 rg 54 754.00 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 749.00 Td (6. Nonlinear feedback) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 727.80 Td (Nonlinear feedback is optional. It repeats the design-space exploration and optimization using a) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 713.70 Td (user-defined scalar correction calculated from low-power and pumped HB solutions. It is configured in) Tj ET
@@ -209,8 +209,8 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 699.60 Td (Computation -> Nonlinear feedb
 BT /F2 11.40 Tf 0.10 0.28 0.40 rg 54.00 663.80 Td (Define the correction) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 645.40 Td (Implement user_nonlinear_correction\(sol_linear, sol_nonlinear, device_params_set\). Both inputs are full) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 631.30 Td (HB solutions. For example, a correction based on the difference in average reflected power response is:) Tj ET
-0.946 0.958 0.969 rg 54 532.10 487 81.40 re f
-0.75 0.83 0.87 rg 54 532.10 2 81.40 re f
+0.95686 0.96863 0.98040 rg 54 532.10 487 81.40 re f
+0.51471 0.61824 0.71098 rg 54 532.10 2 81.40 re f
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 602.50 Td (function user_nonlinear_correction\(sol_linear, sol_nonlinear, device_params_set\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 591.60 Td (    s_lin = sol_linear.linearized.S\(\(0,\), 1, \(0,\), 1, :\)) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 580.70 Td (    s_on  = sol_nonlinear.linearized.S\(\(0,\), 1, \(0,\), 1, :\)) Tj ET
@@ -220,8 +220,8 @@ BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 548.00 Td (end) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 525.10 Td (JCO passes the returned value as nonlinear_correction to user_cost in the next corrected cycle. Your) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 511.00 Td (cost function must explicitly use the value; otherwise enabling feedback does not change the objective. The) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 496.90 Td (meaning and units of the correction are defined by your Julia code.) Tj ET
-0.988 0.961 0.894 rg 49 434.80 497 53.30 re f
-0.94 0.66 0.21 rg 49 434.80 3 53.30 re f
+0.95686 0.96863 0.98040 rg 49 434.80 497 53.30 re f
+0.12549 0.47842 0.36472 rg 49 434.80 3 53.30 re f
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 58.00 475.10 Td (Important: a correction applied as the same constant offset to every candidate does not, by itself,) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 58.00 461.00 Td (move the minimizer. Feedback convergence alone is not evidence of improved gain or a physically) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 58.00 446.90 Td (better design.) Tj ET
@@ -234,16 +234,16 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 328.60 Td (source-frequency vectors, JCO 
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 314.50 Td (linear and nonlinear solve at the reference point.) Tj ET
 BT /F2 11.40 Tf 0.10 0.28 0.40 rg 54.00 278.70 Td (Choose when to stop) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 260.30 Td (Choose exactly one stopping mode:) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 238.50 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 238.50 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 238.50 Td (Fixed cycles - Run the specified number of corrected iterations.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 220.80 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 220.80 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 220.80 Td (Metric convergence - Select Monitor \(Cost, Performance, or Correction\), Change \(absolute or) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 206.70 Td (relative\), Tolerance, and Maximum cycles \(at least two\).) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 189.00 Td (The monitored values are, respectively, the optimized cost \(minimized\), the best evaluated HB) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 174.90 Td (performance in that cycle \(maximized\), or the user correction. For successive completed corrected) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 160.80 Td (cycles with values a and b, JCO stops when:) Tj ET
-0.946 0.958 0.969 rg 54 105.20 487 37.80 re f
-0.75 0.83 0.87 rg 54 105.20 2 37.80 re f
+0.95686 0.96863 0.98040 rg 54 105.20 487 37.80 re f
+0.51471 0.61824 0.71098 rg 54 105.20 2 37.80 re f
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 132.00 Td (Absolute:  abs\(b - a\) <= tolerance) Tj ET
 BT /F3 8.10 Tf 0.14 0.23 0.32 rg 67.00 121.10 Td (Relative:  100 * abs\(b - a\) / max\(abs\(a\), abs\(b\), eps\) <= tolerance \(%\)) Tj ET
 0.83 0.86 0.89 RG 0.6 w 54 48 m 541 48 l S
@@ -255,10 +255,10 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 15 0 R >>
 endobj
 15 0 obj
-<< /Length 5963 >>
+<< /Length 6080 >>
 stream
-0.125 0.741 0.678 rg 54 797 36 2 re f
-BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
+0.12549 0.47842 0.36472 rg 54 797 36 2 re f
+BT /F2 8.3 Tf 0.17 0.27 0.35 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
 0.84 0.87 0.89 RG 0.6 w 54 787 m 541 787 l S
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 769.00 Td (Absolute tolerance uses the units of the selected metric; relative tolerance is a percentage. Cycle 0 is the) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 754.90 Td (uncorrected baseline and is not counted as a corrected iteration or used as the first convergence) Tj ET
@@ -271,44 +271,44 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 644.30 Td (traces, comparisons and CSV ex
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 622.50 Td (The Nonlinear feedback view summarizes the best evaluated HB performance and the saved parameter) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 608.40 Td (history across completed cycles. A reported convergence status means only that the chosen stopping rule) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 594.30 Td (was met; verify physical quality and numerical HB convergence separately.) Tj ET
-0.125 0.741 0.678 rg 54 557.50 27 2 re f
+0.12549 0.47842 0.36472 rg 54 557.50 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 552.50 Td (7. Results and exports) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 531.30 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 531.30 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 531.30 Td (Linear: Inspect the cost/metric heatmap, slices through additional parameters, selected points and) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 517.20 Td (retained frequency-dependent arrays.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 499.50 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 499.50 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 499.50 Td (Optimization: Inspect the evaluated landscape \(projection or aligned Linear slice\) and the objective) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 485.40 Td (History. A history curve is not shown when fewer than two eligible evaluations exist.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 467.70 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 467.70 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 467.70 Td (Harmonic balance: Inspect performance over nonlinear working points, amplitudes/frequencies,) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 453.60 Td (convergence and retained arrays. A single working point does not provide an amplitude-response) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 439.50 Td (curve.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 421.80 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 421.80 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 421.80 Td (Point comparison: Select up to two points within the same selected run/cycle; cross-cycle overlay is) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 407.70 Td (not supported.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 390.00 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 390.00 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 390.00 Td (Export: Use Export CSV for a numerical stage or the plot export controls for selected curves.) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 375.90 Td (Exporting is independent of saving the .jco project.) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 358.20 Td (Simulation info shows saved run settings. Manage runs or Delete run operates on stored runs, not on the) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 344.10 Td (active Setup fields. Deletion of a run removes its stored results and cannot be undone.) Tj ET
-0.125 0.741 0.678 rg 54 307.30 27 2 re f
+0.12549 0.47842 0.36472 rg 54 307.30 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 302.30 Td (8. Projects, files and reproducibility) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 281.10 Td (A .jco is a portable, versioned ZIP project containing editable inputs, helper files and the preserved) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 267.00 Td (numerical runs. Save/Save As creates or updates the archive; Open and drag-and-drop can reopen it.) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 252.90 Td (Each new run is stored separately, so previous results remain available.) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 231.10 Td (The required files within the project workspace are:) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 209.30 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 209.30 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 209.30 Td (device_parameters_space.json - fixed, range and list design parameters.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 191.60 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 191.60 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 191.60 Td (drive_physical_quantities.json - probe frequencies, source ports/currents/frequencies and) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 177.50 Td (reference currents.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 159.80 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 159.80 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 159.80 Td (simulation_config.json - harmonics, hbsolve, data retention and feedback settings.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 142.10 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 142.10 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 142.10 Td (optimizer_config.json - surrogate, strategy, sampling and iteration settings.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 124.40 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 124.40 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 124.40 Td (user_circuit.jl - circuit definition and component values.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 106.70 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 106.70 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 106.70 Td (user_cost_and_performance.jl - cost, performance, correction and helper functions.) Tj ET
 0.83 0.86 0.89 RG 0.6 w 54 48 m 541 48 l S
 BT /F1 8.20 Tf 0.38 0.45 0.51 rg 54.00 34.00 Td (JCO  |  November 2026) Tj ET
@@ -319,10 +319,10 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 17 0 R >>
 endobj
 17 0 obj
-<< /Length 4517 >>
+<< /Length 4586 >>
 stream
-0.125 0.741 0.678 rg 54 797 36 2 re f
-BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
+0.12549 0.47842 0.36472 rg 54 797 36 2 re f
+BT /F2 8.3 Tf 0.17 0.27 0.35 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET
 0.84 0.87 0.89 RG 0.6 w 54 787 m 541 787 l S
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 769.00 Td (Numerical summaries are stored in HDF5 files for Linear, Optimization and HB, with point identifiers) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 754.90 Td (linking rows to saved arrays. With trace_storage_mode = "selected" \(default\), explicitly saved arrays are) Tj ET
@@ -334,7 +334,7 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 676.70 Td (nonlinear_feedback_stop_mode, 
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 662.60 Td (nonlinear_feedback_tolerance. The reference currents are stored under) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 648.50 Td (source_<i>_non_linear_amplitude_for_delta_correction in the source configuration. Existing projects) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 634.40 Td (without the newer stopping keys default to fixed cycles.) Tj ET
-0.125 0.741 0.678 rg 54 597.60 27 2 re f
+0.12549 0.47842 0.36472 rg 54 597.60 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 592.60 Td (9. Practical checks) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 571.40 Td (Before trusting a result, verify the port convention and source units; check S-parameter indices, mask) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 557.30 Td (behavior and frequency ranges; verify solver convergence at the chosen amplitudes; and confirm that the) Tj ET
@@ -343,19 +343,19 @@ BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 521.40 Td (On Windows, unsigned research 
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 507.30 Td (separately block Julia native libraries; see the Microsoft FAQ) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 493.20 Td (\(https://support.microsoft.com/en-us/windows/smart-app-control-faq-285ea03d-fa88-4a37-8837-aacbe6) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 54.00 479.10 Td (d2e7d0\). Disabling a security feature lowers protection and is not a general installation recommendation.) Tj ET
-0.988 0.961 0.894 rg 49 431.10 497 39.20 re f
-0.94 0.66 0.21 rg 49 431.10 3 39.20 re f
+0.95686 0.96863 0.98040 rg 49 431.10 497 39.20 re f
+0.12549 0.47842 0.36472 rg 49 431.10 3 39.20 re f
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 58.00 457.30 Td (Linux support remains preliminary: packaged support is x86-64, has been less extensively validated) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 58.00 443.20 Td (than Windows, and may depend on distribution-specific libraries.) Tj ET
-0.125 0.741 0.678 rg 54 406.40 27 2 re f
+0.12549 0.47842 0.36472 rg 54 406.40 27 2 re f
 BT /F2 15.20 Tf 0.07 0.16 0.28 rg 54.00 401.40 Td (10. References) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 380.20 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 380.20 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 380.20 Td (Repository and issues: https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 362.50 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 362.50 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 362.50 Td (Circuit simulator: https://josephsoncircuits.org/) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 344.80 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 344.80 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 344.80 Td (Project format details: docs/PROJECT_FORMAT.md in the repository.) Tj ET
-BT /F2 9.85 Tf 0.10 0.52 0.54 rg 54.00 327.10 Td (-) Tj ET
+BT /F2 9.85 Tf 0.12549 0.47842 0.36472 rg 54.00 327.10 Td (-) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 327.10 Td (Citation: E. Palumbo et al., "JCO: Optimization Framework for Nonlinear Superconducting Circuits) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 313.00 Td (Using a Lumped-Element Approach and Harmonic Balance," IEEE Transactions on Applied) Tj ET
 BT /F1 9.85 Tf 0.15 0.21 0.28 rg 70.00 298.90 Td (Superconductivity \(2026\), DOI: 10.1109/TASC.2026.3679488) Tj ET
@@ -407,34 +407,34 @@ xref
 0000000026 00000 n 
 0000000115 00000 n 
 0000000206 00000 n 
-0000000303 00000 n 
-0000000405 00000 n 
-0000000500 00000 n 
-0000000646 00000 n 
-0000005515 00000 n 
-0000005661 00000 n 
-0000010839 00000 n 
-0000010987 00000 n 
-0000016756 00000 n 
-0000016904 00000 n 
-0000022280 00000 n 
-0000022428 00000 n 
-0000028443 00000 n 
-0000028591 00000 n 
-0000033160 00000 n 
-0000033235 00000 n 
-0000033344 00000 n 
-0000033465 00000 n 
-0000033592 00000 n 
-0000033727 00000 n 
-0000033867 00000 n 
-0000033996 00000 n 
-0000034126 00000 n 
-0000034272 00000 n 
-0000034399 00000 n 
-0000034509 00000 n 
+0000000305 00000 n 
+0000000403 00000 n 
+0000000498 00000 n 
+0000000644 00000 n 
+0000005757 00000 n 
+0000005903 00000 n 
+0000011135 00000 n 
+0000011283 00000 n 
+0000017094 00000 n 
+0000017242 00000 n 
+0000022693 00000 n 
+0000022841 00000 n 
+0000028973 00000 n 
+0000029121 00000 n 
+0000033759 00000 n 
+0000033834 00000 n 
+0000033943 00000 n 
+0000034064 00000 n 
+0000034191 00000 n 
+0000034326 00000 n 
+0000034466 00000 n 
+0000034595 00000 n 
+0000034725 00000 n 
+0000034871 00000 n 
+0000034998 00000 n 
+0000035108 00000 n 
 trailer
 << /Size 30 /Root 1 0 R /Info 29 0 R >>
 startxref
-34637
+35236
 %%EOF
