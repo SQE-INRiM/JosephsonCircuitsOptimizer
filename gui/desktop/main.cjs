@@ -231,6 +231,10 @@ function parseOutputLine(line, runId) {
   if (!trimmed) return
   const feedbackEvent = parseFeedbackProgressLine(trimmed, runId)
   if (feedbackEvent) {
+    if (feedbackEvent.type === 'run-paused') {
+      if (activeRun?.runId !== runId || !activeRun.stepMode) return
+      activeRun.paused = true
+    }
     emit(feedbackEvent)
     return
   }
@@ -268,6 +272,10 @@ async function startRun(request) {
   const validation = validateWorkspace(session.workspace)
   if (!validation.valid) throw new Error(`Missing inputs: ${validation.missing.join(', ')}`)
   const mode = modeForStages(request.stages)
+  const stepMode = request.stepThroughFeedback === true
+  if (stepMode && (mode !== 'run' || Number(request.project.computation.nonlinearCorrectionCycles) < 1)) {
+    throw new Error('Stepped execution requires a full run with nonlinear feedback enabled.')
+  }
   const stageInputs = validatePartialRunInputs(session.workspace, mode)
   await ensureRuntimePrepared()
   if (juliaProcess) throw new Error('A simulation is already running.')
@@ -282,10 +290,10 @@ async function startRun(request) {
   const args = ['--startup-file=no', '--color=no', `--project=${jcoRoot()}`, bootstrap]
   juliaProcess = spawn(settings.juliaPath || 'julia', args, {
     cwd: jcoRoot(),
-    env: { ...process.env, JCO_PROJECT: jcoRoot(), JCO_WORKSPACE: runSession.workspace, JCO_MODE: mode, JCO_RUN_ID: runId, JCO_STAGE_DATASET: stageInputs.datasetPath ?? '', JCO_STAGE_OPTIMUM: stageInputs.optimalParamsPath ?? '', JULIA_NUM_THREADS: String(Math.max(1, settings.threads || 1)) },
+    env: { ...process.env, JCO_PROJECT: jcoRoot(), JCO_WORKSPACE: runSession.workspace, JCO_MODE: mode, JCO_RUN_ID: runId, JCO_STAGE_DATASET: stageInputs.datasetPath ?? '', JCO_STAGE_OPTIMUM: stageInputs.optimalParamsPath ?? '', JCO_GUI_STEP_MODE: stepMode ? '1' : '0', JULIA_NUM_THREADS: String(Math.max(1, settings.threads || 1)) },
     windowsHide: true,
   })
-  activeRun = { ...runSession, cancelRequested: false, stageStartedAt: {} }
+  activeRun = { ...runSession, cancelRequested: false, stageStartedAt: {}, stepMode, paused: false }
   emit({ type: 'run-started', runId, stages: request.stages, timestamp: new Date().toISOString() })
   readline.createInterface({ input: juliaProcess.stdout }).on('line', (line) => parseOutputLine(line, runId))
   readline.createInterface({ input: juliaProcess.stderr }).on('line', (line) => parseOutputLine(line, runId))
@@ -298,6 +306,7 @@ async function startRun(request) {
     const outcome = outcomeForClose(code, cancelRequested)
     try { fs.rmSync(path.join(runSession.workspace, 'STOP'), { force: true }) } catch {}
     const outputPath = path.join(runSession.workspace, 'outputs', runId)
+    try { fs.rmSync(path.join(outputPath, '.jco_gui_run_control'), { force: true }) } catch {}
     if (displayMetadata && fs.existsSync(path.join(outputPath, 'inputs_snapshot'))) {
       try {
         fs.writeFileSync(path.join(outputPath, 'inputs_snapshot', 'jco_gui_metadata.json'), displayMetadata)
@@ -319,6 +328,21 @@ async function startRun(request) {
     emit({ type: 'run-finished', runId, outcome, timestamp: new Date().toISOString() })
   })
   return { runId }
+}
+
+function resumeRun(_event, action) {
+  if (!activeRun || !juliaProcess || !activeRun.stepMode || !activeRun.paused) {
+    throw new Error('No stepped run is waiting for a next-stage action.')
+  }
+  if (action !== 'next' && action !== 'remaining') {
+    throw new Error('Invalid run continuation action.')
+  }
+  if (activeRun.cancelRequested) throw new Error('Run cancellation is in progress.')
+  const controlFile = path.join(activeRun.workspace, 'outputs', activeRun.runId, '.jco_gui_run_control')
+  fs.writeFileSync(controlFile, action + '\n', { encoding: 'utf8', flag: 'wx' })
+  activeRun.paused = false
+  emit({ type: 'run-resumed', runId: activeRun.runId, timestamp: new Date().toISOString() })
+  return { accepted: true }
 }
 
 async function cancelRun(_event, requestedRunId) {
@@ -579,6 +603,7 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('jco:preview-circuit', (_event, project) => previewCircuit(project))
   ipcMain.handle('jco:start-run', (_event, request) => startRun(request))
+  ipcMain.handle('jco:resume-run', resumeRun)
   ipcMain.handle('jco:cancel-run', cancelRun)
   ipcMain.handle('jco:delete-run', (_event, runId) => deleteRun(runId))
   ipcMain.handle('jco:read-results', () => runJuliaJson('results.jl'))
