@@ -68,7 +68,7 @@ function assertMatchingSnapshot(workspace, runPath, mode) {
  * optimization can leave partial history in LATEST, so never rely on that pointer
  * alone or borrow an optimum from an incompatible run. */
 function validatePartialRunInputs(workspace, mode) {
-  if (!['optimization_only', 'nonlinear_only'].includes(mode)) return {}
+  if (!['optimization_only', 'nonlinear_only', 'from_latest'].includes(mode)) return {}
   const outputRoot = path.resolve(workspace, 'outputs')
   const candidates = fs.existsSync(outputRoot)
     ? fs.readdirSync(outputRoot, { withFileTypes: true })
