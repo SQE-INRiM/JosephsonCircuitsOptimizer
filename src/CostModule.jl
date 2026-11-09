@@ -150,6 +150,68 @@ function linear_solution(device_params_set::Dict, circuit::Circuit, local_sim_va
 end
 
 
+# Reuse linear HB solutions across nonlinear-feedback cycles. Only cost evaluations
+# use this cache: standalone linear solves for nonlinear HB remain unchanged.
+const _feedback_linear_cache = Dict{Tuple,Tuple{Any,Any}}()
+const _feedback_linear_cache_active = Ref(false)
+const _feedback_linear_cache_settings = Ref{Any}(nothing)
+const _feedback_linear_cache_bytes = Ref(0)
+const _feedback_linear_cache_limit_bytes = Ref(2 * 1024^3)
+const _feedback_linear_cache_full = Ref(false)
+const _feedback_linear_cache_hits = Ref(0)
+
+function _feedback_linear_cache_start!()
+    empty!(_feedback_linear_cache)
+    _feedback_linear_cache_bytes[] = 0
+    _feedback_linear_cache_full[] = false
+    _feedback_linear_cache_hits[] = 0
+    _feedback_linear_cache_settings[] = deepcopy(sim_vars)
+    _feedback_linear_cache_active[] = true
+    return nothing
+end
+
+function _feedback_linear_cache_stop!()
+    if _feedback_linear_cache_active[]
+        @info "Feedback linear cache" retained_points=length(_feedback_linear_cache) reused_solves=_feedback_linear_cache_hits[]
+    end
+    _feedback_linear_cache_active[] = false
+    empty!(_feedback_linear_cache)
+    _feedback_linear_cache_settings[] = nothing
+    _feedback_linear_cache_bytes[] = 0
+    _feedback_linear_cache_full[] = false
+    return nothing
+end
+
+function _feedback_linear_solution(vec, params, circuit)
+    # The feedback changes user_cost, not the circuit or solver settings.
+    if !_feedback_linear_cache_active[] ||
+       !isequal(sim_vars, _feedback_linear_cache_settings[])
+        return linear_solution(params, circuit)
+    end
+
+    key = Tuple(Float64.(vec))
+    cached = get(_feedback_linear_cache, key, nothing)
+    # create_circuit may add derived parameters: check those as well.
+    if cached !== nothing && isequal(cached[1], params)
+        _feedback_linear_cache_hits[] += 1
+        return cached[2]
+    end
+
+    sol = linear_solution(params, circuit)
+    if cached === nothing && !_feedback_linear_cache_full[]
+        bytes = Base.summarysize(sol)
+        if bytes <= _feedback_linear_cache_limit_bytes[] - _feedback_linear_cache_bytes[]
+            # user_cost is evaluated afresh on every hit; it must treat sol as read-only.
+            _feedback_linear_cache[key] = (deepcopy(params), sol)
+            _feedback_linear_cache_bytes[] += bytes
+        else
+            _feedback_linear_cache_full[] = true
+            @warn "Feedback linear cache memory limit reached; remaining points will be simulated normally." limit_bytes=_feedback_linear_cache_limit_bytes[]
+        end
+    end
+    return sol
+end
+
 """
     sim_sys(vec)
 
@@ -173,7 +235,7 @@ function sim_sys(vec)
     circuit = create_circuit(device_params_temp)
     @debug "Circuit created"
 
-    sol = linear_solution(device_params_temp, circuit)
+    sol = _feedback_linear_solution(vec, device_params_temp, circuit)
     @debug "Linear simulation completed"
 
     return sol, device_params_temp

@@ -30,7 +30,7 @@ function sim_sys(vec)
     _gui_capture_resolved_linear_params!(device_params_temp)
     @debug "Circuit created"
 
-    sol = linear_solution(device_params_temp, circuit)
+    sol = _feedback_linear_solution(vec, device_params_temp, circuit)
     @debug "Linear simulation completed"
 
     if _gui_trace_storage_mode() == "all"

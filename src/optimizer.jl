@@ -134,6 +134,47 @@ function _optimizer_surrogate_evaluate(z, scaling, mask_proxy)
 end
 
 
+# Surrogates.jl may return nothing after an attempted search. In that case,
+# retain only actually evaluated, feasible objectives (never surrogate proxies).
+function _optimizer_best_evaluated(df::DataFrame, param_cols::Vector{String}, history_before_bo::Integer)
+    best_vec = nothing
+    best_metric = Inf
+
+    for row in eachrow(df)
+        value = Float64(row.metric)
+        if isfinite(value) && _linear_row_feasible(row) && value < best_metric
+            best_metric = value
+            best_vec = Float64[row[col] for col in param_cols]
+        end
+    end
+
+    vectors = cost_history["params_vecs"]
+    metrics = cost_history["metrics"]
+    feasible = cost_history["feasible"]
+    for i in (history_before_bo + 1):min(length(vectors), length(metrics), length(feasible))
+        value = metrics[i]
+        if isfinite(value) && feasible[i] && value < best_metric
+            best_metric = value
+            best_vec = collect(Float64.(vectors[i]))
+        end
+    end
+
+    best_vec === nothing && throw(ArgumentError(
+        "Surrogate optimization returned no result and no feasible evaluated point is available."
+    ))
+    return best_vec, best_metric
+end
+
+function _optimizer_finalize_result(result, df::DataFrame, param_cols::Vector{String},
+                                    scaling, history_before_bo::Integer)
+    if result === nothing
+        @warn "Surrogate optimizer returned nothing; selecting the best feasible evaluated point from the sweep and optimization history."
+        return _optimizer_best_evaluated(df, param_cols, history_before_bo)
+    end
+    return _optimizer_physical_point(result[1], scaling), result[2]
+end
+
+
 """
     run_optimization(df::DataFrame)
 
@@ -206,6 +247,8 @@ function run_optimization(df::DataFrame)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler   = _make_sampling_strategy(samp_name)
 
+    history_before_bo = length(cost_history["metrics"])
+
     # Progress lines for the GUI: BO evaluations only
     global cost_progress_ctx = Progress.start!(; N=n_maxiters*n_num_new_samples, stage="BO")
 
@@ -228,8 +271,8 @@ function run_optimization(df::DataFrame)
     end
 
     # Extract the optimized vector and its corresponding metric
-    optimal_vec = _optimizer_physical_point(result[1], scaling) # Return physical units
-    optimal_metric = result[2]             # Optimal metric value
+    optimal_vec, optimal_metric = _optimizer_finalize_result(
+        result, df, param_cols, scaling, history_before_bo)
 
     # Map the physical optimal vector back to the device-parameter names.
     column_names = param_cols  
