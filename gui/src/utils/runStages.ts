@@ -47,6 +47,13 @@ export function nextRunStage(stages: StageState[]): StageId | null {
   return null
 }
 
+/** Resume from the first unfinished stage; do not re-run valid earlier stages. */
+export function remainingRunStages(stages: StageState[]): StageId[] {
+  const next = nextRunStage(stages)
+  return next ? ORDER.slice(ORDER.indexOf(next)).filter((id) =>
+    stages.find((stage) => stage.id === id)?.status !== 'skipped') : []
+}
+
 export function invalidateFrom(stages: StageState[], project: ProjectModel, first: StageId): StageState[] {
   const start = ORDER.indexOf(first)
   const skipOptimization = !hasVaryingDeviceParameters(project)
