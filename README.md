@@ -8,6 +8,8 @@ JCO combines three levels of analysis:
 2. a **surrogate-based optimization** that refines the most promising device parameters;
 3. a **nonlinear harmonic-balance analysis** of the selected design over its physical working points.
 
+An optional **nonlinear-feedback loop** uses the harmonic-balance results to update the cost function and repeat linear exploration and optimization until the configured cycle limit or convergence criterion is reached.
+
 <p align="center">
   <img src="docs/images/jco_workflow.png" alt="JCO workflow" width="500">
 </p>
