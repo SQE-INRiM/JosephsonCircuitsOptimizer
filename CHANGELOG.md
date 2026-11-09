@@ -4,6 +4,13 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Run Next / Run Remaining (feedback orchestration; desktop acceptance pending)
+
+- Reintroduce **Run remaining** for ordinary stage-only workflows without repeating already completed, compatible Linear/Optimization stages; the Julia bridge now receives the preflight-validated Linear input path for Optimization + HB.
+- For nonlinear feedback, **Run next step** launches an optional guided full run. The existing Julia process pauses after each completed Linear/Optimization/HB step, including the transition from a cycle's HB to the next correction and Linear stage. **Run remaining** resumes that same process without further pauses; ordinary **Run** remains automatic.
+- Preserve the original numerical and project-configuration contracts. Pauses are in-memory sessions: closing/cancelling the process does not offer cross-launch continuation, and historical standalone stage-only runs do not become resumable feedback sessions. Real multi-cycle Julia/HB and Windows desktop acceptance remain pending.
+
+
 ### Run feedback progress and Results usability (PR #41)
 
 - Show live nonlinear-feedback cycles above the Run stages: Linear, Optimization and HB progress now follow each corrected cycle, while the visually distinct Feedback card remains informational and is disabled when feedback is off.
