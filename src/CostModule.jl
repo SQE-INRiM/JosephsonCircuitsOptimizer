@@ -182,8 +182,8 @@ end
 """
     mask(input_mask, conditions_mask)
 
-Applies a mask based on user-defined conditions. If the conditions are met, the mask returns `false` (indicating no exclusion). 
-If the conditions are not met, it increments the exclusion counter and returns `true`.
+Applies a mask based on user-defined conditions. If the conditions are met, the mask returns `false` (indicating no exclusion).
+Otherwise, it returns `true`.
 
 # Arguments
 - `input_mask::Any`: The input data to be masked.
@@ -194,16 +194,7 @@ If the conditions are not met, it increments the exclusion counter and returns `
 
 """
 function mask(input_mask, conditions_mask)
-    # If the conditions are met, compute and return the user-defined metric.
-    if conditions_mask(input_mask)
-        return false
-    else
-        global point_exluded
-        global number_initial_points
-        point_exluded += 1
-        println("Points excluded: ", point_exluded, " that are the ", round(100 * (point_exluded / number_initial_points)), " % of the total")
-        return true  # or some other default/penalty value
-    end
+    return !conditions_mask(input_mask)
 end
 
 """
