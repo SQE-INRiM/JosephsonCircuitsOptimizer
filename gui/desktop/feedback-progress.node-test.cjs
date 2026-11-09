@@ -20,6 +20,17 @@ test('parses start, phase and completion events', () => {
   })
 })
 
+test('parses a paused feedback stage, including the baseline', () => {
+  assert.deepEqual(parseFeedbackProgressLine('RUN_PAUSED cycle=0 after=hb', id, at), {
+    type: 'run-paused', runId: id, cycle: 0, after: 'hb', timestamp: at,
+  })
+  assert.deepEqual(parseFeedbackProgressLine('RUN_PAUSED cycle=2 after=linear', id, at), {
+    type: 'run-paused', runId: id, cycle: 2, after: 'linear', timestamp: at,
+  })
+  assert.equal(parseFeedbackProgressLine('RUN_PAUSED cycle=-1 after=hb', id, at), null)
+  assert.equal(parseFeedbackProgressLine('RUN_PAUSED cycle=1 after=unknown', id, at), null)
+})
+
 test('rejects invalid cycle counts and ignores numerical progress', () => {
   for (const line of [
     'FEEDBACK_CYCLE cycle=0 max=5 phase=linear status=running',
