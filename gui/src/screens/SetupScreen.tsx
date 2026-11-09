@@ -517,7 +517,7 @@ function ComputationStep() {
         >
           <CardContent>
             <Box sx={{ opacity: optimizationSkipped ? 0.55 : 1 }}>
-              <SectionHeading icon={<FunctionsRoundedIcon />} title="Optimization" description="Optimize the linear design space using Kriging + SRBF." />
+              <SectionHeading icon={<FunctionsRoundedIcon />} title="Optimization" description="Surrogate-based optimization of the linear design space." />
             </Box>
             <Stack spacing={2} sx={{ mt: 2.5 }}>
               <Stack direction="row" spacing={1.5}>
