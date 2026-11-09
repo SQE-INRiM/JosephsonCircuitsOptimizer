@@ -40,17 +40,29 @@ const JCO = JosephsonCircuitsOptimizer
         @test point == [2.5, 10.0]
         @test value == -11.0
 
-        # A normal result remains untouched, and coordinates are denormalized.
-        point, value = JCO._optimizer_finalize_result(((0.5, 0.0), -9.0),
+        # Even a normal surrogate result is not authoritative: it can be an
+        # unevaluated candidate or represent a masked/proxy-valued objective.
+        point, value = JCO._optimizer_finalize_result(((0.5, 0.0), -999.0),
                                                        df, param_cols, scaling, 0)
-        @test point == [2.0, 10.0]
-        @test value == -9.0
+        @test point == [2.5, 10.0]
+        @test value == -11.0
 
-        # No feasible observations must not silently produce a masked optimum.
+        # A better feasible seed beats every optimizer-requested evaluation.
+        seed_best = copy(df)
+        seed_best.metric[1] = -20.0
+        point, value = JCO._optimizer_finalize_result(((0.5, 0.0), -999.0),
+                                                       seed_best, param_cols, scaling, 0)
+        @test point == [1.0, 10.0]
+        @test value == -20.0
+
+        # No feasible observations must not silently produce a masked optimum,
+        # even when Surrogates returned a non-nothing candidate.
         all_masked = copy(df)
         all_masked.feasible .= 0.0
         @test_throws ArgumentError JCO._optimizer_finalize_result(
             nothing, all_masked, param_cols, scaling, 2)
+        @test_throws ArgumentError JCO._optimizer_finalize_result(
+            ((0.5, 0.0), -999.0), all_masked, param_cols, scaling, 2)
     finally
         empty!(JCO.cost_history)
         merge!(JCO.cost_history, original_history)
