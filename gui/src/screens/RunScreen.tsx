@@ -173,15 +173,47 @@ export function RunScreen({ desktop, cancelling, onRunAll, onRunStage, onRunRema
       <Box><Typography variant="h4">Simulation run</Typography><Typography color="text.secondary" sx={{ mt: 0.6 }}>Run starts a fresh Linear → Optimization → Harmonic balance pipeline with optional feedback cycles. With feedback enabled, individual stages pause before the next step; Run remaining completes the sequence.</Typography></Box>
       <Stack direction="row" spacing={1.2}>
         {feedbackAvailable
-          ? <Button variant="outlined" disabled={(running && !pausedRun) || cancelling || !desktop} onClick={() => pausedRun ? onResumeRun('next') : onRunStep()}>
-              {pausedRun ? `Run ${nextPausedLabel}${nextPausedCycle > 0 ? ` (cycle ${nextPausedCycle})` : ''}` : 'Run Linear'}
-            </Button>
+          ? <Button variant="outlined" disabled={(running && !pausedRun) || cancelling || !desktop} onClick={() => pausedRun ? onResumeRun('next') : onRunStep()}>{pausedRun ? `Run ${nextPausedLabel}${nextPausedCycle > 0 ? ` (cycle ${nextPausedCycle})` : ''}` : 'Run Linear'}</Button>
           : nextStage && <Button variant="outlined" disabled={running || cancelling || !desktop} onClick={() => onRunStage(nextStage)}>Run {nextStage === 'hb' ? 'Nonlinear' : nextStageState?.label ?? 'next step'}</Button>}
         {(pausedRun || (!feedbackAvailable && remainingStages.length > 0 && remainingStages[0] !== 'linear')) && <Button variant="outlined" disabled={cancelling || !desktop || (running && !pausedRun)} onClick={() => pausedRun ? onResumeRun('remaining') : onRunRemaining(remainingStages)}>Run remaining</Button>}
-        {pausedRun
-          ? <Button variant="text" color="inherit" disabled={cancelling || !desktop} startIcon={<PauseRoundedIcon />} onClick={onStop}>{cancelling ? 'Stopping Julia…' : 'End run'}</Button>
-          : <Button variant="contained" color={running ? 'error' : 'primary'} disabled={cancelling || (!running && !desktop)} startIcon={running ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon />} onClick={running ? onStop : onRunAll}>{cancelling ? 'Stopping Julia…' : running ? 'Stop simulation' : 'Run'}</Button>}
-        </Stack>
+        {pausedRun ? <Button variant="text" color="inherit" disabled={cancelling || !desktop} startIcon={<PauseRoundedIcon />} onClick={onStop}>{cancelling ? 'Stopping Julia…' : 'End run'}</Button> : <Button variant="contained" color={running ? 'error' : 'primary'} disabled={cancelling || (!running && !desktop)} startIcon={running ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon />} onClick={running ? onStop : onRunAll}>{cancelling ? 'Stopping Julia…' : running ? 'Stop simulation' : 'Run'}</Button>}
+      </Stack>
+    </Stack>
+
+    <Paper variant="outlined" sx={{ p: 2.4 }}>
+      <Stack spacing={1.6}>
+        {feedbackAvailable && feedbackRun && <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          <InsightsRoundedIcon fontSize="small" sx={{ color: 'secondary.main' }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            {feedbackRun.cycle === 0
+              ? `Nonlinear feedback · Baseline (Cycle 0 / ${maxFeedbackCycles})`
+              : feedbackEnded && feedbackRun.status === 'converged'
+                ? `Nonlinear feedback · Converged after ${feedbackRun.completedCycles} / ${maxFeedbackCycles} cycles`
+                : feedbackEnded && feedbackRun.status === 'completed'
+                  ? `Nonlinear feedback · Completed (${feedbackRun.completedCycles} / ${maxFeedbackCycles} cycles)`
+                  : `Nonlinear feedback · Cycle ${feedbackRun.cycle} / ${maxFeedbackCycles}`}
+          </Typography>
+          {feedbackRun.status === 'converged' && <Chip size="small" color="success" label="Converged" />}
+          {feedbackRun.status === 'cancelled' && <Chip size="small" label="Stopped" />}
+          {feedbackRun.status === 'failed' && <Chip size="small" color="error" label="Failed" />}
+        </Stack>}
+        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.2} sx={{ alignItems: 'stretch' }}>
+      {stages.map((stage, index) => {
+        const authoritativeEta = backendEta?.stageId === stage.id ? backendEta.seconds : null
+        const fallbackEta = activeEta?.stageId === stage.id ? activeEta.seconds : null
+        const etaSeconds = authoritativeEta ?? fallbackEta
+        return <Stack key={stage.id} direction="row" sx={{ flex: 1, alignItems: 'center' }} spacing={1.2}>
+          <Paper variant="outlined" sx={{ flex: 1, minHeight: 218, p: 2.1, borderWidth: stage.status === 'running' ? 2 : 1, borderColor: stage.status === 'running' ? 'secondary.main' : 'divider', backgroundColor: stage.status === 'running' ? 'action.hover' : 'background.paper' }}>
+            <Stack spacing={1.5} sx={{ height: '100%' }}>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Box sx={{ width: 40, height: 40, borderRadius: 2, display: 'grid', placeItems: 'center', backgroundColor: stage.status === 'completed' ? 'action.selected' : stage.status === 'running' ? 'action.hover' : 'background.default', color: stage.status === 'completed' ? 'success.main' : stage.status === 'running' ? 'secondary.dark' : 'primary.main', fontWeight: 800 }}>{stage.shortLabel}</Box><StatusChip status={stage.status} /></Stack>
+              <Box><Typography variant="h6">{stage.label}</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, minHeight: 42 }}>{stage.detail}</Typography></Box>
+              <Box sx={{ mt: 'auto !important' }}>
+                {stage.status === 'running' ? stage.progress > 0
+                  ? <Stack spacing={0.8}>
+                      <Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography variant="caption" color="text.secondary">{Math.round((stage.points * stage.progress) / 100)} / {stage.points}</Typography><Typography variant="caption" sx={{ fontWeight: 700 }}>{stage.progress}%</Typography></Stack>
+                      <LinearProgress variant="determinate" value={stage.progress} color="secondary" sx={{ height: 7, borderRadius: 99 }} />
+                      <Stack direction="row" spacing={0.6} sx={{ alignItems: 'center' }}><AccessTimeRoundedIcon color="action" sx={{ fontSize: 15 }} /><Typography variant="caption" color="text.secondary">Estimated remaining: {etaSeconds == null ? 'collecting timing samples…' : formatEstimatedTime(etaSeconds)}</Typography></Stack>
+                    </Stack>
                   : <Stack spacing={0.8}><Typography variant="caption" color="text.secondary">Starting… · timing warm-up excluded from estimate</Typography><LinearProgress color="secondary" sx={{ height: 7, borderRadius: 99 }} /></Stack>
                 : stage.status === 'completed' ? <Stack spacing={0.5}><Stack direction="row" spacing={0.7} sx={{ alignItems: 'center' }}><CheckCircleRoundedIcon color="success" sx={{ fontSize: 16 }} /><Typography variant="caption" sx={{ fontWeight: 700 }}>{formatStageCompletion(stage.completedAt)}</Typography></Stack>{stage.duration && <Stack direction="row" spacing={0.7} sx={{ alignItems: 'center' }}><AccessTimeRoundedIcon color="action" sx={{ fontSize: 16 }} /><Typography variant="caption" color="text.secondary">{stage.duration}</Typography></Stack>}</Stack>
                 : <Stack direction="row" spacing={0.7} sx={{ alignItems: 'center' }}><CircleOutlinedIcon color="disabled" sx={{ fontSize: 16 }} /><Typography variant="caption" color="text.secondary">{configuredStageSummary(project, stage.id)}</Typography></Stack>}
