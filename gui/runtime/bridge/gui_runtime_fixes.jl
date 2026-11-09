@@ -72,13 +72,46 @@ function run_optimization(df::DataFrame)
     println("Optimization parameter columns: ", param_cols)
     println("Normalized bounds: ", collect(zip(scaling.lb, scaling.ub)))
 
-    # Retain physical coordinates in the GUI and persisted history. The
-    # shared optimizer implements the same scientific search for GUI and Julia.
-    global number_initial_points = length(scaling.points)
+    # Feasibility is stored separately. The numerical objective remains
+    # unchanged until constrained acquisition is implemented in a later step.
+    initial_points = scaling.points
+    initial_values = Float64.(df[!, :metric])
+    lb, ub = scaling.lb, scaling.ub
+
+    global number_initial_points = length(initial_points)
     global plot_index = number_initial_points
 
+    # cost_history already contains the Linear sweep evaluations. Record its length here
+    # so Results can persist only evaluations genuinely requested by the optimizer.
     history_before_bo = length(cost_history["metrics"])
-    result = _optimizer_search(df, scaling)
+
+    n_maxiters = optimizer_config[:max_optimizer_iterations]
+    n_num_new_samples = optimizer_config[:new_samples_per_optimizer_iteration]
+
+    sur_name = string(get(optimizer_config, :surrogate_model, "Kriging"))
+    surrogate = _make_surrogate_model(sur_name, initial_points, initial_values, lb, ub)
+    opt_name = string(get(optimizer_config, :optimizer_strategy, "SRBF"))
+    strategy = _make_optimizer_strategy(opt_name)
+    samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
+    sampler = _make_sampling_strategy(samp_name)
+
+    global cost_progress_ctx = Progress.start!(; N=n_maxiters * n_num_new_samples, stage="BO")
+
+    result = surrogate_optimize!(
+        z -> cost(_optimizer_physical_point(z, scaling)),
+        strategy,
+        lb,
+        ub,
+        surrogate,
+        sampler,
+        maxiters=n_maxiters,
+        num_new_samples=n_num_new_samples,
+    )
+
+    try
+        Progress.finish!(cost_progress_ctx)
+    catch
+    end
 
     _gui_save_optimization_history(param_cols, history_before_bo)
 
