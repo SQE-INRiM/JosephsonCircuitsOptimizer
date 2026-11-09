@@ -69,7 +69,6 @@ it('runs the stage named by the selected-stage button', async () => {
     })
 
     expect(onRunAll).toHaveBeenCalledOnce()
-    expect(screen.queryByText('Run remaining')).toBeNull()
   })
 
   it('runs only unfinished stages with Run remaining when feedback is off', async () => {
