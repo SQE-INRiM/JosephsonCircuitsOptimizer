@@ -1,9 +1,8 @@
 # Optimizer preprocessing: physical coordinates and feasibility
 
-This branch introduces normalization, explicit feasibility, and a **second
-step** for the tested Kriging + SRBF combination: feasibility-aware candidate
-selection. It does **not** change `user_cost`, raw objective/penalty values,
-physical units, nonlinear feedback, or the format of existing `.jco` files.
+This branch introduces two deliberately separate changes to the existing optimizer.
+It does **not** change `user_cost`, the objective values, the optimizer strategy
+(SRBF / EI / LCBS), or how constrained acquisition works.
 
 ## 1. Coordinates only inside the surrogate
 
@@ -58,47 +57,20 @@ return (
 The optional field accepts Bool or 0/1. An explicitly declared flag overrides
 the legacy threshold when the objective is finite.
 
-**Important:** `feasible` controls training and candidate selection for
-**Kriging + SRBF**. A masked point is excluded from the Kriging metric
-training set, but remains in the feasibility model. The original penalty is
-still stored unmodified for reporting and backward compatibility.
-
-The feasibility classifier is a transparent, inverse-distance weighted
-8-nearest-neighbor estimator in the normalized parameter space. It uses
-**all** linear evaluations and is updated with each new candidate's actual
-feasibility. Its score is used to prefer likely-feasible candidates, not to
-declare physical validity: `user_cost` is always the final authority.
-
-The constrained SRBF loop is now JCO-owned (`src/ConstrainedSRBF.jl`), and
-its small steps are explicit:
-
-1. Identify the lowest-cost **feasible** measured point on the uniform grid.
-2. Fit Kriging using the feasible points only.
-3. Generate `Samples / iteration` inexpensive candidates around the current
-   best point, in normalized coordinates.
-4. Rank candidates by predicted cost, novelty, and feasibility score; select
-   one for a real physical simulation.
-5. Record its unchanged metric and feasibility. Update Kriging **only** for
-   a feasible point; update the classifier for **every** evaluated point.
-
-`Iterations` now means the maximum number of *new physical evaluations*
-for this specific combination. The local search starts with a normalized
-radius of 0.15 in each varying dimension; it shrinks after an improvement
-and expands after repeated failures. This is an intentional, documented
-change from the earlier external SRBF loop, and does **not** certify a
-global optimum. The best **feasible measured** point is always returned.
-
-Other surrogate / strategy combinations (RBF / polynomial or EI / LCBS)
-retain the original Surrogates.jl optimization and legacy penalties for now.
-A warning is emitted when these legacy paths encounter masked points;
-their acquisition functions have not yet been adapted.
+**Important:** feasibility is **metadata only in this step**. The optimizer
+still fits and minimizes the same metric, including any user-defined penalties.
+A return value `(metric = -25.0, feasible = false)` is recorded as infeasible,
+but its unpenalized `metric` still influences the surrogate. Existing numerical
+penalties must therefore remain in `user_cost` until constrained acquisition
+is implemented and tested in a separate change. This makes the migration
+backward compatible instead of silently changing the optimization.
 
 ## 3. Intentionally out of scope
 
-- Changes to the Surrogates.jl library itself or its EI / LCBS strategies
-- Fully probabilistic or calibrated constraint modeling (current classifier is local kNN)
+- Optimizer stopping and `maxiters` semantics in Surrogates.jl
+- Surrogate choice and acquisition logic
+- Separate feasibility classifiers / constrained Bayesian optimization
 - Penalty magnitudes or changes to user-defined mask conditions
-- Convergence certification and global-optimum guarantees
 - GUI plot redesign and external `.jco` file format
 
 Previously saved linear datasets without `feasible` remain loadable.
@@ -110,7 +82,6 @@ Run from repository root (with Julia and dependencies installed):
 
 ```bash
 julia --project=. test/optimizer_preprocessing.jl
-julia --project=. test/optimizer_constrained_srbf.jl
 ```
 
 Tests cover scaling, inverse conversion, constant parameter handling, invalid
