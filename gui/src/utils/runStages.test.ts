@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { initialStages } from '../data/carthago'
 import { useAppStore } from '../store'
-import { affectedComputationStage, affectedSourceStage, invalidateFrom, nextRunStage } from './runStages'
+import { affectedComputationStage, affectedSourceStage, invalidateFrom, nextRunStage, remainingRunStages } from './runStages'
 
 describe('Run pipeline dependency order', () => {
   const stageStates = (linear: string, optimization: string, hb: string) =>
@@ -12,6 +12,13 @@ describe('Run pipeline dependency order', () => {
     expect(nextRunStage(stageStates('completed', 'stale', 'completed'))).toBe('optimization')
     expect(nextRunStage(stageStates('completed', 'skipped', 'stale'))).toBe('hb')
     expect(nextRunStage(stageStates('completed', 'completed', 'completed'))).toBeNull()
+  })
+
+  it('continues from the earliest unfinished stage and skips fixed-parameter optimization', () => {
+    expect(remainingRunStages(stageStates('completed', 'stale', 'ready'))).toEqual(['optimization', 'hb'])
+    expect(remainingRunStages(stageStates('completed', 'skipped', 'ready'))).toEqual(['hb'])
+    expect(remainingRunStages(stageStates('completed', 'completed', 'completed'))).toEqual([])
+    expect(remainingRunStages(stageStates('stale', 'completed', 'completed'))).toEqual(['linear', 'optimization', 'hb'])
   })
 
   it('invalidates optimizer and HB without invalidating Linear for optimizer-only edits', () => {
