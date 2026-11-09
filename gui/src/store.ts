@@ -112,6 +112,7 @@ interface AppStore {
   logs: LogEntry[]
   running: boolean
   feedbackRun: FeedbackRunState | null
+  pausedRun: { cycle: number; after: StageId } | null
   currentRunId: string | null
   activeRunStages: StageId[]
   selectedPumpAmplitude: number
@@ -158,6 +159,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   logs: initialLogs,
   running: false,
   feedbackRun: null,
+  pausedRun: null,
   currentRunId: null,
   activeRunStages: [],
   selectedPumpAmplitude: 1.122,
@@ -278,7 +280,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return { dirty: true, project, stages: invalidateFrom(state.stages, project, affected) }
     }),
   markSaved: () => set({ dirty: false }),
-  resetProject: () => set({ project: initialProject, setupStep: 0, setupPanel: 'circuit', dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, feedbackRun: null, activeRunStages: [], results: null, selectedResultsRunId: null }),
+  resetProject: () => set({ project: initialProject, setupStep: 0, setupPanel: 'circuit', dirty: false, stages: initialStages, logs: initialLogs, currentRunId: null, feedbackRun: null, pausedRun: null, activeRunStages: [], results: null, selectedResultsRunId: null }),
   setStage: (id, patch) => set((state) => ({ stages: state.stages.map((stage) => (stage.id === id ? { ...stage, ...patch } : stage)) })),
   addLog: (entry) =>
     set((state) => ({
@@ -304,6 +306,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       selectedResultsRunId: null,
       currentRunId: null,
       feedbackRun: null,
+      pausedRun: null,
       activeRunStages: [],
     })
   },
@@ -319,7 +322,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   applyRunEvent: (event) => {
     if (event.type === 'run-started') {
       set((state) => ({
-        running: true, section: 'run', currentRunId: event.runId,
+        running: true, section: 'run', currentRunId: event.runId, pausedRun: null,
         // Feedback only runs in the complete Julia pipeline, never in stage-only runs.
         feedbackRun: event.stages?.includes('linear') && event.stages?.includes('hb') &&
           state.project.computation.nonlinearCorrectionCycles > 0 &&
@@ -330,6 +333,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
         activeRunStages: event.stages ?? [],
         stages: event.stages?.length ? prepareStagesForRun(state.stages, state.project, event.stages) : state.stages,
       }))
+      return
+    }
+    if (event.type === 'run-paused') {
+      set((state) => event.runId !== state.currentRunId ? state : ({
+        pausedRun: { cycle: event.cycle, after: event.after },
+      }))
+      return
+    }
+    if (event.type === 'run-resumed') {
+      set((state) => event.runId !== state.currentRunId ? state : ({ pausedRun: null }))
       return
     }
     if (event.type === 'feedback-cycle') {
@@ -397,7 +410,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
             ? { ...stage, status: event.outcome === 'completed' ? 'failed' as const : event.outcome }
             : stage)
         return {
-          running: false, activeRunStages: [], stages,
+          running: false, activeRunStages: [], pausedRun: null, stages,
           feedbackRun: state.feedbackRun ? {
             ...state.feedbackRun,
             status: event.outcome === 'cancelled' ? 'cancelled'
