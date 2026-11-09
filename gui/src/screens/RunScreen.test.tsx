@@ -95,7 +95,7 @@ it('runs the stage named by the selected-stage button', async () => {
     const onResumeRun = vi.fn().mockResolvedValue(undefined)
     render(<RunScreen onRunRemaining={vi.fn()} desktop cancelling={false} onRunAll={vi.fn()} onRunStage={vi.fn()} onRunStep={onRunStep} onResumeRun={onResumeRun} onStop={vi.fn()} />)
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Run next step' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Run Linear' }))
       await Promise.resolve()
     })
     expect(onRunStep).toHaveBeenCalledOnce()
@@ -103,8 +103,10 @@ it('runs the stage named by the selected-stage button', async () => {
       running: true, pausedRun: { cycle: 0, after: 'hb' },
       feedbackRun: { cycle: 0, completedCycles: 0, maximumCycles: 2, phase: 'baseline', status: 'running' },
     }))
+    expect(screen.queryByRole('button', { name: 'Stop simulation' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'End run' })).toBeTruthy()
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Run Linear' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Run Linear (cycle 1)' }))
       await Promise.resolve()
     })
     expect(onResumeRun).toHaveBeenCalledWith('next')
@@ -113,6 +115,32 @@ it('runs the stage named by the selected-stage button', async () => {
       await Promise.resolve()
     })
     expect(onResumeRun).toHaveBeenCalledWith('remaining')
+  })
+
+  it('labels each paused feedback stage and allows ending the paused process', async () => {
+    const project = structuredClone(baseProject)
+    project.parameters[0] = { ...project.parameters[0], mode: 'Range', start: '1', stop: '2', step: '1' }
+    project.computation.nonlinearCorrectionCycles = 2
+    const onStop = vi.fn().mockResolvedValue(undefined)
+    useAppStore.setState({
+      project, running: true, pausedRun: { cycle: 0, after: 'linear' },
+      feedbackRun: { cycle: 0, completedCycles: 0, maximumCycles: 2, phase: 'baseline', status: 'running' },
+    })
+    render(<RunScreen onRunRemaining={vi.fn()} onRunStep={vi.fn()} onResumeRun={vi.fn()} desktop cancelling={false} onRunAll={vi.fn()} onRunStage={vi.fn()} onStop={onStop} />)
+    expect(screen.getByRole('button', { name: 'Run Optimization' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Stop simulation' })).toBeNull()
+
+    act(() => useAppStore.setState({ pausedRun: { cycle: 1, after: 'linear' } }))
+    expect(screen.getByRole('button', { name: 'Run Optimization (cycle 1)' })).toBeTruthy()
+
+    act(() => useAppStore.setState({ pausedRun: { cycle: 1, after: 'optimization' } }))
+    expect(screen.getByRole('button', { name: 'Run Nonlinear (cycle 1)' })).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'End run' }))
+      await Promise.resolve()
+    })
+    expect(onStop).toHaveBeenCalledOnce()
   })
 
   it('shows a stopping state and prevents duplicate cancellation clicks', () => {
