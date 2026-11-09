@@ -1,7 +1,7 @@
 # Optimizer preprocessing: physical coordinates and feasibility
 
 This branch introduces parameter normalization and feasibility metadata,
-plus a small, reversible adjustment to the **Kriging + SRBF** surrogate targets.
+plus a small, reversible adjustment to the **Kriging + SRBF / EI / LCBS** surrogate targets.
 It does **not** change `user_cost`, the original stored metric values, the
 underlying Surrogates.jl SRBF algorithm, or the GUI project file format.
 
@@ -59,7 +59,7 @@ The optional field accepts Bool or 0/1. An explicitly declared flag overrides
 the legacy threshold when the objective is finite.
 
 **Important:** feasibility is still recorded separately from the physical
-objective. For **Kriging + SRBF**, JCO now makes a *training-only* copy of the
+objective. For **Kriging + SRBF, EI or LCBS**, JCO makes a *training-only* copy of the
 objective values, replacing masked entries with a finite penalty:
 
 ```julia
@@ -69,16 +69,26 @@ surrogate_mask_value = valid_max + max(1.0, valid_max - valid_min)
 
 The original masked entries (often `1e8`) remain unchanged in the linear
 dataset and saved history. The same proxy is supplied to the **existing**
-Surrogates.jl SRBF when a newly evaluated point is masked; the physical
+Surrogates.jl optimizer when a newly evaluated point is masked; the physical
 `cost` still executes and stores its actual result. This prevents artificial
 `1e8` values from dominating Kriging without introducing a new search loop.
 
 This is **not** a fully constrained optimizer: masked points are still present
 in Kriging's training set, with bounded proxy values. SRBF still uses the
 library's original sampling, weighting, and stopping rules, which are
-independent issues. EI, LCBS, RBF and polynomial combinations retain their
-previous behavior. For a `feasible = false` return, the user may keep the
-original penalty convention; the surrogate proxy is chosen internally.
+independent issues. **In this experimental branch only**, the bounded proxy
+also applies to Kriging + EI / LCBS, but their search algorithms are otherwise
+unchanged. If EI / LCBS exhaust iterations without returning a result, JCO
+returns the best already evaluated point, with a warning. RBF and polynomial
+surrogates retain their previous behavior.
+
+**Caution:** the LCBS implementation in Surrogates.jl v6.11.0 uses
+`prediction + k * uncertainty` and an early-stop comparison involving the
+signed acquisition score. It can stop immediately with negative dB metrics.
+This branch does **not** correct those internal algorithms, and should not
+be merged as proof that EI or LCBS converge correctly. For a
+`feasible = false` return, the user may keep the original penalty convention;
+the surrogate proxy is chosen internally.
 
 ## 3. Intentionally out of scope
 
