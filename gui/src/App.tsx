@@ -280,12 +280,19 @@ export default function App({ themePreference = 'dark', onThemePreferenceChange 
     void save(true)
   }
 
-  const run = async (requestedStages?: StageId[]) => {
+  const run = async (requestedStages?: StageId[], stepThroughFeedback = false) => {
     const adapter = getJcoAdapter()
     if (!adapter) return startDemoRun()
     const selected = requestedStages ?? stages.filter((stage) => stage.status !== 'skipped').map((stage) => stage.id)
     if (!selected.length) return setNotice('No stage needs to be run.')
-    try { await adapter.startRun({ project, stages: selected }) } catch (error) { setNotice(error instanceof Error ? error.message : String(error)) }
+    try { await adapter.startRun({ project, stages: selected, stepThroughFeedback }) } catch (error) { setNotice(error instanceof Error ? error.message : String(error)) }
+  }
+
+  const resumeRun = async (action: 'next' | 'remaining') => {
+    const adapter = getJcoAdapter()
+    if (!adapter) return
+    try { await adapter.resumeRun(action) }
+    catch (error) { setNotice(error instanceof Error ? error.message : String(error)) }
   }
 
   const stop = async () => {
@@ -408,7 +415,7 @@ export default function App({ themePreference = 'dark', onThemePreferenceChange 
             </Alert>
           )}
           {section === 'setup' && <SetupScreen />}
-          {section === 'run' && <RunScreen desktop={desktop} cancelling={cancelling} onRunAll={() => run()} onRunStage={(stage) => run([stage])} onStop={stop} />}
+          {section === 'run' && <RunScreen desktop={desktop} cancelling={cancelling} onRunAll={() => run()} onRunStage={(stage) => run([stage])} onRunRemaining={(remaining) => run(remaining)} onRunStep={() => run(undefined, true)} onResumeRun={resumeRun} onStop={stop} />}
           {section === 'results' && <ResultsScreen />}
         </Box>
       </Box>
