@@ -72,3 +72,31 @@ end
     @test occursin("feasible_history", persistence_source)
     @test occursin("[\"metric\", \"feasible\"]", persistence_source)
 end
+
+@testset "Bounded surrogate penalties preserve physical data" begin
+    df = DataFrame(
+        metric = [-12.0, -10.0, 1.0e8, -11.0],
+        feasible = [1.0, 1.0, 0.0, 0.0],
+    )
+    original = deepcopy(df)
+    training, proxy = JCO._optimizer_surrogate_training(df, "Kriging", "SRBF")
+    @test proxy == -8.0 # max feasible + range, not 1e8
+    @test training == [-12.0, -10.0, -8.0, -8.0]
+    @test df == original # Simulation data and real mask values are untouched.
+
+    # Metadata must override the legacy metric threshold.
+    inferred, _ = JCO._optimizer_surrogate_training(select(df, Not(:feasible)), "Kriging", "SRBF")
+    @test inferred[end] == -11.0
+
+    # Other combinations retain their original objective and acquisition behavior.
+    legacy, no_proxy = JCO._optimizer_surrogate_training(df, "Kriging", "EI")
+    @test legacy == df.metric
+    @test no_proxy === nothing
+
+    # An all-masked dataset has no defensible optimum.
+    @test_throws ArgumentError JCO._optimizer_surrogate_training(
+        DataFrame(metric=[1e8, 1e8], feasible=[0.0, 0.0]), "Kriging", "SRBF"
+    )
+    @test all(isfinite, training)
+    @test minimum(training) == minimum(df.metric)
+end
