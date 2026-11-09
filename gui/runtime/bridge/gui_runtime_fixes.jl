@@ -115,6 +115,9 @@ function run_optimization(df::DataFrame)
 
     _gui_save_optimization_history(param_cols, history_before_bo)
 
+    # EI/LCBS may exhaust their loop without returning a result; preserve
+    # the best actual evaluation instead of interpreting a missing return.
+    result = _optimizer_result_or_best_sampled(result, surrogate, opt_name)
     optimal_vec = _optimizer_physical_point(result[1], scaling)
     optimal_metric = result[2]
     optimal_params = vector_to_param(optimal_vec, Symbol.(param_cols))
