@@ -247,6 +247,8 @@ function run_optimization(df::DataFrame)
     samp_name = string(get(optimizer_config, :sampling_strategy, "RandomSample"))
     sampler   = _make_sampling_strategy(samp_name)
 
+    history_before_bo = length(cost_history["metrics"])
+
     # Progress lines for the GUI: BO evaluations only
     global cost_progress_ctx = Progress.start!(; N=n_maxiters*n_num_new_samples, stage="BO")
 
@@ -269,8 +271,8 @@ function run_optimization(df::DataFrame)
     end
 
     # Extract the optimized vector and its corresponding metric
-    optimal_vec = _optimizer_physical_point(result[1], scaling) # Return physical units
-    optimal_metric = result[2]             # Optimal metric value
+    optimal_vec, optimal_metric = _optimizer_finalize_result(
+        result, df, param_cols, scaling, history_before_bo)
 
     # Map the physical optimal vector back to the device-parameter names.
     column_names = param_cols  
