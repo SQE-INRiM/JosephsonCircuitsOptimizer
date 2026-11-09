@@ -198,6 +198,32 @@ Run the full simulation and optimization process.
 - `create_workspace`: if true, create missing folders inside the workspace.
 """
 
+# GUI-only stage checkpoints. A stepped desktop run keeps the Julia process (and
+# its numerical state) alive, avoiding any repeated Linear, BO or HB solves.
+# Ordinary Julia and desktop Run calls bypass these checkpoints entirely.
+function _jco_gui_step_checkpoint(output_path::AbstractString, cycle::Integer, stage::AbstractString)
+    get(ENV, "JCO_GUI_STEP_MODE", "0") == "1" || return nothing
+    control_file = joinpath(output_path, ".jco_gui_run_control")
+    rm(control_file; force=true)
+    println("RUN_PAUSED cycle=$cycle after=$stage")
+    flush(stdout)
+    while true
+        stop_if_requested!(config.WORKING_SPACE)
+        if isfile(control_file)
+            action = strip(read(control_file, String))
+            rm(control_file; force=true)
+            if action == "next"
+                return nothing
+            elseif action == "remaining"
+                ENV["JCO_GUI_STEP_MODE"] = "0"
+                return nothing
+            end
+            @warn "Unknown GUI stage action ignored" action
+        end
+        sleep(0.15)
+    end
+end
+
 function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspace::Bool=true)
 
     global config = get_configuration(; workspace=workspace, create=create_workspace)
@@ -247,6 +273,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
         df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
         save_dataset(df, output_path)
         @info "Saving uniform dataset from the linear simulation run."
+        _jco_gui_step_checkpoint(output_path, 0, "linear")
 
         if single_point_mode
             # No sweep: use the single point directly, skip correlation + optimizer.
@@ -289,6 +316,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             optimal_params_file = joinpath(output_path, "optimal_device_parameters.json")
             @info "Saving optimal device parameters to: $optimal_params_file"
             save_output_file(header, optimal_params, optimal_params_file)
+            _jco_gui_step_checkpoint(output_path, 0, "optimization")
         end
 
         # --- Nonlinear sweep ---
@@ -375,6 +403,7 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
             # Cycle 0 is the original Linear / BO / HB run at the run root.
             feedback_history = Any[_jco_feedback_cycle(0, optimal_params, optimal_metric, best_performance, 0.0)]
             _jco_save_feedback_summary(output_path, feedback_count, feedback_history)
+            _jco_gui_step_checkpoint(output_path, 0, "hb")
 
             for i in 1:maximum_correction_cycles
                 stop_if_requested!(config.WORKING_SPACE)
@@ -416,8 +445,10 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                     println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=linear status=running")
                     df, filtered_df = run_linear_simulations_sweep(device_parameters_space, filter_df=true)
                     save_dataset(df, cycle_dir)
+                    _jco_gui_step_checkpoint(output_path, i, "linear")
                     println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=optimization status=running")
                     optimal_params, optimal_metric = run_optimization(df)
+                    _jco_gui_step_checkpoint(output_path, i, "optimization")
 
                     # The optimizer persists its own BO-only history into cycle_dir.
                     println("FEEDBACK_CYCLE cycle=$i max=$maximum_correction_cycles phase=hb status=running")
@@ -489,6 +520,10 @@ function run(; workspace::Union{Nothing,AbstractString}=nothing, create_workspac
                             break
                         end
                         previous_feedback_value = observed
+                    end
+                    # The last cycle (or a converged cycle) finishes without waiting.
+                    if i < maximum_correction_cycles
+                        _jco_gui_step_checkpoint(output_path, i, "hb")
                     end
                 finally
                     CURRENT_OUTPUT_PATH[] = output_path
