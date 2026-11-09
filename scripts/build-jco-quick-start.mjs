@@ -1,4 +1,4 @@
-// Generate the JCO user manual from docs/JCO_Documentation.md.
+// Generate the JCO quick start from docs/JCO_Quick_Start.md.
 // Uses only Node.js built-ins. PDF uses standard fonts and has no external assets.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -46,7 +46,7 @@ function buildPdf(markdown) {
       p.commands.push("0.063 0.161 0.265 rg 0 0 595 842 re f\n");
       p.commands.push("0.977 0.984 0.991 rg 0 0 595 674 re f\n");
       p.commands.push("0.125 0.741 0.678 rg 54 789 81 4 re f\n");
-      p.commands.push("BT /F2 26 Tf 1 1 1 rg 54 745 Td (JCO User Manual) Tj ET\n");
+      p.commands.push("BT /F2 26 Tf 1 1 1 rg 54 745 Td (JCO quick start) Tj ET\n");
       p.commands.push("BT /F1 12 Tf 0.79 0.87 0.92 rg 54 720 Td (JosephsonCircuitsOptimizer.jl) Tj ET\n");
       p.commands.push("BT /F1 9.4 Tf 0.72 0.81 0.87 rg 54 693 Td (Desktop GUI  |  Julia workflow  |  November 2026) Tj ET\n");
       p.commands.push("0.145 0.72 0.66 rg 54 645 487 1.5 re f\n");
@@ -57,7 +57,7 @@ function buildPdf(markdown) {
       }
     } else {
       p.commands.push("0.125 0.741 0.678 rg 54 797 36 2 re f\n");
-      p.commands.push("BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  USER MANUAL) Tj ET\n");
+      p.commands.push("BT /F2 8.3 Tf 0.17 0.24 0.32 rg 100 793 Td (JCO  /  quick start) Tj ET\n");
       p.commands.push("0.84 0.87 0.89 RG 0.6 w 54 787 m 541 787 l S\n");
     }
   }
@@ -144,7 +144,7 @@ function buildPdf(markdown) {
     const q=pages[i];
     if(i===0){
       q.commands.push("0.19 0.26 0.34 rg 54 40 487 0.7 re f\n");
-      q.commands.push(fmt(8.2,"F1",54,29,"JCO  /  documentation source: docs/JCO_Documentation.md","0.38 0.45 0.51"));
+      q.commands.push(fmt(8.2,"F1",54,29,"JCO  /  documentation source: docs/JCO_Quick_Start.md","0.38 0.45 0.51"));
     }else{
       q.commands.push("0.83 0.86 0.89 RG 0.6 w 54 48 m 541 48 l S\n");
       q.commands.push(fmt(8.2,"F1",L,34,"JCO  |  November 2026","0.38 0.45 0.51"));
@@ -173,7 +173,7 @@ function buildPdf(markdown) {
     });
   } else set(rootOutline,"<< /Type /Outlines /Count 0 >>");
   const infoId=firstOutline+headings.length;
-  set(infoId,"<< /Title (JCO User Manual) /Author (SQE-INRiM) /Subject (JosephsonCircuitsOptimizer GUI and Julia workflow) >>");
+  set(infoId,"<< /Title (JCO quick start) /Author (SQE-INRiM) /Subject (JosephsonCircuitsOptimizer GUI and Julia workflow) >>");
   let pdf="%PDF-1.4\n% ASCII-only PDF\n",offsets=[0];
   for(let i=1;i<=infoId;i++){
     offsets[i]=pdf.length;
@@ -187,7 +187,7 @@ function buildPdf(markdown) {
   return {pdf,stats:{pages:n,sectionBookmarks:headings.length,bytes:pdf.length,sourceChars:markdown.length}};
 }
 const dir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const src = readFileSync(resolve(dir, 'docs/JCO_Documentation.md'), 'utf8');
+const src = readFileSync(resolve(dir, 'docs/JCO_Quick_Start.md'), 'utf8');
 const output = buildPdf(src);
-writeFileSync(resolve(dir, 'docs/JCO_Documentation.pdf'), Buffer.from(output.pdf, 'ascii'));
+writeFileSync(resolve(dir, 'docs/JCO_Quick_Start.pdf'), Buffer.from(output.pdf, 'ascii'));
 console.log(`Wrote ${output.stats.pages} pages, ${output.stats.bytes} bytes.`);

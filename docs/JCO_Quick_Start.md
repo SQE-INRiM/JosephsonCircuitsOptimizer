@@ -1,7 +1,7 @@
-# JCO User Manual
+# JCO Quick Start
 
 *JosephsonCircuitsOptimizer.jl — desktop GUI and Julia workflow*  
-Updated 6 November 2026 · Current repository workflow (released installers may differ).
+Updated 9 November 2026 · Condensed introduction; see JCO_Documentation.pdf for the complete manual.
 
 JosephsonCircuitsOptimizer.jl (JCO) organizes simulations from [JosephsonCircuits.jl](https://josephsoncircuits.org/) into linear exploration, surrogate optimization, and nonlinear harmonic-balance (HB) analysis. This guide focuses on the controls and functions needed to run, understand, and preserve an experiment.
 
