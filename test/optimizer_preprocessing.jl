@@ -3,7 +3,7 @@
 #
 # Regression coverage for the preprocessing boundary, independently of any
 # JosephsonCircuits simulation. No user_cost code needs to be modified.
-using Test, DataFrames, JosephsonCircuitsOptimizer
+using Test, DataFrames, Random, JosephsonCircuitsOptimizer
 
 const JCO = JosephsonCircuitsOptimizer
 
@@ -99,4 +99,27 @@ end
     )
     @test all(isfinite, training)
     @test minimum(training) == minimum(df.metric)
+end
+
+
+@testset "Configured optimizer seed is applied to Julia and GUI optimizers" begin
+    @eval JCO optimizer_config = Dict{Symbol,Any}(:random_seed => 1234)
+    @test JCO._optimizer_apply_seed!() == 1234
+    samples = rand(8)
+    @test JCO._optimizer_apply_seed!() == 1234
+    @test rand(8) == samples
+
+    @eval JCO optimizer_config = Dict{Symbol,Any}()
+    @test JCO._optimizer_apply_seed!() === nothing
+
+    for invalid in (-1, 1.5, "invalid", Inf, NaN)
+        @eval JCO optimizer_config = Dict{Symbol,Any}(:random_seed => $invalid)
+        @test_throws ArgumentError JCO._optimizer_apply_seed!()
+    end
+
+    # Both entry points must seed before constructing the surrogate.
+    engine = read(joinpath(@__DIR__, "..", "src", "optimizer.jl"), String)
+    gui = read(joinpath(@__DIR__, "..", "gui", "runtime", "bridge", "gui_runtime_fixes.jl"), String)
+    @test occursin("_optimizer_apply_seed!()\n    surrogate = _make_surrogate_model", engine)
+    @test occursin("_optimizer_apply_seed!()\n    surrogate = _make_surrogate_model", gui)
 end
