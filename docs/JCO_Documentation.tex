@@ -1,0 +1,624 @@
+% JosephsonCircuitsOptimizer.jl User Manual
+% Canonical, editable source for docs/JCO_Documentation.pdf.
+% Build from the repository root with: bash docs/build_manual.sh
+% All images come from docs/images/, already tracked in this repository.
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=25mm,top=23mm,bottom=23mm,headheight=14pt]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,array,longtable}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{microtype}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{float}
+\usepackage{etoolbox}
+
+\definecolor{jconavy}{HTML}{19334A}
+\definecolor{jcoborder}{HTML}{CAD7E0}
+\definecolor{jcocode}{HTML}{F5F7F9}
+\definecolor{jcoaccent}{HTML}{B88955}
+\hypersetup{colorlinks=true,linkcolor=jconavy,urlcolor=jconavy,citecolor=jconavy,pdftitle={JosephsonCircuitsOptimizer.jl User Manual},pdfauthor={JCO contributors}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt plus 1pt minus 1pt}
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
+\captionsetup{font=small,labelfont=bf}
+\setlist[itemize]{leftmargin=18pt,itemsep=2pt,topsep=3pt}
+\setlist[enumerate]{leftmargin=20pt,itemsep=2pt,topsep=3pt}
+\renewcommand{\arraystretch}{1.18}
+\setlength{\emergencystretch}{2em}
+\tolerance=1800
+\hfuzz=1pt
+\vfuzz=1pt
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small JosephsonCircuitsOptimizer.jl}
+\fancyhead[R]{\small User Manual}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0pt}
+\newcommand{\JCOversion}{0.5.0}
+\InputIfFileExists{docs/manual_version.tex}{}{}
+\newcommand{\jcode}[1]{\texttt{\detokenize{#1}}}
+\newtcolorbox{jconote}[1][]{enhanced,breakable,boxrule=.5pt,colback=jcocode,colframe=jcoborder,arc=1mm,left=8pt,right=8pt,top=7pt,bottom=7pt,before skip=7pt,after skip=7pt,#1}
+\lstdefinestyle{jcocode}{basicstyle=\ttfamily\footnotesize,breaklines=true,breakatwhitespace=false,showstringspaces=false,columns=fullflexible,keepspaces=true,frame=single,framerule=.35pt,rulecolor=\color{jcoborder},backgroundcolor=\color{jcocode},xleftmargin=1pt,xrightmargin=1pt,framexleftmargin=5pt,framexrightmargin=5pt,aboveskip=6pt,belowskip=6pt}
+\lstset{style=jcocode}
+\newcommand{\jcofigure}[4]{\begin{figure}[htbp]\centering\includegraphics[width=#1\linewidth,keepaspectratio]{#2}\caption{#3}\label{#4}\end{figure}}
+\makeatletter
+\renewcommand{\section}{\@startsection{section}{1}{\z@}{-3.2ex plus -1ex minus -.2ex}{1.5ex plus .2ex}{\normalfont\large\bfseries\color{jconavy}}}
+\renewcommand{\subsection}{\@startsection{subsection}{2}{\z@}{-2.6ex plus -.8ex minus -.2ex}{1.2ex plus .2ex}{\normalfont\normalsize\bfseries\color{jconavy}}}
+\renewcommand{\subsubsection}{\@startsection{subsubsection}{3}{\z@}{-2.1ex plus -.6ex minus -.2ex}{.9ex plus .2ex}{\normalfont\normalsize\bfseries\color{jconavy}}}
+\makeatother
+\begin{document}
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+\vspace*{10mm}
+% Official JCO logo converted from the repository SVG at build time.
+\includegraphics[width=.36\textwidth]{docs/.manual-build/jco-logo.pdf}\par
+\vspace{11mm}
+{\Huge\bfseries\color{jconavy} JosephsonCircuitsOptimizer.jl\par}
+\vspace{5mm}
+{\LARGE User Manual\par}
+\vspace{10mm}
+\rule{.68\textwidth}{.6pt}\par
+\vspace{9mm}
+{\large Design, optimization and nonlinear analysis of Josephson circuits\par}
+\vspace{26mm}
+\begin{tabular}{rl}
+\textbf{Repository:} & \href{https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer}{SQE-INRiM/JosephsonCircuitsOptimizer}\\
+\textbf{Project format:} & \texttt{.jco}\\
+\textbf{Current package series:} & \JCOversion\\
+\textbf{Documentation date:} & \today
+\end{tabular}
+\vfill
+\begin{minipage}{.85\textwidth}
+This document is the user-facing reference for JCO. It explains what JCO is, how a project is stored, how to use the desktop environment, and the syntax required to define and run an experiment. Internal GUI architecture and contributor/developer documentation are intentionally kept separate.
+\end{minipage}
+\vspace{12mm}
+\end{titlepage}
+\pagenumbering{roman}
+\begingroup\small\setlength{\parskip}{0pt}\tableofcontents\endgroup
+\clearpage
+\pagenumbering{arabic}
+
+\section{Introduction}
+JosephsonCircuitsOptimizer.jl (JCO)~\cite{repository,palumbo2026} is a Julia framework for the automated exploration and optimization of superconducting Josephson circuits. It is built on JosephsonCircuits.jl~\cite{josephsoncircuits}, which performs the circuit simulations, while JCO organizes them into a structured workflow for parameter exploration, optimization and nonlinear analysis.
+
+JCO combines three levels of analysis:
+\begin{enumerate}
+\item a computationally efficient linear design-space exploration;
+\item a surrogate-based optimization that refines the most promising device parameters;
+\item a nonlinear harmonic-balance analysis of the selected design over its physical working points.
+\end{enumerate}
+This hierarchy allows a broad parameter space to be explored with relatively inexpensive calculations before concentrating the more computationally demanding nonlinear analysis on the most promising designs. The user defines the quantities used to evaluate the circuit, while JCO manages the simulation and optimization workflow.
+
+\jcofigure{.73}{docs/images/jco_workflow.png}{Overview of the JCO workflow. Device parameters are first explored and refined in the linear regime. The selected design is then evaluated under nonlinear operating conditions, with the possibility of feeding nonlinear information back into a subsequent optimization cycle. Adapted from Ref.~\cite{palumbo2026}.}{fig:workflow}
+
+\subsection{Why JCO?}
+A complete nonlinear harmonic-balance exploration of every possible device design can be computationally expensive. JCO therefore uses faster linear simulations to evaluate quantities such as impedance matching and phase matching and to build the metric $\mathcal M$, which guides the search toward designs expected to provide better nonlinear performance. The most promising device is then evaluated directly in the nonlinear regime through $\mathcal F$.
+
+\section{Starting JCO}
+The recommended way to use JCO is through the packaged desktop application available from the GitHub Releases page. The desktop package includes the GUI, JCO source, runtime bridge, templates and bundled examples, so users do not need to clone the repository or install Node.js or npm.
+
+Julia is intentionally not bundled. A local Julia installation is required only for operations that execute JCO, such as circuit preview, runtime setup and simulations.
+
+\subsection{Windows}
+Download the latest JCO release from the GitHub repository. Two Windows packages are provided:
+\begin{itemize}
+\item \jcode{JCO-GUI-<version>-Windows-Setup.exe} --- recommended installer;
+\item \jcode{JCO-GUI-<version>-Windows-Portable.exe} --- portable version that can be launched without installation.
+\end{itemize}
+For normal use, run the installer and then start JCO GUI from the Windows Start menu or desktop shortcut.
+\begin{jconote}
+\textbf{Windows security warning.} The current Windows packages are not code-signed. Windows may therefore display a SmartScreen or ``Unknown publisher'' warning when the application is started for the first time. Windows Smart App Control can also block native Julia DLLs; see the README for relevant guidance.
+\end{jconote}
+
+\subsection{Linux}
+For Linux x86-64 systems, download \jcode{JCO-GUI-<version>-Linux-x64.AppImage}. Make the AppImage executable and launch it:
+\begin{lstlisting}[language=bash]
+chmod +x JCO-GUI-<version>-Linux-x64.AppImage
+./JCO-GUI-<version>-Linux-x64.AppImage
+\end{lstlisting}
+\begin{jconote}
+\textbf{Linux support.} Linux desktop packaging is currently preliminary and less extensively validated than Windows. The distributed AppImage currently targets x86-64 systems.
+\end{jconote}
+
+\subsection{Julia runtime}
+Julia remains external to the desktop application. From the GUI settings, select the Julia executable and the desired number of Julia threads.
+
+On the first Julia-backed operation, JCO may need to instantiate and precompile its Julia environment. This initial setup can take several minutes and may require an Internet connection. Subsequent launches normally reuse the prepared environment.
+
+\subsection{Running the GUI from source}
+Developers, or users who prefer to run directly from the repository, can still use the source launchers. On Windows, from the repository root, double-click \jcode{START_JCO_GUI.bat}. On Linux:
+\begin{lstlisting}[language=bash]
+chmod +x START_JCO_GUI.sh
+./START_JCO_GUI.sh
+\end{lstlisting}
+The source launchers prepare the local Node.js/Electron environment and start the same JCO GUI. A global Node.js or npm installation is not required when using the provided launchers.
+
+\subsection{Direct Julia execution}
+JCO can also be run directly from Julia. From the repository root:
+\begin{lstlisting}
+using Pkg
+Pkg.activate(".")
+import JosephsonCircuitsOptimizer as JCO
+JCO.run()
+\end{lstlisting}
+A different workspace can be selected with:
+\begin{lstlisting}
+JCO.run(workspace=raw"C:\...\my_experiment_01")
+\end{lstlisting}
+When Julia is started manually, the thread count is selected at launch, for example \jcode{julia --threads 12}, and can be checked inside Julia with \jcode{Threads.nthreads()}.
+
+\section{The JCO project file}
+\subsection{The \texttt{.jco} file}
+A JCO experiment is normally stored as a single file with extension \texttt{.jco}. The file is a versioned ZIP container rather than a new monolithic numerical format. Internally, it preserves the same editable JCO workspace used by the Julia package.
+
+This choice has two advantages: the user can move or archive one project file, while JCO can still work with ordinary Julia, JSON, text and HDF5 files inside the project. A project contains two main classes of information:
+\begin{table}[htbp]\centering\small
+\begin{tabularx}{\linewidth}{@{}p{.22\linewidth}X@{}}\toprule
+\textbf{Area} & \textbf{Contents}\\\midrule
+Project manifest & Project identity, format version and timestamps.\\
+User inputs & Circuit definition, device-parameter space, sources, solver/optimizer settings, metric/performance functions, optional helper code and auxiliary text data.\\
+Outputs & One directory for every retained simulation run. Each run contains numerical summaries, saved arrays, optimal parameters and run metadata.\\\bottomrule
+\end{tabularx}\caption{High-level contents of a JCO project.}\end{table}
+Opening a \texttt{.jco} file extracts it into a private working directory used by the desktop application. Opening the file does not execute the Julia code stored in the project. The archive is repacked when the project is saved and after completed scientific runs.
+
+\subsection{Input files}
+The standard experiment definition is built from six required files:
+\begin{itemize}
+\item \jcode{device_parameters_space.json};
+\item \jcode{drive_physical_quantities.json};
+\item \jcode{simulation_config.json};
+\item \jcode{optimizer_config.json};
+\item \jcode{user_circuit.jl};
+\item \jcode{user_cost_and_performance.jl}.
+\end{itemize}
+Optional Julia helper files, parametric-source functions and auxiliary calibration/text files can be stored with them. The GUI edits these files through structured controls where possible while preserving the underlying JCO representation.
+
+\subsection{Runs and results}
+A project can contain multiple run directories. A new run does not overwrite the previous one, so the user can change the setup, launch another calculation and later return to an earlier result.
+For each run, JCO retains compact numerical summaries and metadata. The principal files used by the GUI are shown in Table~\ref{tab:output}.
+\begin{table}[htbp]\centering\footnotesize
+\begin{tabularx}{\linewidth}{@{}p{.42\linewidth}X@{}}\toprule
+\textbf{File} & \textbf{Purpose}\\\midrule
+\path{df_uniform_analysis.h5} & Linear design-space summary: device coordinates, stable \jcode{point_id}, objective and additional scalar metrics.\\
+\path{df_optimization_analysis.h5} & Optimizer evaluations: evaluation number, sampled device parameters and objective value.\\
+\path{df_nonlinear_analysis.h5} & Harmonic-balance summary: source working-point coordinates, convergence, performance and additional scalar quantities.\\
+\path{saved_data/linear.h5} & Detailed arrays explicitly retained for Linear points.\\
+\path{saved_data/nonlinear.h5} & Detailed arrays explicitly retained for nonlinear points.\\
+\path{optimal_device_parameters.json} & Device parameters selected by the optimization.\\
+\path{optimal_physical_quantities.json} & Selected nonlinear operating point when available.\\\bottomrule
+\end{tabularx}\caption{Principal run outputs used by the GUI.}\label{tab:output}\end{table}
+A stable \jcode{point_id} links each row in a summary table to the detailed arrays saved for that same simulation point. This allows Results to open the correct trace without comparing floating-point parameter values. Scalar quantities returned by \jcode{user_cost} and \jcode{user_performance} are stored in the compact summary tables. Larger frequency-resolved arrays, such as a selected $S_{21}(f)$ trace, can be retained explicitly with \jcode{save_data}; these arrays are linked to the corresponding summary-table point through \jcode{point_id}. The syntax is described in Sec.~\ref{sec:savedata}.
+
+\subsection{Legacy workspaces and export}
+An existing JCO workspace can be imported into the GUI and then saved as a \texttt{.jco} project. Numerical data can be exported separately from Results, for example to CSV, without changing the project archive.
+
+\section{The JCO environment}
+The desktop interface is intentionally organized around three areas: Setup, Run and Results. The same experiment can therefore be configured, executed and inspected without manually navigating the underlying workspace.
+\begin{figure}[htbp]\centering
+\setlength{\fboxsep}{12pt}
+\fcolorbox{jcoborder}{jcocode}{\begin{tabular}{ccc}
+\textbf{Setup} & $\longrightarrow$\ \textbf{Run} & $\longrightarrow$\ \textbf{Results}\\
+Circuit, Parameters & Linear, Optimization & Maps, Metrics\\
+Sources, Metrics & HB, Feedback & Saved curves
+\end{tabular}}
+\caption{The three user-facing areas of the JCO desktop environment. Setup defines the experiment, Run executes the selected pipeline, and Results inspects stored numerical data.}
+\label{fig:areas}
+\end{figure}
+\subsection{Setup}
+\jcofigure{.91}{docs/images/jco_gui_setup.png}{Screenshot of the GUI Setup section.}{fig:setup}
+Setup defines the experiment before computationally expensive work begins (Fig.~\ref{fig:setup}). It is divided into three steps.
+
+\subsubsection{Model \& inputs}
+This step contains the circuit, device parameters and sources.
+\begin{itemize}
+\item \textbf{Circuit:} edit \jcode{user_circuit.jl} and request a lumped-element preview. The preview is generated explicitly; simply opening a project never executes Julia.
+\item \textbf{Device parameters:} define every parameter as Fixed, Range or List. The GUI reports the total number of device configurations entering the Linear sweep.
+\item \textbf{Sources:} define ports, AC/DC behavior, frequency and Linear/nonlinear amplitudes. Amplitudes can be displayed in A or dBm and can also be generated by a Julia function of the current device parameters.
+\end{itemize}
+The circuit preview is useful as a structural check before a long run: it resolves the current model and displays the lumped-element network corresponding to the selected parameter set.
+
+\subsubsection{Computation}
+This step collects settings that control the simulation rather than the physical model:
+\begin{itemize}
+\item Linear frequency interval and resolution;
+\item optimizer iterations, samples, surrogate, strategy and sampler;
+\item Linear and nonlinear harmonic truncation;
+\item common harmonic-balance solver tolerances and iteration limits;
+\item three-wave/four-wave mixing options;
+\item number of nonlinear-feedback cycles.
+\end{itemize}
+When all device parameters are fixed, the project is a single-point experiment and the optimization stage is skipped automatically.
+
+\subsubsection{Metrics \& constraints}
+The GUI reads the named values returned by \jcode{user_cost_and_performance.jl}. The first value returned by \jcode{user_cost} is the Linear objective and is minimized; the first value returned by \jcode{user_performance} is the nonlinear objective and is maximized. Additional named values are retained as analysis metrics.
+
+Constraints and masks remain part of the cost definition. Measured constraint values can be stored as named metrics and inspected in Results. With nonlinear feedback, \jcode{user_nonlinear_correction} updates the correction passed to \jcode{user_cost}.
+
+\subsection{Run}\label{sec:run}
+The Run page (Fig.~\ref{fig:run}) displays the three principal computation stages:
+\begin{center}\textbf{Linear $\longrightarrow$ Optimization $\longrightarrow$ Harmonic Balance}\end{center}
+For each stage the interface reports status, progress, completion time and duration. During a run, the full Julia log remains accessible without occupying the main screen.
+
+Two execution controls are available:
+\begin{itemize}
+\item \textbf{Run:} starts a fresh complete pipeline without reusing earlier results.
+\item \textbf{Run stage:} executes a selected stage using valid existing data where applicable.
+\end{itemize}
+Optional nonlinear-feedback cycles are included when a full Run is started. Changing an input that affects a completed stage marks dependent stages as stale. This prevents a visually ``completed'' stage from being silently reused after the experiment definition has changed.
+
+A real scientific run requires the project to have been saved at least once. The displayed run ID is the same identifier used by the corresponding output directory. If the user requests cancellation, JCO first asks Julia to stop cleanly and then terminates the process tree if the solver does not respond within the grace period.
+
+\jcofigure{.9}{docs/images/jco_gui_run.png}{Screenshot of the GUI Run section.}{fig:run}
+
+\subsection{Results}
+Results are organized by stage and by stored run (Fig.~\ref{fig:results}). Earlier completed runs remain accessible even while a new simulation is running.
+
+\subsubsection{Linear results}
+The Linear view works on the stored uniform design-space table. Depending on dimensionality, the user can inspect:
+\begin{itemize}
+\item 1D/2D design landscapes for a chosen metric;
+\item exact slices of higher-dimensional parameter spaces by fixing the remaining coordinates;
+\item the selected point's device coordinates, resolved circuit parameters and scalar metrics;
+\item user-saved arrays, plotted on the stored frequency axis when compatible;
+\item parameter/metric correlation and JCO-style one-dimensional density analysis.
+\end{itemize}
+Higher-dimensional slices are exact: hidden coordinates are fixed to stored values rather than averaged or interpolated.
+
+\subsubsection{Optimization results}
+The Optimization view provides optimizer diagnostics: the best sampled objective versus evaluation number, the raw history of each optimized parameter, and the sampled optimization landscape when applicable. Design-space correlation belongs to the Linear uniform dataset rather than to the non-uniform optimizer samples.
+
+\subsubsection{Harmonic-balance results}
+The Harmonic Balance view explores the stored nonlinear working-point space. Source frequency and amplitude can be selected as axes, other source coordinates can be fixed explicitly, and results can be filtered by solver convergence. The selected point exposes nonlinear metrics, device parameters and saved arrays. Compatible saved arrays can be plotted using a frequency axis or another selected saved array as the x-axis.
+
+\jcofigure{.9}{docs/images/jco_gui_results.png}{Screenshot of the GUI Results section.}{fig:results}
+
+\subsubsection{Run history}
+The setup snapshot attached to a run shows the input configuration that produced that result, not the setup currently being edited. Stored runs can be managed and deleted from the project; the currently active simulation is protected from deletion.
+
+\section{Building and running an experiment}
+The recommended way to prepare an experiment is through the GUI. The underlying Julia and JSON files are nevertheless kept visible because they are the scientific definition of the experiment and make JCO projects transparent, scriptable and usable without the desktop interface.
+
+In the following sections, each item is therefore described in two layers: what the user edits in Setup and the file/syntax that the GUI reads or writes. The GUI is the recommended way to compile these inputs. The following sections therefore start from the corresponding GUI control and then show the Julia or JSON representation written inside the project. This makes the GUI the main user interface without hiding the experiment files on which JCO is based.
+
+\subsection{Circuit definition}
+\textbf{In the GUI.} Open Setup $\to$ Model \& inputs $\to$ Circuit. The \textbf{Circuit definition} button opens \jcode{user_circuit.jl}. After the code is valid and Julia is configured, \textbf{Generate preview} evaluates the current circuit and displays its lumped-element scheme. This is a useful check of ports, nodes, repeated elements and parameter-dependent component values before starting a long sweep.
+
+\textbf{Underlying Julia syntax.} The circuit file must define:
+\begin{lstlisting}
+function create_user_circuit(device_params_set)
+    # build circuit and circuitdefs
+    return circuit, circuitdefs
+end
+\end{lstlisting}
+A minimal one-port example is:
+\begin{lstlisting}
+function create_user_circuit(device_params_set)
+    @variables R Cc Lj Cj
+
+    circuit = [
+        ("P1", "1", "0", 1),
+        ("R1", "1", "0", R),
+        ("C1", "1", "2", Cc),
+        ("Lj1", "2", "0", Lj),
+        ("C2", "2", "0", Cj)
+    ]
+
+    circuitdefs = Dict(
+        Lj => device_params_set[:Lj],
+        Cc => device_params_set[:Cc],
+        Cj => device_params_set[:Cj],
+        R => 50.0
+    )
+
+    return circuit, circuitdefs
+end
+\end{lstlisting}
+Each circuit tuple gives the component name, its two nodes and the component definition expected by JosephsonCircuits. Port elements use names beginning with \texttt{P}; the GUI uses the resolved circuit to count ports and construct the preview.
+
+\begin{jconote}
+\textbf{Circuit code and the Device parameters panel.} The connection between circuit code and the Device parameters panel is automatic. The GUI scans \jcode{user_circuit.jl} for keys accessed through the circuit parameter dictionary. For example, writing \jcode{device_params_set[:Cj]} makes Cj appear automatically in Setup $\to$ Device parameters. If the corresponding value is not yet present in \jcode{device_parameters_space.json}, the GUI marks it as \textbf{Needs value}. Entering its Fixed/Range/List value in the GUI writes the corresponding JSON entry. Existing JSON values are loaded back into the same controls when the project is reopened.
+\end{jconote}
+Parameters may also be modified or derived during circuit creation when that is part of the physical model. JCO stores the resolved post-circuit scalar values for Linear points, so Results can distinguish the sweep coordinates from values calculated inside \jcode{create_user_circuit}.
+
+\subsection{Device parameters: Fixed, Range and List}
+\textbf{In the GUI.} The Device parameters panel is normally the easiest place to define the design space. Every circuit parameter detected from \jcode{user_circuit.jl} can be assigned one of three modes:
+\begin{itemize}
+\item \textbf{Fixed:} one value, used in every design;
+\item \textbf{Range:} start, stop and step;
+\item \textbf{List:} an explicit set of values.
+\end{itemize}
+The GUI immediately reports how many circuit configurations are generated by the Cartesian product of all non-fixed parameters. Units entered in the GUI are display metadata; the numerical values written to the JCO input file remain the values used by the Julia model.
+
+\textbf{Underlying JSON.} A fixed value is stored as a one-element list:
+\begin{lstlisting}
+{
+    "alpha": [0.16]
+}
+\end{lstlisting}
+A regular range uses start, step and stop:
+\begin{lstlisting}
+{
+    "Lj": {"start": 1.0e-9, "step": 0.1e-9, "stop": 1.2e-9}
+}
+\end{lstlisting}
+An explicit list stores all requested values:
+\begin{lstlisting}
+{
+    "Cg": [100e-15, 150e-15, 220e-15]
+}
+\end{lstlisting}
+Several parameters can be combined in the same file. JCO forms their Cartesian product for the initial Linear exploration. The name in the JSON file is the same name used in \jcode{device_params_set[:name]} in the circuit.
+
+\subsection{Sources and frequency range}
+\textbf{In the GUI.} Use Setup $\to$ Model \& inputs $\to$ Sources to add sources, select their ports, mark DC sources, and define frequency plus Linear/nonlinear amplitudes as Fixed, Range or List. Amplitudes can be displayed in A or dBm; the GUI performs the conversion before saving the JCO input. Parametric source functions can also be selected from the same panel.
+
+\textbf{Underlying JSON.} The drive file contains the small-signal frequency range and one indexed group of keys for each source. A minimal single-source configuration is:
+\begin{lstlisting}
+{
+    "frequency_range": {
+        "start": 4.5e9,
+        "step": 1.0e6,
+        "stop": 5.0e9
+    },
+    "source_1_on_port": 1,
+    "source_1_frequency": 4.75e9,
+    "source_1_linear_amplitude": 5.65e-9,
+    "source_1_non_linear_amplitude": [0.565e-6, 1.695e-6, 5.65e-6]
+}
+\end{lstlisting}
+Source frequencies and amplitudes accept Fixed, Range or List semantics through the GUI. A DC source has zero frequency. For nonlinear sweeps, multiple source frequencies and amplitudes generate a working-point space that can later be sliced in Results.
+
+The GUI can display amplitudes in amperes or dBm. dBm values are converted to the current amplitude stored by JCO using the selected source impedance $Z_0$:
+\begin{equation}
+ I = \sqrt{\frac{P}{2Z_0}}, \qquad P = 10^{-3}\,10^{P_{\mathrm{dBm}}/10}.
+\end{equation}
+The GUI default is $Z_0=50\,\Omega$. The value \jcode{-Inf} dBm represents an off-state, i.e. zero current.
+
+\subsection{Parametric sources}
+\textbf{In the GUI.} A Linear or nonlinear source amplitude can be set to \textbf{Parametric}. The Parametric functions editor contains \jcode{user_parametric_sources.jl}; the GUI lists functions whose first argument is \jcode{device_params_set} (or \jcode{device_parameters_set}) and uses the selected function name as the source amplitude. The function is evaluated for every device configuration and must return a source current in amperes.
+
+Calibration data can be attached from the same Sources panel with \textbf{Add .txt}. The file is stored inside \jcode{user_inputs/} in the \texttt{.jco} project and is therefore available when the parametric function is evaluated.
+
+\textbf{Underlying Julia syntax.} A useful case is a source amplitude obtained from a calibration curve. For example:
+\begin{lstlisting}
+using ..Config
+
+path = joinpath(config.user_inputs_dir, "flux_curve.txt")
+lines = readlines(path)
+
+alpha_flux_map = map(
+    line -> round(parse(Float64, split(line, ",")[1]), digits=2),
+    lines
+)
+flux_map = map(
+    line -> round(parse(Float64, split(line, ",")[2]), digits=2),
+    lines
+)
+
+global interp_alpha_flux = linear_interpolation(
+    alpha_flux_map,
+    flux_map,
+    extrapolation_bc=Flat()
+)
+
+function find_flux_from_alpha(alpha)
+    return interp_alpha_flux(alpha)
+end
+
+function calculate_source_1_amplitude(device_params_set::Dict)
+    phidc = find_flux_from_alpha(device_params_set[:alphaSNAIL])
+    source_1_amplitude = phidc * (2 * 280 * 1e-6)
+    return source_1_amplitude
+end
+\end{lstlisting}
+Only \jcode{calculate_source_1_amplitude} is offered as a source binding because it receives the device-parameter dictionary as its first argument; helper functions such as \jcode{find_flux_from_alpha} remain available in the file but are not listed as source functions.
+When the source is saved, the underlying drive configuration stores the function name, for example:
+\begin{lstlisting}
+"source_1_non_linear_amplitude": "calculate_source_1_amplitude"
+\end{lstlisting}
+This pattern is useful whenever the physical drive must change together with a device parameter rather than remaining fixed over the design sweep.
+
+\subsection{Simulation settings}
+\textbf{In the GUI.} Most simulation controls are available under Setup $\to$ Computation: frequency interval, Linear/nonlinear harmonics, solver iterations/tolerances, node sorting, three-wave/four-wave mixing and the number of nonlinear-correction cycles. These fields are written to \jcode{simulation_config.json} when the project is saved.
+
+\textbf{Underlying JSON.} A representative simulation configuration is:
+\begin{lstlisting}
+{
+    "linear_strong_tone_harmonics": 1,
+    "linear_modulation_harmonics": 1,
+    "nonlinear_strong_tone_harmonics": 16,
+    "nonlinear_modulation_harmonics": 8,
+    "max_simulator_iterations": 300,
+    "ftol": 1e-8,
+    "switchofflinesearchtol": 1e-5,
+    "alphamin": 1e-4,
+    "maxintermodorder": "Inf",
+    "nbatches": 0,
+    "sorting": "number",
+    "threewavemixing": false,
+    "fourwavemixing": true,
+    "n_iterations_nonlinear_correction": 0
+}
+\end{lstlisting}
+The harmonic settings are stage-specific, while the main solver tolerances are shared. With \jcode{nbatches = 0}, JCO allows the solver to use the available Julia threads.
+
+\subsection{Optimizer settings}
+\textbf{In the GUI.} Setup $\to$ Computation provides iterations, samples, random seed, surrogate model, strategy and sampler. The default is \textbf{Kriging + SRBF}, the only extensively validated combination. Fixed designs skip optimization.
+
+\textbf{Underlying JSON.} The optimizer configuration controls the surrogate search after the initial Linear dataset:
+\begin{lstlisting}
+{
+    "max_optimizer_iterations": 5,
+    "new_samples_per_optimizer_iteration": 5,
+    "surrogate_model": "Kriging",
+    "optimizer_strategy": "SRBF",
+    "sampling_strategy": "RandomSample",
+    "random_seed": 1234
+}
+\end{lstlisting}
+Currently supported choices in the underlying Julia code are:
+\begin{itemize}
+\item surrogate: Kriging, RadialBasis, SecondOrderPolynomial;
+\item strategy: SRBF, EI, LCBS;
+\item sampler: RandomSample, SobolSample, LatinHypercubeSample.
+\end{itemize}
+The optimizer uses the objective defined by \jcode{user_cost}. Additional analysis columns and \jcode{point_id} are not optimization variables.
+
+\subsection{Linear metric $\mathcal M$}
+\textbf{In the GUI.} Open Setup $\to$ Metrics \& constraints $\to$ Cost \& performance. The editor contains \jcode{user_cost_and_performance.jl}. The GUI reads the names returned by \jcode{user_cost}; the first returned value is shown as the objective to minimize and later names appear as analysis metrics.
+
+\textbf{Underlying Julia syntax.} The Linear objective is defined by:
+\begin{lstlisting}
+function user_cost(sol, device_params_set, nonlinear_correction)
+    # extract the desired response from sol
+    # build the metric M
+    return (
+        metric = metric,
+        another_quantity = another_quantity,
+    )
+end
+\end{lstlisting}
+For example, a simple metric based on the average input reflection can be written as:
+\begin{lstlisting}
+function user_cost(sol, device_params_set, nonlinear_correction)
+    S11 = sol.linearized.S((0,), 1, (0,), 1, :)
+    impedance_match = mean(20 .* log10.(abs.(S11)))
+    metric = impedance_match + nonlinear_correction
+
+    return (
+        metric = metric,
+        impedance_match = impedance_match,
+    )
+end
+\end{lstlisting}
+In this example the optimizer minimizes the average $S_{11}$ in dB, so more negative values correspond to better input matching. The same structure can be used for a metric combining several linear quantities.
+
+\jcode{sol} is the JosephsonCircuits solution for the current device configuration. The first returned value is the optimization objective and is minimized. Additional named values are saved as scalar analysis metrics.
+
+The third argument, \jcode{nonlinear_correction}, is zero in the initial Linear pass. When nonlinear feedback is enabled, JCO replaces it with the correction produced by the nonlinear stage before repeating the Linear optimization. How that correction modifies $\mathcal M$ is deliberately under user control.
+
+Constraints can be applied directly inside \jcode{user_cost} with JCO's mask helper. A typical pattern is:
+\begin{lstlisting}
+input_mask = (
+    second_harm = second_harm,
+    impedance_match = impedance_match
+)
+
+conditions_mask = x ->
+    x.second_harm < 1 &&
+    x.impedance_match < -10
+
+if mask(input_mask, conditions_mask)
+    return 1e8
+end
+\end{lstlisting}
+The condition function describes the region that is accepted. If the conditions are satisfied, \jcode{mask} returns \jcode{false} and the normal metric calculation continues. If they are not satisfied, the point is counted as excluded and \jcode{mask} returns \jcode{true}; the cost function can then return a large penalty such as $10^8$. In this example, only points satisfying both the second-harmonic and impedance-matching requirements are allowed to compete in the optimization.
+When a constrained quantity is also useful for analysis, it can additionally be returned as a named value from \jcode{user_cost} so that it appears in the Linear result table.
+
+\subsection{Nonlinear performance $\mathcal F$}
+\textbf{In the GUI.} The same Cost \& performance editor contains \jcode{user_performance}. The GUI recognizes its returned names: the first is the nonlinear performance to maximize, while later values are displayed as additional HB metrics.
+
+\textbf{Underlying Julia syntax.} The nonlinear working-point objective is defined by:
+\begin{lstlisting}
+function user_performance(sol, device_params_set, source_amps, source_freqs)
+    # evaluate nonlinear response
+    return (
+        performance = performance,
+        another_quantity = another_quantity,
+    )
+end
+\end{lstlisting}
+The first returned value is the performance $\mathcal F$ and is maximized when JCO identifies the best nonlinear working point. Additional named values become nonlinear analysis metrics.
+The source arrays correspond to the exact source amplitudes and frequencies used at the current HB point. They can therefore be used directly when the desired performance depends on the operating condition as well as on the circuit response.
+
+\subsection{Nonlinear feedback}
+JCO expects a nonlinear-correction hook:
+\begin{lstlisting}
+function user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)
+    # Both inputs are complete hbsolve solutions.
+    delta_M = 0.0  # user-defined correction
+    return delta_M
+end
+\end{lstlisting}
+When feedback cycles are enabled, JCO evaluates this term from the Linear and nonlinear solutions for the selected device and reference nonlinear amplitudes, passes it back as \jcode{nonlinear_correction} to \jcode{user_cost}, repeats the Linear sweep/optimization around the current optimum, and then evaluates the new nonlinear working points. Returning \jcode{0.0} leaves $\mathcal M$ unchanged.
+
+Reference amplitudes for the correction can be included in the source configuration using keys such as:
+\begin{lstlisting}
+"source_1_non_linear_amplitude_for_delta_correction": 0.565e-6
+\end{lstlisting}
+
+\subsection{Saving frequency-resolved or custom arrays}\label{sec:savedata}
+\textbf{In the GUI.} There is no need to predefine every possible frequency-resolved result in the interface. The experiment code chooses which arrays are worth retaining; after the run, those arrays appear automatically for the corresponding selected point in Results.
+
+\textbf{Underlying Julia syntax.} Scalar values returned by \jcode{user_cost} and \jcode{user_performance} are already stored in the summary HDF5 tables. Larger arrays should be saved explicitly only when they will be useful in Results.
+Inside a Linear or nonlinear point, use:
+\begin{lstlisting}
+save_data(S21)
+\end{lstlisting}
+or the explicit macro form:
+\begin{lstlisting}
+@save_data S21
+\end{lstlisting}
+For GUI-loaded metric code, a simple \jcode{save_data(S21)} call preserves the variable name so the Results catalogue displays \jcode{S21} rather than a generic label. The active stage is selected automatically. Arrays are associated with the current stable \jcode{point_id} and written to \path{saved_data/linear.h5} or \path{saved_data/nonlinear.h5}.
+
+A common frequency axis is stored when it matches the standard JCO frequency grid. Complex arrays are retained as real and imaginary parts; Results can display magnitude, real part, imaginary part or phase without storing separate plot images.
+\begin{jconote}
+\textbf{What should be saved?} Return compact scalar quantities from \jcode{user_cost}/\jcode{user_performance}. Use \jcode{save_data} for the smaller set of arrays that you may want to inspect later. Do not save every solver object or every S-parameter trace by default.
+\end{jconote}
+
+\subsection{Optional helper and calibration files}
+Reusable metric functions can be placed in \jcode{user_metric_utils.jl}; source functions can be placed in \jcode{user_parametric_sources.jl}. Plain-text calibration files can also be attached from Setup and are stored inside the project input directory. These files travel with the \texttt{.jco} archive.
+
+\subsection{Practical run sequence}
+A typical new experiment is run as follows:
+\begin{enumerate}
+\item Create a new project or open an existing \texttt{.jco} project.
+\item Define the circuit and verify the lumped-element preview.
+\item Define Fixed/Range/List device parameters.
+\item Define source ports, frequencies and Linear/nonlinear amplitudes.
+\item Configure the frequency range, harmonics, solver and optimizer.
+\item Define \jcode{user_cost}, \jcode{user_performance} and the nonlinear-correction hook; save only the detailed arrays that are useful for later analysis.
+\item Save the project as a \texttt{.jco} file.
+\item Configure the Julia executable/threads and perform runtime setup if needed.
+\item Use \textbf{Run} for a fresh complete experiment, or \textbf{Run stage} for a specific stage-only calculation.
+\item Inspect Linear, Optimization and HB datasets in Results and export selected numerical data when required.
+\end{enumerate}
+
+\section*{Quick troubleshooting}
+\addcontentsline{toc}{section}{Quick troubleshooting}
+\begin{longtable}{@{}p{.34\linewidth}p{.61\linewidth}@{}}\toprule
+\textbf{Symptom} & \textbf{Check}\\\midrule\endhead
+GUI does not start & Delete the local \path{gui/.jco-runtime} only if the launcher reports an incomplete Node runtime; otherwise read the launcher error before changing the Julia environment.\\
+Julia executable not found & Set the Julia executable in GUI settings to \jcode{julia} or to the full executable path.\\
+First simulation fails during package loading & Run the Julia runtime setup and verify internet access/package installation.\\
+A stage is marked stale & An input affecting that stage changed. Re-run it or use Run for a fresh pipeline.\\
+Optimization is skipped & All device parameters are fixed; the project is a single-point experiment.\\
+No retained trace is shown & Scalar results may exist even when no \jcode{save_data} call was made for that point.\\
+HB point missing & Check the convergence filter and solver log; non-converged working points may be absent or filtered.\\
+Linux Electron launch fails & Linux support is preliminary; check distribution-specific Electron/system-library requirements.\\\bottomrule
+\end{longtable}
+
+\begin{jconote}
+\textbf{Developer documentation.} This manual intentionally stops at the experiment/user boundary. Electron architecture, React state management, Julia bridge internals, provenance implementation, test architecture, repository governance and extension patterns should be documented separately as developer documentation rather than mixed into the user guide.
+\end{jconote}
+
+\begin{thebibliography}{9}
+\bibitem{repository} JosephsonCircuitsOptimizer.jl source repository, \url{https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer}.
+\bibitem{palumbo2026} E. Palumbo et al., ``JosephsonCircuitsOptimizer.jl (JCO)'', \emph{IEEE Transactions on Applied Superconductivity}, 2026. DOI: \href{https://doi.org/10.1109/TASC.2026.3679488}{10.1109/TASC.2026.3679488}.
+\bibitem{josephsoncircuits} JosephsonCircuits.jl documentation and source repository, \url{https://josephsoncircuits.org/}.
+\end{thebibliography}
+\end{document}
