@@ -185,11 +185,13 @@ describe('Optimization Results landscape and history views', () => {
     expect(screen.queryByText(/All objective evaluations are masked/)).toBeNull()
   })
 
-  it('includes constant parameter columns in the plotted histories', () => {
+  it('omits constant parameters from plotted histories', () => {
     const constant: ResultTable = { ...optimization, rows: optimization.rows.map((row) => [row[0], row[1], row[2], 70e-12, row[4]]) }
     render(<OptimizationResultsView run={{ ...run(false), optimization: constant }} table={constant} />)
     fireEvent.click(screen.getByRole('button', { name: 'History' }))
-    expect(screen.getAllByTestId('optimizer-history-chart')).toHaveLength(4)
-    expect(screen.getByRole('heading', { name: 'Ladd' })).toBeTruthy()
+    const charts = screen.getAllByTestId('optimizer-history-chart')
+    expect(charts).toHaveLength(3) // Objective and the two varying parameters
+    expect(charts.slice(1).map((chart) => chart.getAttribute('data-series'))).toEqual(['I0', 'Cg'])
+    expect(screen.queryByRole('heading', { name: 'Ladd' })).toBeNull()
   })
 })
