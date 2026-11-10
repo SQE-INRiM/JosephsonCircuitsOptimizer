@@ -143,7 +143,7 @@ For multi-session work, record only what is needed to resume safely: last verifi
 
 ## Next safe action
 
-1. Review `chore/governance-launcher-cleanup` for the deliberate removal of source-only launcher shortcuts; verify that normal packaged installs and source bootstrap entry points are unaffected. Integrate independently from the release branch.
-2. Reconcile `release/v0.5.0-prep` with the latest `main` after any parallel changes, preserving the simplified README and original manual styling.
-3. Run the relevant Julia regression suite and GUI tests/build, then verify Windows Setup/Portable and Linux AppImage package builds before finalizing v0.5.0.
-4. Review unresolved qualified scientific audits, changelog and release notes; create the `v0.5.0` tag only after versions match and the release candidate is approved.
+1. Validate PR #52 (`release/v0.5.0-prep`) with the latest commit: governance, GUI tests/build and Windows/Linux packaging; the optimizer History test must assert **constant parameters are hidden**.
+2. Execute Julia optimizer and nonlinear-feedback regression tests on the final release commit, review the `.jco` compatibility and scientific validation limitations documented in `docs/audits/AUD_20261110_001_v050_release_readiness.md`.
+3. Confirm the canonical `docs/JCO_Documentation.tex` rebuilds without layout errors through `docs/build_manual.sh`; inspect the resulting PDF and versioned release notes.
+4. Merge the release PR once accepted, verify that root and GUI version strings are all `0.5.0` on the final `main` commit, and only then create the `v0.5.0` tag after explicit publication approval. The tag drives Windows/Linux/manual builds and GitHub Release publication.
