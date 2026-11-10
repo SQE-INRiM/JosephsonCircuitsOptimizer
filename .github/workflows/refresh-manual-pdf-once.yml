@@ -1,4 +1,4 @@
-name: One-time refresh of tracked JCO manual PDF
+name: One-time sync tracked JCO manual PDF from release
 on:
   push:
     branches:
@@ -10,31 +10,28 @@ permissions:
   contents: write
 
 jobs:
-  regenerate:
+  sync-manual:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
-      - name: Install LaTeX and SVG tools
+      - name: Download official compiled v0.5.0 manual
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended lmodern librsvg2-bin poppler-utils
-      - name: Rebuild manual from canonical LaTeX source
-        run: |
-          bash docs/build_manual.sh
-          pdfinfo docs/JCO_Documentation.pdf | grep '^Pages:'
-          test -s docs/.manual-build/jco-logo.pdf
-          test -s docs/JCO_Documentation.pdf
-      - name: Commit regenerated PDF to the branch
+          gh release download v0.5.0 --repo "$GITHUB_REPOSITORY" \
+            --pattern "JCO_Documentation.pdf" --dir docs --clobber
+          echo 'd126666fa4b1bfec0956e55faf39321f96c50dbf6161bba95482b3d0d625a3cd  docs/JCO_Documentation.pdf' | sha256sum -c -
+      - name: Commit exact release PDF to the repository branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/JCO_Documentation.pdf
           if git diff --cached --quiet; then
-            echo "PDF already matches the compiled LaTeX source."
+            echo "Repository PDF already matches the released manual."
           else
-            git commit -m "docs: regenerate tracked PDF with official JCO logo"
+            git commit -m "docs: synchronize tracked PDF with official v0.5.0 manual"
             git push origin HEAD:fix/manual-pdf-logo
           fi
