@@ -4,7 +4,7 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
-## 0.5.0 - Release preparation (not yet published)
+## 0.5.0
 
 [Release notes draft](docs/releases/v0.5.0.md) · Integrated nonlinear-feedback workflow and optimizer reliability improvements.
 
