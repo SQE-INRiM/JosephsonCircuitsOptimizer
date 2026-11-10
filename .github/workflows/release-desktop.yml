@@ -132,6 +132,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v4
+
       - name: Download packaged applications
         uses: actions/download-artifact@v4
         with:
@@ -142,9 +145,19 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            release-assets/* \
-            --repo "${GITHUB_REPOSITORY}" \
-            --title "JosephsonCircuitsOptimizer ${GITHUB_REF_NAME}" \
-            --generate-notes
+          notes_file="docs/releases/${GITHUB_REF_NAME}.md"
+          if [[ -f "$notes_file" ]]; then
+            gh release create "${GITHUB_REF_NAME}" \
+              release-assets/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "JosephsonCircuitsOptimizer ${GITHUB_REF_NAME}" \
+              --notes-file "$notes_file"
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              release-assets/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "JosephsonCircuitsOptimizer ${GITHUB_REF_NAME}" \
+              --generate-notes
+          fi

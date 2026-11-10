@@ -140,12 +140,12 @@ Julia remains external to the desktop application. From the GUI settings, select
 On the first Julia-backed operation, JCO may need to instantiate and precompile its Julia environment. This initial setup can take several minutes and may require an Internet connection. Subsequent launches normally reuse the prepared environment.
 
 \subsection{Running the GUI from source}
-Developers, or users who prefer to run directly from the repository, can still use the source launchers. On Windows, from the repository root, double-click \jcode{START_JCO_GUI.bat}. On Linux:
+The packaged desktop applications are recommended for regular users. Developers can run the GUI directly from a source checkout using Node.js (version 20 or newer) and npm:
 \begin{lstlisting}[language=bash]
-chmod +x START_JCO_GUI.sh
-./START_JCO_GUI.sh
+cd gui
+npm run jco
 \end{lstlisting}
-The source launchers prepare the local Node.js/Electron environment and start the same JCO GUI. A global Node.js or npm installation is not required when using the provided launchers.
+This command installs missing GUI dependencies, builds the renderer, and launches Electron. Alternatively, the existing \jcode{gui/scripts/bootstrap-windows.ps1} and \jcode{gui/scripts/bootstrap-linux.sh} scripts can prepare a local portable Node.js environment for source checkouts. The former top-level \jcode{START_JCO_GUI.bat} and \jcode{START_JCO_GUI.sh} shortcuts are no longer included.
 
 \subsection{Direct Julia execution}
 JCO can also be run directly from Julia. From the repository root:

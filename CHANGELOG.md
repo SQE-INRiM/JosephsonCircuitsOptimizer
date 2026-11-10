@@ -4,10 +4,21 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
-### Source launch cleanup and development governance
+## 0.5.0
 
-- Remove the redundant top-level `START_JCO_GUI.bat` / `START_JCO_GUI.sh` source checkout shortcuts; published Windows/Linux desktop packages, their launchers and build workflows are unaffected. Developers can use `npm run jco` from `gui/` with Node.js installed or invoke the existing platform bootstrap scripts directly.
-- Clarify the proactive governance review at non-trivial task, PR and release checkpoints and refresh the repository recovery status. No scientific solver, GUI, or `.jco` schema behavior changes.
+[Release notes draft](docs/releases/v0.5.0.md) · Integrated nonlinear-feedback workflow and optimizer reliability improvements.
+
+### Source launcher cleanup and governance (PR #50)
+
+- Remove obsolete source-only `START_JCO_GUI.bat` and `START_JCO_GUI.sh` shortcuts without changing packaged Windows/Linux launchers; retain source bootstrap scripts and `npm run jco` for developers.
+- Document proactive review of changelog, ADRs, audits, work items and repository recovery state at task, PR and release checkpoints.
+
+### Optimizer reliability and feedback efficiency (PRs #47, #48)
+
+- Cache full linear harmonic-balance solutions across feedback cycles where memory permits, while recomputing the user-defined cost with each updated nonlinear correction; cap retention at 2 GiB and release the cache at run end.
+- Apply the optimizer's configured random seed before surrogate construction and sampling, and select the final optimal design from physically evaluated, feasible sweep or optimizer points rather than relying on an unevaluated surrogate candidate.
+- When the surrogate optimizer returns no result, recover the best feasible measured design with an explicit warning; preserve optimizer history from tuple-shaped samples in the native Julia engine.
+- Add regression tests for cache reuse, seed reproducibility, feasibility, and optimizer result selection.
 
 ### Run feedback progress and Results usability (PR #41)
 
@@ -17,20 +28,20 @@ This changelog records completed user-relevant and development-process changes. 
 - Put the Results Nonlinear feedback button beside the cycle arrows and keep Optimization Linear slice available for a single stored configuration.
 - Initialize Optimization X/Y axes from the corresponding Linear dataset even if Optimization is opened first; users can still select different optimizer axes independently.
 
-### Cycle-aware nonlinear feedback Results (parallel draft)
+### Cycle-aware nonlinear feedback Results
 
 - Store corrected-cycle Linear, Optimization and HB datasets in individual folders, with an atomic run-level feedback convergence summary and Cycle 0 remaining at the run root.
 - Add compact clickable cycle navigation with previous/next arrows **above** the Results stage tabs and a subtly accented Nonlinear feedback view for performance and parameter convergence (without duplicate cycle buttons); keep saved traces, A/B selection and CSV exports cycle-aware.
 - Retain the full original design ranges for every corrected Linear/BO cycle rather than collapsing tagged parameters to one previous-optimum point. Add spacing below Setup's function editors; disable Optimization History for fewer than two valid evaluations and omit its masked-only warning.
-- The numerical feedback loop is integrated with the fixed-cycle or convergence stopping available on `main`. Multi-cycle Julia/HB validation remains pending; this change stays in the parallel draft PR.
+- The numerical feedback loop supports fixed-cycle and convergence stopping. Multi-cycle runs have undergone maintainer testing; independent scientific reference validation remains recommended.
 
-### Nonlinear feedback (development; scientific validation pending)
+### Nonlinear feedback
 
 - Add optional nonlinear-feedback stopping in Computation: fixed correction cycles **or** convergence on corrected cost, best pumped HB performance or nonlinear correction, with absolute/relative tolerance and a maximum cycle budget. Place the feedback card below Harmonic and solver settings; retain source currents in A while removing redundant checkbox and field-help wording. Remove redundant explanatory text from Metrics.
 - Provide three genuinely isolated Julia editors in Metrics for `user_cost`, `user_performance` and `user_nonlinear_correction`. Each shows only its function and saves only that function back into the original `user_cost_and_performance.jl`; preserve helper code and provide a full-file fallback for unsupported Julia layouts. No `.jco` schema change.
 - Standardize `user_nonlinear_correction(sol_linear, sol_nonlinear, device_params_set)` on two full JC `hbsolve` solutions, matching the existing `user_cost`/`user_performance` API; reuse the linear solution across amplitude points at fixed source frequencies. Older feedback functions that index a linear S dictionary require manual migration (ADR_009).
 - Store cycles and reference currents in the existing `.jco` input keys; default feedback to off (0 cycles) for new projects and validate numeric source values when enabled.
-- Record feedback stop mode, monitored values and completion reason in each run's `nonlinear_feedback_stopping.json`; fix corrected-cycle HB optimum-amplitude indexing. Add renderer/serialization and standalone Julia convergence tests. Real multi-cycle Julia harmonic-balance validation remains pending before any release.
+- Record feedback stop mode, monitored values and completion reason in each run's `nonlinear_feedback_stopping.json`; fix corrected-cycle HB optimum-amplitude indexing. Add renderer/serialization and standalone Julia convergence tests. Maintainer testing has included nonlinear-feedback GUI runs; comprehensive scientific reference-data comparisons remain a separate validation activity.
 
 ### Results
 - Disable HB **Amplitude response** when no source-amplitude sweep exists (including single-point nonlinear runs).

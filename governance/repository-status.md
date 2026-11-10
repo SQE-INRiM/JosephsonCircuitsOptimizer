@@ -4,11 +4,14 @@ Last governance refresh: 2026-11-10
 
 ## Current checkpoint — 2026-11-10
 
+- **v0.5.0 preparation:** `release/v0.5.0-prep` is now based on `main` containing PR #50, synchronizes root/GUI versions to 0.5.0, retains the approved README and manual PDF, and includes the canonical LaTeX manual source plus tag-triggered documentation build. The release PR also corrects the optimizer History *test only* to assert that constant parameters stay hidden. The code is not changed to display constant parameters.
+- **Release validation pending:** check the release PR's complete GUI test/build statuses; execute the Julia optimizer/feedback tests on the final commit and inspect packages. No v0.5.0 tag was created as part of this checkpoint.
+
 - **Last verified `main` commit before this branch:** `c71d3c1a4d4e7000f6f6d040eac0b5779fac0bca` (README PR #49 merged).
 - **Published release:** `v0.4.3` (4 November 2026). Notes about unpublished v0.4.3 or feedback being isolated below are *historical checkpoints*, not the current state.
 - **Integrated after v0.4.3:** nonlinear-feedback cycle handling, reuse of linear solutions (PR #47), optimizer seed/verified feasible optimum (PR #48), and approved simplified README (PR #49). The maintainer reported focused Julia tests passing and practical GUI feedback/optimizer runs appearing functional; independent numerical/HB reference validation is not claimed.
 - **Next release:** `release/v0.5.0-prep` is a separate, unmerged preparation branch; no v0.5.0 tag or release has been published. Synchronize any parallel changes before final integration.
-- **Current cleanup branch:** `chore/governance-launcher-cleanup` removes only the top-level `START_JCO_GUI.bat` and `START_JCO_GUI.sh` convenience entry points. Packaged Windows/Linux applications and GitHub build workflows do not use them. The underlying source bootstrap scripts remain available at `gui/scripts/bootstrap-windows.ps1` and `gui/scripts/bootstrap-linux.sh`; no packaged user path is changed.
+- **Integrated cleanup PR #50:** the top-level `START_JCO_GUI.bat` and `START_JCO_GUI.sh` convenience wrappers were removed on `main` (merge `1c7e67f`). Packaged Windows/Linux applications and GitHub build workflows are unaffected. Source bootstrap scripts remain available at `gui/scripts/bootstrap-windows.ps1` and `gui/scripts/bootstrap-linux.sh`.
 - **Verification for this cleanup:** static inspection of launcher and packaging entry points and searches for launcher references. No new local npm, Julia, desktop or package builds were run.
 - **Governance policy:** for every non-trivial coding task automatically consult the current status/relevant ADR and work-item/audit context, then review the five PR governance categories; do not invent audit evidence or create documents without material value.
 
@@ -140,7 +143,7 @@ For multi-session work, record only what is needed to resume safely: last verifi
 
 ## Next safe action
 
-1. Review `chore/governance-launcher-cleanup` for the deliberate removal of source-only launcher shortcuts; verify that normal packaged installs and source bootstrap entry points are unaffected. Integrate independently from the release branch.
-2. Reconcile `release/v0.5.0-prep` with the latest `main` after any parallel changes, preserving the simplified README and original manual styling.
-3. Run the relevant Julia regression suite and GUI tests/build, then verify Windows Setup/Portable and Linux AppImage package builds before finalizing v0.5.0.
-4. Review unresolved qualified scientific audits, changelog and release notes; create the `v0.5.0` tag only after versions match and the release candidate is approved.
+1. Validate PR #52 (`release/v0.5.0-prep`) with the latest commit: governance, GUI tests/build and Windows/Linux packaging; the optimizer History test must assert **constant parameters are hidden**.
+2. Execute Julia optimizer and nonlinear-feedback regression tests on the final release commit, review the `.jco` compatibility and scientific validation limitations documented in `docs/audits/AUD_20261110_001_v050_release_readiness.md`.
+3. Confirm the canonical `docs/JCO_Documentation.tex` rebuilds without layout errors through `docs/build_manual.sh`; inspect the resulting PDF and versioned release notes.
+4. Merge the release PR once accepted, verify that root and GUI version strings are all `0.5.0` on the final `main` commit, and only then create the `v0.5.0` tag after explicit publication approval. The tag drives Windows/Linux/manual builds and GitHub Release publication.
