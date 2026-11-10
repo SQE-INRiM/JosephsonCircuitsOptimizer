@@ -20,8 +20,6 @@ JCO includes a desktop GUI and portable `.jco` project files for saving and shar
 
 The **[JCO User Manual (PDF)](docs/JCO_Documentation.pdf)** is the complete reference for the GUI, simulations, optimization, nonlinear feedback, project format, custom Julia functions, and results.
 
-*The manual is being updated for **v0.5.0**. The latest published installer may not yet include all features described in the current repository.*
-
 ## Quick Start
 
 **Requirements:** Windows or Linux and a working Julia installation.
