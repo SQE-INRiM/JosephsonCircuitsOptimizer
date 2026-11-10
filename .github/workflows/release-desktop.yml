@@ -104,10 +104,31 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
+  build-manual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install LaTeX and SVG converter
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended lmodern librsvg2-bin
+      - name: Build JCO user manual
+        run: bash docs/build_manual.sh
+      - name: Upload documentation asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release-manual
+          path: docs/JCO_Documentation.pdf
+          if-no-files-found: error
+          retention-days: 3
+
   publish:
     needs:
       - build-windows
       - build-linux
+      - build-manual
     runs-on: ubuntu-latest
 
     steps:
