@@ -1,6 +1,19 @@
 # Repository Status
 
-Last governance refresh: 2026-11-04
+Last governance refresh: 2026-11-10
+
+## Current checkpoint — 2026-11-10
+
+- **Last verified `main` commit before this branch:** `c71d3c1a4d4e7000f6f6d040eac0b5779fac0bca` (README PR #49 merged).
+- **Published release:** `v0.4.3` (4 November 2026). Notes about unpublished v0.4.3 or feedback being isolated below are *historical checkpoints*, not the current state.
+- **Integrated after v0.4.3:** nonlinear-feedback cycle handling, reuse of linear solutions (PR #47), optimizer seed/verified feasible optimum (PR #48), and approved simplified README (PR #49). The maintainer reported focused Julia tests passing and practical GUI feedback/optimizer runs appearing functional; independent numerical/HB reference validation is not claimed.
+- **Next release:** `release/v0.5.0-prep` is a separate, unmerged preparation branch; no v0.5.0 tag or release has been published. Synchronize any parallel changes before final integration.
+- **Current cleanup branch:** `chore/governance-launcher-cleanup` removes only the top-level `START_JCO_GUI.bat` and `START_JCO_GUI.sh` convenience entry points. Packaged Windows/Linux applications and GitHub build workflows do not use them. The underlying source bootstrap scripts remain available at `gui/scripts/bootstrap-windows.ps1` and `gui/scripts/bootstrap-linux.sh`; no packaged user path is changed.
+- **Verification for this cleanup:** static inspection of launcher and packaging entry points and searches for launcher references. No new local npm, Julia, desktop or package builds were run.
+- **Governance policy:** for every non-trivial coding task automatically consult the current status/relevant ADR and work-item/audit context, then review the five PR governance categories; do not invent audit evidence or create documents without material value.
+
+The dated records below are retained as historical decision and verification context.
+
 
 ## Draft nonlinear feedback PR #24 — reconciled with 2026-11-04 main
 
@@ -127,7 +140,7 @@ For multi-session work, record only what is needed to resume safely: last verifi
 
 ## Next safe action
 
-1. Review and merge `release/v0.4.3-gui-results` after the versioned GUI build/tests, governance and Windows/Linux package checks pass.
-2. Verify `Project.toml`, `gui/package.json` and `gui/package-lock.json` all declare `0.4.3` on the **final merged main commit**.
-3. Create and push the annotated `v0.4.3` tag on that exact `main` commit. The existing `.github/workflows/release-desktop.yml` will build and publish Windows Setup, Windows Portable and Linux AppImage artifacts.
-4. Verify the GitHub Release assets and keep the nonlinear feedback GUI on a separate branch for a later feature release (tentatively v0.5.0). Independent scientific/HB and installed-desktop validation remain separate from CI.
+1. Review `chore/governance-launcher-cleanup` for the deliberate removal of source-only launcher shortcuts; verify that normal packaged installs and source bootstrap entry points are unaffected. Integrate independently from the release branch.
+2. Reconcile `release/v0.5.0-prep` with the latest `main` after any parallel changes, preserving the simplified README and original manual styling.
+3. Run the relevant Julia regression suite and GUI tests/build, then verify Windows Setup/Portable and Linux AppImage package builds before finalizing v0.5.0.
+4. Review unresolved qualified scientific audits, changelog and release notes; create the `v0.5.0` tag only after versions match and the release candidate is approved.
