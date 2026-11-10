@@ -16,6 +16,8 @@ Before a non-trivial change, read the material that is relevant to the task:
 
 The agent does not need to reread every governance document for every routine change.
 
+**Automatic governance checkpoint:** For each non-trivial development task, do this review proactively without waiting for a user reminder. Check the current branch and `repository-status.md` at the start; revisit the five documentation categories before opening or merging a code/configuration PR; and reconcile release-facing notes, outstanding audit qualifications and the recovery point before a release. This applies equally to work resumed in another chat or branch. Document only consequential changes and evidence actually obtained: do not create routine ADRs or audits just to satisfy a checklist.
+
 ## Source of truth
 
 - Code and tests define executable behavior.

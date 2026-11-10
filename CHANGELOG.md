@@ -8,6 +8,11 @@ This changelog records completed user-relevant and development-process changes. 
 
 [Release notes draft](docs/releases/v0.5.0.md) · Integrated nonlinear-feedback workflow and optimizer reliability improvements.
 
+### Source launcher cleanup and governance (PR #50)
+
+- Remove obsolete source-only `START_JCO_GUI.bat` and `START_JCO_GUI.sh` shortcuts without changing packaged Windows/Linux launchers; retain source bootstrap scripts and `npm run jco` for developers.
+- Document proactive review of changelog, ADRs, audits, work items and repository recovery state at task, PR and release checkpoints.
+
 ### Optimizer reliability and feedback efficiency (PRs #47, #48)
 
 - Cache full linear harmonic-balance solutions across feedback cycles where memory permits, while recomputing the user-defined cost with each updated nonlinear correction; cap retention at 2 GiB and release the cache at run end.
