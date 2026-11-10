@@ -4,6 +4,11 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+### Source launch cleanup and development governance
+
+- Remove the redundant top-level `START_JCO_GUI.bat` / `START_JCO_GUI.sh` source checkout shortcuts; published Windows/Linux desktop packages, their launchers and build workflows are unaffected. Developers can use `npm run jco` from `gui/` with Node.js installed or invoke the existing platform bootstrap scripts directly.
+- Clarify the proactive governance review at non-trivial task, PR and release checkpoints and refresh the repository recovery status. No scientific solver, GUI, or `.jco` schema behavior changes.
+
 ### Run feedback progress and Results usability (PR #41)
 
 - Show live nonlinear-feedback cycles above the Run stages: Linear, Optimization and HB progress now follow each corrected cycle, while the visually distinct Feedback card remains informational and is disabled when feedback is off.
