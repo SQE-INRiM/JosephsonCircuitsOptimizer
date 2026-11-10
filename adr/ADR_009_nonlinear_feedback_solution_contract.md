@@ -1,6 +1,6 @@
 # ADR_009 — Full HB solution inputs for nonlinear feedback
 
-- Status: proposed (draft PR #24)
+- Status: accepted (nonlinear-feedback API integrated; scientific reference validation remains pending)
 - Date: 2026-11-04
 - Scope: JCO user-defined nonlinear correction API and GUI bridge
 
