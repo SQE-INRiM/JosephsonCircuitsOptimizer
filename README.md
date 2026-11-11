@@ -27,14 +27,6 @@ The **[JCO User Manual (PDF)](docs/JCO_Documentation.pdf)** is the complete refe
 Download the latest desktop application from **[JCO-GUI Releases](https://github.com/SQE-INRiM/JosephsonCircuitsOptimizer/releases/latest)**.
 
 - **Windows:** Run `JCO-GUI-<version>-Windows-Setup.exe` to install JCO, or use `JCO-GUI-<version>-Windows-Portable.exe` without installation.
-- **Linux:** Download `JCO-GUI-<version>-Linux-x64.AppImage`, then make it executable and launch it:
-
-  ```bash
-  chmod +x JCO-GUI-<version>-Linux-x64.AppImage
-  ./JCO-GUI-<version>-Linux-x64.AppImage
-  ```
-
-> **Linux packaged support is currently x86-64 and preliminary.** Linux has been less extensively validated than Windows and may still depend on distribution-specific system libraries.
 
 <details>
 <summary>⚠️ If Windows blocks installation or simulation</summary>
@@ -48,6 +40,15 @@ If you encounter blocked DLLs or error `0xc0e90002`, see [Microsoft's Smart App 
 As a workaround, you can disable Smart App Control under **Windows Security → App & browser control → Smart App Control settings**. However, doing so **reduces Windows security** and is not required for all users.
 
 </details>
+
+- **Linux:** Download `JCO-GUI-<version>-Linux-x64.AppImage`, then make it executable and launch it:
+
+  ```bash
+  chmod +x JCO-GUI-<version>-Linux-x64.AppImage
+  ./JCO-GUI-<version>-Linux-x64.AppImage
+  ```
+
+> **Linux packaged support is currently x86-64 and preliminary.** Linux has been less extensively validated than Windows and may still depend on distribution-specific system libraries.
 
 On first launch, JCO may need an internet connection to prepare its Julia environment. In **Settings**, choose the Julia executable and the desired number of threads.
 
