@@ -4,6 +4,8 @@ This changelog records completed user-relevant and development-process changes. 
 
 ## Unreleased
 
+- Skip only an individual nonlinear HB sweep point if the solver fails without returning a solution, logging its original error; preserve the existing optional skip-higher-pump behavior in Julia and the desktop GUI.
+
 ## 0.5.0
 
 [Release notes draft](docs/releases/v0.5.0.md) · Integrated nonlinear-feedback workflow and optimizer reliability improvements.
