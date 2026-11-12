@@ -239,12 +239,19 @@ function run_nonlinear_simulations_sweep(optimal_params::Dict)
             nl = nonlinear_simulation(circuit, amps, local_sim_vars)
 
             if skip_on_nonconvergence && !nl.converged
-                @info "Nonlinear solver did not converge" amp_idx=amp_idx amps=amps freq_idx=freq_idx freqs=current_source_freqs
+                @info "Nonlinear solver did not converge" amp_idx=amp_idx amps=amps freq_idx=freq_idx freqs=current_source_freqs reason=nl.message
 
                 if n_sources >= 2 && !haskey(failed_idx_by_source2, source2_idx)
                     failed_idx_by_source2[source2_idx] = amp_idx[1]
                 end
 
+                continue
+            end
+
+            # An hbsolve exception can leave sol as nothing even when
+            # skip_on_nonconvergence is disabled. Never pass it to performance().
+            if nl.sol === nothing
+                @warn "Nonlinear HB returned no solution; skipping point" amp_idx=amp_idx amps=amps freq_idx=freq_idx freqs=current_source_freqs reason=nl.message
                 continue
             end
 
